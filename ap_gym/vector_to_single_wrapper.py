@@ -42,8 +42,8 @@ class VectorToSingleWrapper(
             self._tree_map(self._vectorize, options) if options is not None else None
         )
         obs, info = self.__vector_env.reset(seed=seed, options=options)
-        obs = self._tree_map(lambda x: x[0], obs)
-        info = self._tree_map(lambda x: x[0], info)
+        obs = self._tree_map(lambda x: np.asarray(x[0]), obs)
+        info = self._tree_map(lambda x: np.asarray(x[0]), info)
         return obs, info
 
     def step(
@@ -51,8 +51,8 @@ class VectorToSingleWrapper(
     ) -> Tuple["ObsType", float, bool, bool, Dict[str, Any]]:
         action = self._tree_map(self._vectorize, action)
         obs, reward, terminated, truncated, info = self.__vector_env.step(action)
-        obs = self._tree_map(lambda x: x[0], obs)
-        info = self._tree_map(lambda x: x[0], info)
+        obs = self._tree_map(lambda x: np.asarray(x[0]), obs)
+        info = self._tree_map(lambda x: np.asarray(x[0]), info)
         return obs, reward[0], terminated[0], truncated[0], info
 
     def render(self) -> Optional[np.ndarray]:
