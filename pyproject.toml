@@ -3,21 +3,23 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "Active Perception Gym"
+name = "ap_gym"
 version = "0.1.0"
-description = "Extension of Gymnasium for active perception tasks."
+description = "Active Perception Gym: extension of Gymnasium for active perception tasks."
 authors = [
     { name = "Tim Schneider", email = "tim@robot-learning.de" }
 ]
 readme = "README.md"
 license = { text = "MIT License" }
-homepage = "https://git.ias.informatik.tu-darmstadt.de/schneider/active-perception-gym.git"
 dependencies = [
     "gymnasium",
     "scipy",
     "numpy",
     "python-mnist"
 ]
+
+[project.urls]
+homepage = "https://git.ias.informatik.tu-darmstadt.de/schneider/active-perception-gym.git"
 
 [project.optional-dependencies]
 examples = ["matplotlib"]
