@@ -1,0 +1,28 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+import ap_gym
+
+env = ap_gym.make_vec("MNIST-v0", num_envs=4, render_mode="rgb_array")
+
+env.reset(seed=0)
+img = env.render()
+
+fig, axes = plt.subplots(2, env.num_envs, squeeze=False)
+img_shape = env.observation_space.shape
+obs_plot = [ax[0].imshow(np.zeros(env.single_observation_space.shape), vmin=0.0, vmax=1.0) for ax in axes.T]
+render_plot = [ax[1].imshow(np.zeros_like(im)) for ax, im in zip(axes.T, img)]
+plt.show(block=False)
+
+obs, _ = env.reset(seed=0)
+for s in range(1000):
+    action = {
+        "action": env.inner_action_space.sample(),
+        "prediction": env.prediction_space.sample()
+    }
+
+    obs, _, _, _, info = env.step(action)
+    for op, rp, o, img in zip(obs_plot, render_plot, obs, env.render()):
+        op.set_data(o)
+        rp.set_data(img)
+    plt.pause(1 / env.metadata["render_fps"])
