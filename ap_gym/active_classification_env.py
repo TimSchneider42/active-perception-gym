@@ -191,7 +191,9 @@ class ActiveClassificationVectorEnv(
             info["stats"] = {}
         done = terminated | truncated
         if np.any(done):
-            avg_accuracy = self.__current_correct_sum / np.maximum(self.__current_step, 1)
+            avg_accuracy = self.__current_correct_sum / np.maximum(
+                self.__current_step, 1
+            )
             info["stats"].update(
                 {
                     "avg_accuracy": avg_accuracy,
