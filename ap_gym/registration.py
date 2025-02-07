@@ -30,10 +30,14 @@ def register_envs():
                 kwargs=dict(image_shape=size, show_gradient=show_gradient),
                 entry_point=CircleSquareEnv,
                 vector_entry_point=CircleSquareVectorEnv,
+                max_episode_steps=16,
             )
 
     gym.envs.registration.register(
-        id="MNIST-v0", entry_point=MNISTEnv, vector_entry_point=MNISTVectorEnv
+        id="MNIST-v0",
+        entry_point=MNISTEnv,
+        vector_entry_point=MNISTVectorEnv,
+        max_episode_steps=16,
     )
 
 
