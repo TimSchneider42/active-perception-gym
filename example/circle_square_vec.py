@@ -3,7 +3,7 @@ import numpy as np
 
 import ap_gym
 
-env = ap_gym.make_vec("MNIST-v0", num_envs=4, render_mode="rgb_array")
+env = ap_gym.make_vec("CircleSquare-v0", num_envs=4, render_mode="rgb_array")
 
 env.reset(seed=0)
 img = env.render()
