@@ -37,7 +37,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, Union[int, np.ndarray]]):
         self,
         prediction: np.ndarray,
         target: Union[int, np.ndarray],
-        batch_shape: Tuple[int, ...],
+        batch_shape: Tuple[int, ...] = (),
     ) -> float:
         return -np.take_along_axis(
             scipy.special.log_softmax(prediction, axis=-1), target[..., None], axis=-1
@@ -47,7 +47,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, Union[int, np.ndarray]]):
         self,
         prediction: "torch.Tensor",
         target: Union[int, "torch.Tensor"],
-        batch_shape: Tuple[int, ...],
+        batch_shape: Tuple[int, ...] = (),
     ) -> "torch.Tensor":
         return -torch.take_along_dim(
             torch.nn.functional.log_softmax(prediction, dim=-1),
@@ -59,7 +59,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, Union[int, np.ndarray]]):
         self,
         prediction: "jax.Array",
         target: Union[int, "jax.Array"],
-        batch_shape: Tuple[int, ...],
+        batch_shape: Tuple[int, ...] = (),
     ) -> "jax.Array":
         return -jnp.take_along_axis(
             jax.nn.log_softmax(prediction), target[..., None], axis=-1
