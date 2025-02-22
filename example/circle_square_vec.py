@@ -22,6 +22,7 @@ for s in range(1000):
     }
 
     obs, _, _, _, info = env.step(action)
+    print(f"Current loss: {env.loss_fn.numpy(action['prediction'], info['prediction']['target'])}")
     for op, rp, o, img in zip(obs_plot, render_plot, obs, env.render()):
         op.set_data(o)
         rp.set_data(img)

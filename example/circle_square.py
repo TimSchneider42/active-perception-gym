@@ -28,6 +28,7 @@ for s in range(1000):
         }
         obs, _, terminated, truncated, info = env.step(action)
         prev_done = terminated or truncated
+        print(f"Current loss: {env.loss_fn.numpy(action['prediction'], info['prediction']['target']):0.2f}")
     obs_plot.set_data(obs)
     render_plot.set_data(env.render())
     plt.pause(1 / env.metadata["render_fps"])
