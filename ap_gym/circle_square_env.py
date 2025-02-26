@@ -1,4 +1,6 @@
-from typing import Literal, Tuple, Optional, Sequence, Union
+from __future__ import annotations
+
+from typing import Literal, Sequence
 
 import numpy as np
 
@@ -12,10 +14,10 @@ class CircleSquareVectorEnv(ImagePerceptionVectorEnv):
         num_envs: int,
         render_mode: Literal["rgb_array", "human"] = "rgb_array",
         show_gradient: bool = True,
-        image_shape: Tuple[int, int] = (28, 28),
+        image_shape: tuple[int, int] = (28, 28),
         shape_extents: int = 4,
-        max_episode_steps: Optional[int] = None,
-        max_step_length: Union[float, Sequence[float]] = 0.2,
+        max_episode_steps: int | None = None,
+        max_step_length: float | Sequence[float] = 0.2,
         constraint_violation_penalty: float = 0.0,
         interpolation_method: str = "linear",
         display_visitation: bool = True,
@@ -35,7 +37,7 @@ class CircleSquareVectorEnv(ImagePerceptionVectorEnv):
             display_visitation=display_visitation,
         )
 
-    def _load_image(self, idx: int) -> Tuple[np.ndarray, int]:
+    def _load_image(self, idx: int) -> tuple[np.ndarray, int]:
         label = int(idx >= np.prod(self.__image_shape))
         idx -= np.prod(self.__image_shape) * label
         pos_x = idx % self.__image_shape[1]
@@ -74,10 +76,10 @@ class CircleSquareVectorEnv(ImagePerceptionVectorEnv):
 def CircleSquareEnv(
     render_mode: Literal["rgb_array", "human"] = "rgb_array",
     show_gradient: bool = True,
-    image_shape: Tuple[int, int] = (28, 28),
+    image_shape: tuple[int, int] = (28, 28),
     shape_extents: int = 4,
-    max_episode_steps: Optional[int] = None,
-    max_step_length: Union[float, Sequence[float]] = 0.2,
+    max_episode_steps: int | None = None,
+    max_step_length: float | Sequence[float] = 0.2,
     constraint_violation_penalty: float = 0.0,
     interpolation_method: str = "linear",
     display_visitation: bool = True,

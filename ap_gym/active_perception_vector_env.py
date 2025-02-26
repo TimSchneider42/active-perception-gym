@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Tuple, Optional, Generic, Iterator, Callable, Sequence
+from typing import Any, Generic, Iterator, Callable, Sequence
 
 import gymnasium as gym
 import numpy as np
@@ -73,21 +75,21 @@ class ActivePerceptionVectorEnv(
 ):
     @abstractmethod
     def _reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple[ObsType, Dict[str, Any], PredTargetType]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[ObsType, dict[str, Any], PredTargetType]:
         pass
 
     @abstractmethod
     def _step(
         self, action: ActType, prediction: PredType
-    ) -> Tuple[
-        ObsType, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any], PredTargetType
+    ) -> tuple[
+        ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], PredTargetType
     ]:
         pass
 
     def reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple[ObsType, Dict[str, Any]]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[ObsType, dict[str, Any]]:
         obs, info, prediction_target = self._reset(seed=seed, options=options)
         info["prediction"] = {
             "target": prediction_target,
@@ -96,7 +98,7 @@ class ActivePerceptionVectorEnv(
 
     def step(
         self, action: FullActType[ActType, PredType]
-    ) -> Tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
+    ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
         (
             obs,
             base_reward,
@@ -186,7 +188,7 @@ class ActivePerceptionVectorWrapper(
 
 
 class PseudoActivePerceptionVectorWrapper(
-    BaseActivePerceptionVectorEnv[ObsType, ActType, Tuple, Tuple, np.ndarray],
+    BaseActivePerceptionVectorEnv[ObsType, ActType, tuple[()], tuple[()], np.ndarray],
     gym.vector.VectorWrapper,
     Generic[ObsType, ActType],
 ):
@@ -203,8 +205,8 @@ class PseudoActivePerceptionVectorWrapper(
         self.loss_fn = ZeroLossFn()
 
     def reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple[ObsType, Dict[str, Any]]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[ObsType, dict[str, Any]]:
         obs, info = self.env.reset(seed=seed, options=options)
         info["prediction"] = {
             "target": (),
@@ -213,7 +215,7 @@ class PseudoActivePerceptionVectorWrapper(
 
     def step(
         self, action: FullActType[ActType, None]
-    ) -> Tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any], Tuple]:
+    ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], tuple[()]]:
         obs, reward, terminated, truncated, info = self.env.step(action["action"])
         info.update(
             {

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC
-from typing import Dict, Any, Tuple, Optional, Literal, Sequence, Union
+from typing import Any, Literal, Sequence
 
 import gymnasium as gym
 import numpy as np
@@ -23,10 +25,10 @@ class ImagePerceptionVectorEnv(
         image_count: int,
         label_count: int,
         render_mode: Literal["rgb_array", "human"] = "rgb_array",
-        sensor_size: Tuple[int, int] = (5, 5),
+        sensor_size: tuple[int, int] = (5, 5),
         sensor_scale: float = 1.0,
-        max_episode_steps: Optional[int] = None,
-        max_step_length: Union[float, Sequence[float]] = 0.2,
+        max_episode_steps: int | None = None,
+        max_step_length: float | Sequence[float] = 0.2,
         constraint_violation_penalty: float = 0.0,
         interpolation_method: str = "linear",
         display_visitation: bool = True,
@@ -48,9 +50,9 @@ class ImagePerceptionVectorEnv(
         self.__sensor_size = sensor_size
         self.__sensor_scale = sensor_scale
         self.__render_mode = render_mode
-        self.__current_data_point_idx: Optional[int] = None
-        self.__current_images: Optional[np.ndarray] = None
-        self.__interpolated_images: Optional[RegularGridInterpolator] = None
+        self.__current_data_point_idx: int | None = None
+        self.__current_images: np.ndarray | None = None
+        self.__interpolated_images: RegularGridInterpolator | None = None
         self.__display_visitation = display_visitation
         *self.__image_size, self.__channels = self._load_image(0)[0].shape
         self.observation_space = ImageSpace(
@@ -66,7 +68,7 @@ class ImagePerceptionVectorEnv(
             self.__channels,
             dtype=np.float32,
         )
-        self.__current_sensor_pos_norm: Optional[np.ndarray] = None
+        self.__current_sensor_pos_norm: np.ndarray | None = None
         self.__current_time_step = None
         self.__max_steps = max_episode_steps
         max_step_length = np.array(max_step_length)
@@ -88,21 +90,21 @@ class ImagePerceptionVectorEnv(
         self.__last_prediction = np.zeros((self.num_envs, label_count), dtype=np.int32)
         self.__constraint_violation_penalty = constraint_violation_penalty
         self.__interpolation_method = interpolation_method
-        self.__prev_done: Optional[np.ndarray] = None
-        self.__current_labels: Optional[np.ndarray] = None
+        self.__prev_done: np.ndarray | None = None
+        self.__current_labels: np.ndarray | None = None
 
-    def _load_image(self, idx: int) -> Tuple[np.ndarray, int]:
+    def _load_image(self, idx: int) -> tuple[np.ndarray, int]:
         raise NotImplementedError(
             "Either _load_image or _load_image_batch must be implemented."
         )
 
-    def _load_image_batch(self, idx: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _load_image_batch(self, idx: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         imgs, labels = zip(*[self._load_image(i) for i in idx])
         return np.stack(imgs, axis=0), np.array(labels, dtype=np.int32)
 
     def _reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple[np.ndarray, Dict[str, Any], Any]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[np.ndarray, dict[str, Any], Any]:
         self.__current_rng = np.random.default_rng(seed)
         self.__current_data_point_idx = self.__current_rng.integers(
             0, self.__image_count, size=self.num_envs
@@ -138,7 +140,7 @@ class ImagePerceptionVectorEnv(
 
     def _step(
         self, action: np.ndarray, prediction: np.ndarray
-    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any], np.ndarray]:
+    ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any], np.ndarray]:
         self._update_visitation_overlay(prediction=prediction)
         if np.any(self.__prev_done):
             if not np.all(self.__prev_done):
@@ -174,9 +176,16 @@ class ImagePerceptionVectorEnv(
         truncated_arr = np.zeros(self.num_envs, dtype=np.bool_)
         self.__prev_done = terminated_arr | truncated_arr
         self.__last_prediction = prediction
-        return obs, base_reward, terminated_arr, truncated_arr, info, self.__current_labels
+        return (
+            obs,
+            base_reward,
+            terminated_arr,
+            truncated_arr,
+            info,
+            self.__current_labels,
+        )
 
-    def _update_visitation_overlay(self, prediction: Optional[np.ndarray] = None):
+    def _update_visitation_overlay(self, prediction: np.ndarray | None = None):
         pos, size = self.__sensor_rects
         pos = np.round(pos).astype(np.int32)
         size = np.round(np.flip(size)).astype(np.int32)
@@ -213,7 +222,7 @@ class ImagePerceptionVectorEnv(
         ).clip(0, 1)
         return sensor_img.astype(np.float32)
 
-    def render(self) -> Optional[np.ndarray]:
+    def render(self) -> np.ndarray | None:
         if self.__render_mode == "human":
             raise NotImplementedError()
         current_image = self.__current_images
@@ -286,11 +295,11 @@ class ImagePerceptionVectorEnv(
         return self.__render_mode
 
     @property
-    def sensor_size(self) -> Tuple[int, int]:
+    def sensor_size(self) -> tuple[int, int]:
         return self.__sensor_size
 
     @property
-    def image_size(self) -> Tuple[int, int]:
+    def image_size(self) -> tuple[int, int]:
         return self.__image_size
 
     @property

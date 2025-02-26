@@ -1,4 +1,6 @@
-from typing import Any, Union, Optional, Dict, Sequence, Callable
+from __future__ import annotations
+
+from typing import Any, Sequence, Callable
 
 import gymnasium as gym
 
@@ -42,9 +44,9 @@ def register_envs():
 
 
 def make(
-    id: Union[str, gym.envs.registration.EnvSpec],
-    max_episode_steps: Optional[int] = None,
-    disable_env_checker: Optional[bool] = None,
+    id: str | gym.envs.registration.EnvSpec,
+    max_episode_steps: int | None = None,
+    disable_env_checker: bool | None = None,
     **kwargs: Any,
 ) -> BaseActivePerceptionEnv:
     return ensure_active_perception_env(
@@ -58,10 +60,10 @@ def make(
 
 
 def make_vec(
-    id: Union[str, gym.envs.registration.EnvSpec],
+    id: str | gym.envs.registration.EnvSpec,
     num_envs: int = 1,
-    vectorization_mode: Optional[Union[gym.VectorizeMode, str]] = None,
-    vector_kwargs: Optional[Dict[str, Any]] = None,
+    vectorization_mode: gym.VectorizeMode | str | None = None,
+    vector_kwargs: dict[str, Any | None] = None,
     wrappers: Sequence[Callable[[BaseActivePerceptionEnv], ActivePerceptionWrapper]]
     | None = None,
     **kwargs,

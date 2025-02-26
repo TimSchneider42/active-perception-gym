@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Tuple, Optional, Generic, SupportsFloat
+from typing import Any, Generic
 
 import gymnasium as gym
 import numpy as np
@@ -68,19 +70,19 @@ class ActivePerceptionEnv(
 ):
     @abstractmethod
     def _reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple[ObsType, Dict[str, Any], PredTargetType]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[ObsType, dict[str, Any], PredTargetType]:
         pass
 
     @abstractmethod
     def _step(
         self, action: ActType, prediction: PredType
-    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any], PredTargetType]:
+    ) -> tuple[ObsType, float, bool, bool, dict[str, Any], PredTargetType]:
         pass
 
     def reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple[ObsType, Dict[str, Any]]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[ObsType, dict[str, Any]]:
         obs, info, prediction_target = self._reset(seed=seed, options=options)
         info["prediction"] = {
             "target": prediction_target,
@@ -89,7 +91,7 @@ class ActivePerceptionEnv(
 
     def step(
         self, action: FullActType[ActType, PredType]
-    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any]]:
+    ) -> tuple[ObsType, float, bool, bool, dict[str, Any]]:
         obs, base_reward, terminated, truncated, info, prediction_target = self._step(
             action["action"], action["prediction"]
         )
@@ -159,7 +161,7 @@ class ActivePerceptionWrapper(
 
 def find_loss_and_pred_space(
     env: gym.Env,
-) -> Tuple[LossFn[PredType, PredTargetType], gym.Space[PredTargetType]]:
+) -> tuple[LossFn[PredType, PredTargetType], gym.Space[PredTargetType]]:
     if isinstance(env, BaseActivePerceptionEnv):
         return env.loss_fn, env.prediction_target_space
     else:
@@ -202,7 +204,7 @@ class ActivePerceptionRestoreWrapper(
 
 
 class PseudoActivePerceptionWrapper(
-    BaseActivePerceptionEnv[ObsType, ActType, Tuple, Tuple],
+    BaseActivePerceptionEnv[ObsType, ActType, tuple[()], tuple[()]],
     gym.Wrapper,
     Generic[ObsType, ActType],
 ):
@@ -215,8 +217,8 @@ class PseudoActivePerceptionWrapper(
         self.loss_fn = ZeroLossFn()
 
     def reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple[ObsType, Dict[str, Any]]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[ObsType, dict[str, Any]]:
         obs, info = self.env.reset(seed=seed, options=options)
         info["prediction"] = {
             "target": (),
@@ -225,7 +227,7 @@ class PseudoActivePerceptionWrapper(
 
     def step(
         self, action: FullActType[ActType, None]
-    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any], Tuple]:
+    ) -> tuple[ObsType, float, bool, bool, dict[str, Any], tuple[()]]:
         obs, reward, terminated, truncated, info = self.env.step(action["action"])
         info.update(
             {

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Optional, TYPE_CHECKING, Generic, Callable
+from typing import Any, Tuple, TYPE_CHECKING, Generic, Callable
 
 import numpy as np
 
@@ -18,22 +20,28 @@ except ImportError:
 class LossFn(Generic[PredType, PredTargetType], ABC):
     @abstractmethod
     def numpy(
-        self, prediction: PredType, target: PredTargetType, batch_shape: Tuple[int, ...] = ()
+        self,
+        prediction: PredType,
+        target: PredTargetType,
+        batch_shape: tuple[int, ...] = (),
     ) -> float:
         pass
 
     def torch(
-        self, prediction: Any, target: Any, batch_shape: Tuple[int, ...] = ()
+        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
     ) -> "torch.Tensor":
         raise NotImplementedError("Loss function is not implemented for torch.")
 
     def jax(
-        self, prediction: Any, target: Any, batch_shape: Tuple[int, ...] = ()
+        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
     ) -> "jax.Array":
         raise NotImplementedError("Loss function is not implemented for torch.")
 
     def __call__(
-        self, prediction: PredType, target: PredTargetType, batch_shape: Tuple[int, ...] = ()
+        self,
+        prediction: PredType,
+        target: PredTargetType,
+        batch_shape: tuple[int, ...] = (),
     ):
         return self.numpy(prediction, target, batch_shape)
 
@@ -41,28 +49,31 @@ class LossFn(Generic[PredType, PredTargetType], ABC):
 class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTargetType]):
     def __init__(
         self,
-        np: Callable[[PredType, PredTargetType, Tuple[int, ...]], float],
-        torch: Optional[Callable[[Any, Any, Tuple[int, ...]], "torch.Tensor"]] = None,
-        jax: Optional[Callable[[Any, Any, Tuple[int, ...]], "jax.Array"]] = None,
+        np: Callable[[PredType, PredTargetType, tuple[int, ...]], float],
+        torch: Callable[[Any, Any, tuple[int, ... | None], "torch.Tensor"]] = None,
+        jax: Callable[[Any, Any, tuple[int, ... | None], "jax.Array"]] = None,
     ):
         self._np = np
         self._torch = torch
         self._jax = jax
 
     def numpy(
-        self, prediction: PredType, target: PredTargetType, batch_shape: Tuple[int, ...] = ()
+        self,
+        prediction: PredType,
+        target: PredTargetType,
+        batch_shape: tuple[int, ...] = (),
     ) -> float:
         return self._np(prediction, target, batch_shape)
 
     def torch(
-        self, prediction: Any, target: Any, batch_shape: Tuple[int, ...] = ()
+        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
     ) -> "torch.Tensor":
         if self._torch is None:
             raise NotImplementedError("Loss function is not implemented for torch.")
         return self._torch(prediction, target, batch_shape)
 
     def jax(
-        self, prediction: Any, target: Any, batch_shape: Tuple[int, ...] = ()
+        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
     ) -> "jax.Array":
         if self._jax is None:
             raise NotImplementedError("Loss function is not implemented for torch.")
@@ -71,16 +82,16 @@ class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTarge
 
 class ZeroLossFn(LossFn[Tuple, Tuple]):
     def numpy(
-        self, prediction: Tuple, target: Tuple, batch_shape: Tuple[int, ...] = ()
+        self, prediction: Tuple, target: Tuple, batch_shape: tuple[int, ...] = ()
     ) -> float:
         return np.zeros(batch_shape, dtype=np.float32)
 
     def torch(
-        self, prediction: Tuple, target: Tuple, batch_shape: Tuple[int, ...] = ()
+        self, prediction: Tuple, target: Tuple, batch_shape: tuple[int, ...] = ()
     ) -> "torch.Tensor":
         return torch.zeros(batch_shape)
 
     def jax(
-        self, prediction: Tuple, target: Tuple, batch_shape: Tuple[int, ...] = ()
+        self, prediction: Tuple, target: Tuple, batch_shape: tuple[int, ...] = ()
     ) -> "jax.Array":
         return jnp.zeros(batch_shape)

@@ -1,4 +1,6 @@
-from typing import Dict, Any, Tuple, Optional, Generic, TypeVar, Callable
+from __future__ import annotations
+
+from typing import Any, Generic, TypeVar, Callable
 
 import gymnasium as gym
 import numpy as np
@@ -36,8 +38,8 @@ class VectorToSingleWrapper(
             return np.array([value])
 
     def reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple["ObsType", Dict[str, Any]]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple["ObsType", dict[str, Any]]:
         options = (
             self._tree_map(self._vectorize, options) if options is not None else None
         )
@@ -48,14 +50,14 @@ class VectorToSingleWrapper(
 
     def step(
         self, action: "ActType"
-    ) -> Tuple["ObsType", float, bool, bool, Dict[str, Any]]:
+    ) -> tuple["ObsType", float, bool, bool, dict[str, Any]]:
         action = self._tree_map(self._vectorize, action)
         obs, reward, terminated, truncated, info = self.__vector_env.step(action)
         obs = self._tree_map(lambda x: np.asarray(x[0]), obs)
         info = self._tree_map(lambda x: np.asarray(x[0]), info)
         return obs, reward[0], terminated[0], truncated[0], info
 
-    def render(self) -> Optional[np.ndarray]:
+    def render(self) -> np.ndarray | None:
         return self.__vector_env.render()[0]
 
     def close(self):

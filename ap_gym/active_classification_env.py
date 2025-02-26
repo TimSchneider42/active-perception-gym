@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC
-from typing import TypeVar, Generic, Union, Tuple, Optional, Dict, Any
+from typing import TypeVar, Generic, Any
 
 import gymnasium as gym
 import numpy as np
@@ -32,12 +34,12 @@ ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
 
 
-class CrossEntropyLossFn(LossFn[np.ndarray, Union[int, np.ndarray]]):
+class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
     def numpy(
         self,
         prediction: np.ndarray,
-        target: Union[int, np.ndarray],
-        batch_shape: Tuple[int, ...] = (),
+        target: int | np.ndarray,
+        batch_shape: tuple[int, ...] = (),
     ) -> float:
         return -np.take_along_axis(
             scipy.special.log_softmax(prediction, axis=-1), target[..., None], axis=-1
@@ -46,8 +48,8 @@ class CrossEntropyLossFn(LossFn[np.ndarray, Union[int, np.ndarray]]):
     def torch(
         self,
         prediction: "torch.Tensor",
-        target: Union[int, "torch.Tensor"],
-        batch_shape: Tuple[int, ...] = (),
+        target: int | "torch.Tensor",
+        batch_shape: tuple[int, ...] = (),
     ) -> "torch.Tensor":
         return -torch.take_along_dim(
             torch.nn.functional.log_softmax(prediction, dim=-1),
@@ -58,8 +60,8 @@ class CrossEntropyLossFn(LossFn[np.ndarray, Union[int, np.ndarray]]):
     def jax(
         self,
         prediction: "jax.Array",
-        target: Union[int, "jax.Array"],
-        batch_shape: Tuple[int, ...] = (),
+        target: int | "jax.Array",
+        batch_shape: tuple[int, ...] = (),
     ) -> "jax.Array":
         return -jnp.take_along_axis(
             jax.nn.log_softmax(prediction), target[..., None], axis=-1
@@ -84,8 +86,8 @@ class ActiveClassificationEnv(
         self.__last_incorrect = None
 
     def reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple[ObsType, Dict[str, Any]]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[ObsType, dict[str, Any]]:
         self.__current_correct_sum = 0
         self.__current_step = 0
         self.__first_correct = None
@@ -94,7 +96,7 @@ class ActiveClassificationEnv(
 
     def step(
         self, action: FullActType[ActType, PredType]
-    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any]]:
+    ) -> tuple[ObsType, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super().step(action)
         is_correct = self.current_prediction_target == action["prediction"].argmax(
             axis=-1
@@ -160,8 +162,8 @@ class ActiveClassificationVectorEnv(
         self.__last_incorrect = None
 
     def reset(
-        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-    ) -> Tuple[ObsType, Dict[str, Any]]:
+        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[ObsType, dict[str, Any]]:
         self.__current_correct_sum = np.zeros(self.num_envs, dtype=np.float32)
         self.__current_step = np.zeros(self.num_envs, dtype=np.int32)
         self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
@@ -171,13 +173,11 @@ class ActiveClassificationVectorEnv(
 
     def _step(
         self, action: ActType, prediction: np.ndarray
-    ) -> Tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any], np.ndarray]:
+    ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], np.ndarray]:
         obs, reward, terminated, truncated, info, label = super()._step(
             action, prediction
         )
-        is_correct = label == action["prediction"].argmax(
-            axis=-1
-        )
+        is_correct = label == action["prediction"].argmax(axis=-1)
         self.__current_correct_sum += is_correct
         self.__current_correct_sum[self.__prev_done] = 0
         self.__current_step[self.__prev_done] = 0
