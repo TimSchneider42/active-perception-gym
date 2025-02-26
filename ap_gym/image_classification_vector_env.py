@@ -37,12 +37,8 @@ class ImageClassificationVectorEnv(
         single_inner_action_space = gym.spaces.Box(
             -np.ones(2, dtype=np.float32), np.ones(2, dtype=np.float32)
         )
-        inner_action_space = gym.spaces.Box(
-            -np.ones((num_envs, 2), dtype=np.float32),
-            np.ones((num_envs, 2), dtype=np.float32),
-        )
         super().__init__(
-            num_envs, label_count, single_inner_action_space, inner_action_space
+            num_envs, label_count, single_inner_action_space
         )
         self.__image_count = image_count
         self.__sensor_size = sensor_size
@@ -53,19 +49,13 @@ class ImageClassificationVectorEnv(
         self.__interpolated_images: RegularGridInterpolator | None = None
         self.__display_visitation = display_visitation
         *self.__image_size, self.__channels = self._load_image(0)[0].shape
-        self.observation_space = ImageSpace(
-            self.__sensor_size[1],
-            self.__sensor_size[0],
-            self.__channels,
-            batch_shape=(self.num_envs,),
-            dtype=np.float32,
-        )
         self.single_observation_space = ImageSpace(
             self.__sensor_size[1],
             self.__sensor_size[0],
             self.__channels,
             dtype=np.float32,
         )
+        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, self.num_envs)
         self.__current_sensor_pos_norm: np.ndarray | None = None
         self.__current_time_step = None
         self.__max_steps = max_episode_steps
