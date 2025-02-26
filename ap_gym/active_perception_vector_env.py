@@ -71,9 +71,6 @@ class ActivePerceptionVectorEnv(
     Generic[ObsType, ActType, PredType, PredTargetType, ArrayType],
     ABC,
 ):
-    __current_prediction_target: Optional[Any] = None
-    __prev_done: Optional[np.ndarray] = None
-
     @abstractmethod
     def _reset(
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
@@ -82,56 +79,49 @@ class ActivePerceptionVectorEnv(
 
     @abstractmethod
     def _step(
-        self, action: ActType, prediction: PredType, prev_done: np.ndarray
-    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any], PredTargetType]:
+        self, action: ActType, prediction: PredType
+    ) -> Tuple[
+        ObsType, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any], PredTargetType
+    ]:
         pass
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:
-        obs, info, self.__current_prediction_target = self._reset(
-            seed=seed, options=options
-        )
+        obs, info, prediction_target = self._reset(seed=seed, options=options)
         info["prediction"] = {
-            "target": self.__current_prediction_target,
+            "target": prediction_target,
         }
-        self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
         return obs, info
 
     def step(
         self, action: FullActType[ActType, PredType]
-    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any]]:
+    ) -> Tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
         (
             obs,
             base_reward,
             terminated,
             truncated,
             info,
-            self.__current_prediction_target,
-        ) = self._step(action["action"], action["prediction"], self.__prev_done)
+            prediction_target,
+        ) = self._step(action["action"], action["prediction"])
 
         batch_shape = (self.num_envs,) if isinstance(self, gym.vector.VectorEnv) else ()
         prediction_loss = self.loss_fn(
-            action["prediction"], self.__current_prediction_target, batch_shape
+            action["prediction"], prediction_target, batch_shape
         )
-
-        self.__prev_done = terminated | truncated
 
         info.update(
             {
                 "base_reward": base_reward,
                 "prediction": {
-                    "target": self.__current_prediction_target,
+                    "target": prediction_target,
                     "loss": prediction_loss,
                 },
             }
         )
 
         return obs, base_reward - prediction_loss, terminated, truncated, info
-
-    @property
-    def current_prediction_target(self) -> Optional[Any]:
-        return self.__current_prediction_target
 
 
 class ActivePerceptionVectorWrapper(
@@ -196,7 +186,7 @@ class ActivePerceptionVectorWrapper(
 
 
 class PseudoActivePerceptionVectorWrapper(
-    BaseActivePerceptionVectorEnv[ObsType, ActType, Tuple, None, np.ndarray],
+    BaseActivePerceptionVectorEnv[ObsType, ActType, Tuple, Tuple, np.ndarray],
     gym.vector.VectorWrapper,
     Generic[ObsType, ActType],
 ):
@@ -223,18 +213,18 @@ class PseudoActivePerceptionVectorWrapper(
 
     def step(
         self, action: FullActType[ActType, None]
-    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any]]:
+    ) -> Tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any], Tuple]:
         obs, reward, terminated, truncated, info = self.env.step(action["action"])
         info.update(
             {
                 "base_reward": reward,
                 "prediction": {
                     "target": (),
-                    "loss": np.zeros(self.num_envs),
+                    "loss": np.zeros(self.num_envs, dtype=np.float32),
                 },
             }
         )
-        return obs, reward, terminated, truncated, info
+        return obs, reward, terminated, truncated, info, ()
 
 
 def find_loss_and_pred_space_vec(

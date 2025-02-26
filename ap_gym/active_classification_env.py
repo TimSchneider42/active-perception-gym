@@ -169,11 +169,13 @@ class ActiveClassificationVectorEnv(
         self.__last_incorrect = np.zeros(self.num_envs, dtype=np.int32)
         return super().reset(seed=seed, options=options)
 
-    def step(
-        self, action: FullActType[ActType, PredType]
-    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any]]:
-        obs, reward, terminated, truncated, info = super().step(action)
-        is_correct = self.current_prediction_target == action["prediction"].argmax(
+    def _step(
+        self, action: ActType, prediction: np.ndarray
+    ) -> Tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any], np.ndarray]:
+        obs, reward, terminated, truncated, info, label = super()._step(
+            action, prediction
+        )
+        is_correct = label == action["prediction"].argmax(
             axis=-1
         )
         self.__current_correct_sum += is_correct
@@ -207,4 +209,4 @@ class ActiveClassificationVectorEnv(
                 }
             )
         self.__prev_done = done
-        return obs, reward, terminated, truncated, info
+        return obs, reward, terminated, truncated, info, label

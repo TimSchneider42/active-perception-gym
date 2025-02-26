@@ -88,6 +88,8 @@ class ImagePerceptionVectorEnv(
         self.__last_prediction = np.zeros((self.num_envs, label_count), dtype=np.int32)
         self.__constraint_violation_penalty = constraint_violation_penalty
         self.__interpolation_method = interpolation_method
+        self.__prev_done: Optional[np.ndarray] = None
+        self.__current_labels: Optional[np.ndarray] = None
 
     def _load_image(self, idx: int) -> Tuple[np.ndarray, int]:
         raise NotImplementedError(
@@ -105,7 +107,7 @@ class ImagePerceptionVectorEnv(
         self.__current_data_point_idx = self.__current_rng.integers(
             0, self.__image_count, size=self.num_envs
         )
-        self.__current_images, current_labels = self._load_image_batch(
+        self.__current_images, self.__current_labels = self._load_image_batch(
             self.__current_data_point_idx
         )
         coords_y = (
@@ -131,16 +133,17 @@ class ImagePerceptionVectorEnv(
         self.__visitation_counts.fill(0)
         self.__last_prediction_map.fill(0)
         self.__last_prediction.fill(0)
-        return self._get_obs(), info, current_labels
+        self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
+        return self._get_obs(), info, self.__current_labels
 
     def _step(
-        self, action: np.ndarray, prediction: np.ndarray, prev_done: np.ndarray
-    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any], Any]:
+        self, action: np.ndarray, prediction: np.ndarray
+    ) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any], np.ndarray]:
         self._update_visitation_overlay(prediction=prediction)
-        if np.any(prev_done):
-            if not np.all(prev_done):
+        if np.any(self.__prev_done):
+            if not np.all(self.__prev_done):
                 raise NotImplementedError("Partial reset is not supported.")
-            obs, info, current_labels = self._reset(
+            obs, info, self.__current_labels = self._reset(
                 seed=self.__current_rng.integers(0, 2**32)
             )
             terminated = False
@@ -167,11 +170,11 @@ class ImagePerceptionVectorEnv(
             self.__current_time_step += 1
             terminated = self.__current_time_step >= self.__max_steps
             obs = self._get_obs()
-            current_labels = self.current_prediction_target
         terminated_arr = np.full(self.num_envs, terminated)
         truncated_arr = np.zeros(self.num_envs, dtype=np.bool_)
+        self.__prev_done = terminated_arr | truncated_arr
         self.__last_prediction = prediction
-        return obs, base_reward, terminated_arr, truncated_arr, info, current_labels
+        return obs, base_reward, terminated_arr, truncated_arr, info, self.__current_labels
 
     def _update_visitation_overlay(self, prediction: Optional[np.ndarray] = None):
         pos, size = self.__sensor_rects
@@ -233,7 +236,7 @@ class ImagePerceptionVectorEnv(
         incorrect_color = np.array([255, 0, 0, 80], dtype=np.uint8)
         last_prediction_map_probs = softmax(self.__last_prediction_map, axis=-1)
         correct_prob_map = last_prediction_map_probs[
-            np.arange(self.num_envs), ..., self.current_prediction_target
+            np.arange(self.num_envs), ..., self.__current_labels
         ]
         overlay = visited[..., None] * (
             correct_prob_map[..., np.newaxis]
