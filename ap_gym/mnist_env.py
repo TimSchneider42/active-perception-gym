@@ -9,13 +9,13 @@ import numpy as np
 import requests
 from mnist import MNIST
 
-from .image_perception_vector_env import ImagePerceptionVectorEnv
+from .image_classification_vector_env import ImageClassificationVectorEnv
 from .vector_to_single_wrapper import ActivePerceptionVectorToSingleWrapper
 
 logger = logging.getLogger(__name__)
 
 
-class MNISTVectorEnv(ImagePerceptionVectorEnv):
+class MNISTVectorEnv(ImageClassificationVectorEnv):
     def __init__(
         self,
         num_envs: int,

@@ -14,7 +14,7 @@ from .active_classification_env import ActiveClassificationVectorEnv
 from .image_space import ImageSpace
 
 
-class ImagePerceptionVectorEnv(
+class ImageClassificationVectorEnv(
     ActiveClassificationVectorEnv[np.ndarray, np.ndarray], ABC
 ):
     metadata: dict[str, Any] = {"render_modes": ["rgb_array", "human"], "render_fps": 2}

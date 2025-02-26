@@ -4,11 +4,11 @@ from typing import Literal, Sequence
 
 import numpy as np
 
-from .image_perception_vector_env import ImagePerceptionVectorEnv
+from .image_classification_vector_env import ImageClassificationVectorEnv
 from .vector_to_single_wrapper import ActivePerceptionVectorToSingleWrapper
 
 
-class CircleSquareVectorEnv(ImagePerceptionVectorEnv):
+class CircleSquareVectorEnv(ImageClassificationVectorEnv):
     def __init__(
         self,
         num_envs: int,
