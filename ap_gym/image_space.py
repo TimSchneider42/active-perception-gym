@@ -1,4 +1,6 @@
-from typing import Type, Optional, Any, Union, Tuple
+from __future__ import annotations
+
+from typing import Type, Any
 
 import gymnasium as gym
 import numpy as np
@@ -10,11 +12,11 @@ class ImageSpace(gym.spaces.Box):
         width: int,
         height: int,
         channels: int,
-        batch_shape: Tuple[int, ...] = (),
+        batch_shape: tuple[int, ...] = (),
         dtype: Type[np.floating[Any]] = np.float32,
-        seed: Optional[Union[np.random.Generator, int]] = None,
-        low: Union[float, int, np.ndarray] = 0.0,
-        high: Union[float, int, np.ndarray] = 1.0,
+        seed: np.random.Generator | int | None = None,
+        low: float | np.ndarray = 0.0,
+        high: float | np.ndarray = 1.0,
     ):
         super().__init__(
             low, high, (*batch_shape, height, width, channels), dtype, seed

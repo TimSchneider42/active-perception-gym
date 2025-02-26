@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import subprocess
 from pathlib import Path
-from typing import Tuple, Literal
+from typing import Literal
 
 import numpy as np
 import requests
@@ -57,7 +59,7 @@ class MNISTVectorEnv(ImagePerceptionVectorEnv):
             interpolation_method=interpolation_method,
         )
 
-    def _load_image(self, idx: int) -> Tuple[np.ndarray, int]:
+    def _load_image(self, idx: int) -> tuple[np.ndarray, int]:
         return self.__images[idx][..., None], self.__labels[idx]
 
 

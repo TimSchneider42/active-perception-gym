@@ -1,4 +1,6 @@
-from typing import TypeVar, Dict, Literal, Union
+from __future__ import annotations
+
+from typing import TypeVar, Literal
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -11,4 +13,4 @@ WrapperPredType = TypeVar("WrapperPredType")
 WrapperPredTargetType = TypeVar("WrapperPredTargetType")
 WrapperArrayType = TypeVar("WrapperArrayType")
 
-FullActType = Dict[Literal["action", "prediction"], Union[ActType, PredType]]
+FullActType = dict[Literal["action", "prediction"], ActType | PredType]
