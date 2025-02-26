@@ -50,8 +50,8 @@ class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTarge
     def __init__(
         self,
         np: Callable[[PredType, PredTargetType, tuple[int, ...]], float],
-        torch: Callable[[Any, Any, tuple[int, ... | None], "torch.Tensor"]] = None,
-        jax: Callable[[Any, Any, tuple[int, ... | None], "jax.Array"]] = None,
+        torch: Callable[[Any, Any, tuple[int, ...]], "torch.Tensor"] | None = None,
+        jax: Callable[[Any, Any, tuple[int, ...]], "jax.Array"] | None = None,
     ):
         self._np = np
         self._torch = torch
