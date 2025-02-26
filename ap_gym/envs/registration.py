@@ -19,7 +19,7 @@ def register_envs():
         **{f"-s{s}": (s, s) for s in [10, 20, 28]},
     }
 
-    SHOW_GRADIENT = {"": True, "-ng": False}
+    SHOW_GRADIENT = {"": True, "-nograd": False}
 
     for size_suffix, size in SIZES.items():
         for sg_suffix, show_gradient in SHOW_GRADIENT.items():

@@ -19,9 +19,8 @@ class MNISTVectorEnv(ImageClassificationVectorEnv):
         self,
         num_envs: int,
         render_mode: Literal["rgb_array", "human"] = "rgb_array",
-        max_episode_steps: int = 32,
+        max_episode_steps: int | None = None,
         max_step_length: float = 0.2,
-        interpolation_method: str = "linear",
     ):
         data_path = Path.home() / ".local" / "share" / "mnist-data"
         mnist = MNIST(str(data_path), return_type="numpy")
@@ -55,7 +54,6 @@ class MNISTVectorEnv(ImageClassificationVectorEnv):
             render_mode=render_mode,
             max_episode_steps=max_episode_steps,
             max_step_length=max_step_length,
-            interpolation_method=interpolation_method,
         )
 
     def _load_image(self, idx: int) -> tuple[np.ndarray, int]:
@@ -64,9 +62,8 @@ class MNISTVectorEnv(ImageClassificationVectorEnv):
 
 def MNISTEnv(
     render_mode: Literal["rgb_array", "human"] = "rgb_array",
-    max_episode_steps: int = 32,
+    max_episode_steps: int | None = None,
     max_step_length: float = 1.0,
-    interpolation_method: str = "linear",
 ):
     return ActivePerceptionVectorToSingleWrapper(
         MNISTVectorEnv(
@@ -74,6 +71,5 @@ def MNISTEnv(
             render_mode=render_mode,
             max_episode_steps=max_episode_steps,
             max_step_length=max_step_length,
-            interpolation_method=interpolation_method,
         )
     )

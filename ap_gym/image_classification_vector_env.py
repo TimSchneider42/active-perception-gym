@@ -29,8 +29,6 @@ class ImageClassificationVectorEnv(
         sensor_scale: float = 1.0,
         max_episode_steps: int | None = None,
         max_step_length: float | Sequence[float] = 0.2,
-        constraint_violation_penalty: float = 0.0,
-        interpolation_method: str = "linear",
         display_visitation: bool = True,
     ):
         if max_episode_steps is None:
@@ -88,8 +86,6 @@ class ImageClassificationVectorEnv(
             dtype=np.int32,
         )
         self.__last_prediction = np.zeros((self.num_envs, label_count), dtype=np.int32)
-        self.__constraint_violation_penalty = constraint_violation_penalty
-        self.__interpolation_method = interpolation_method
         self.__prev_done: np.ndarray | None = None
         self.__current_labels: np.ndarray | None = None
 
@@ -121,9 +117,7 @@ class ImageClassificationVectorEnv(
             - (self.__current_images.shape[2] - 1) / 2
         )
         self.__interpolated_images = [
-            RegularGridInterpolator(
-                (coords_y, coords_x), img, method=self.__interpolation_method
-            )
+            RegularGridInterpolator((coords_y, coords_x), img, method="linear")
             for img in self.__current_images
         ]
 
@@ -156,18 +150,8 @@ class ImageClassificationVectorEnv(
                 raise ValueError("NaN values detected in action.")
             step = self.__max_step_length * action_clipped
             new_sensor_pos_norm = self.__current_sensor_pos_norm + step
-            distance_to_bounds = np.minimum(
-                np.abs(new_sensor_pos_norm - 1), np.abs(new_sensor_pos_norm + 1)
-            )
-            constraint_violation = distance_to_bounds * (
-                np.abs(new_sensor_pos_norm) > 1
-            )
-            constraint_violation_dist = np.linalg.norm(constraint_violation, axis=-1)
             self.__current_sensor_pos_norm = np.clip(new_sensor_pos_norm, -1, 1)
-            base_reward = (
-                -np.linalg.norm(action, axis=-1) * 1e-3
-                - constraint_violation_dist * self.__constraint_violation_penalty
-            )
+            base_reward = -np.linalg.norm(action, axis=-1) * 1e-3
             info = {"index": self.__current_data_point_idx}
             self.__current_time_step += 1
             terminated = self.__current_time_step >= self.__max_steps
