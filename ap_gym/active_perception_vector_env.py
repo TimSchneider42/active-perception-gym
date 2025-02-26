@@ -231,7 +231,7 @@ class PseudoActivePerceptionVectorWrapper(
 
 def find_loss_and_pred_space_vec(
     env: gym.vector.VectorEnv,
-) -> Tuple[
+) -> tuple[
     LossFn[PredType, PredTargetType],
     gym.Space[PredTargetType],
     gym.Space[PredTargetType],
