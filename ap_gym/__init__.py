@@ -22,7 +22,7 @@ from .active_perception_vector_env import (
     ensure_active_perception_vector_env,
 )
 from .circle_square_env import CircleSquareEnv, CircleSquareVectorEnv
-from .image_perception_vector_env import ImagePerceptionVectorEnv
+from .image_classification_vector_env import ImageClassificationVectorEnv
 from .image_space import ImageSpace
 from .loss_fn import LossFn, LambdaLossFn, ZeroLossFn
 from .mnist_env import MNISTEnv, MNISTVectorEnv
