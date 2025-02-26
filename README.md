@@ -23,7 +23,7 @@ This guide assumes that you are familiar with Gymnasium, otherwise, please check
 
 In the active perception domain, an agent's main objective is to gather information and make predictions about a desired property of the environment.
 Examples of such properties could be the location of an object in case of a search task or the class of an object the agent in case of a classification task.
-To gather information, the agent must interact with the environment, e.g. by moving a glimpse around in case of the [CircleSquare](#CircleSquare) and [MNIST](#MNIST) tasks.
+To gather information, the agent must interact with the environment, e.g. by moving a glimpse around in case of the [CircleSquare](doc/circle_square.md) and [MNIST](doc/mnist.md) tasks.
 
 _ap_gym_ models active perception tasks as episodic processes in a way that is fully compatible to Gymnasium.
 Each task is defined as a Gymnasium environment, in which the agent is additionally provided with a differentiable loss function.
