@@ -4,8 +4,7 @@ from typing import Literal, Sequence
 
 import numpy as np
 
-from .image_classification_vector_env import ImageClassificationVectorEnv
-from .vector_to_single_wrapper import ActivePerceptionVectorToSingleWrapper
+from ap_gym import ImageClassificationVectorEnv, ActivePerceptionVectorToSingleWrapper
 
 
 class CircleSquareVectorEnv(ImageClassificationVectorEnv):

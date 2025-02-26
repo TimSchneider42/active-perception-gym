@@ -4,17 +4,13 @@ from typing import Any, Sequence, Callable
 
 import gymnasium as gym
 
-from .active_perception_env import (
+from ap_gym import (
     BaseActivePerceptionEnv,
     ActivePerceptionWrapper,
     ensure_active_perception_env,
-)
-from .active_perception_vector_env import (
     BaseActivePerceptionVectorEnv,
     ensure_active_perception_vector_env,
 )
-from .circle_square_env import CircleSquareEnv, CircleSquareVectorEnv
-from .mnist_env import MNISTEnv, MNISTVectorEnv
 
 
 def register_envs():
@@ -30,15 +26,15 @@ def register_envs():
             gym.envs.registration.register(
                 id=f"CircleSquare{size_suffix}{sg_suffix}-v0",
                 kwargs=dict(image_shape=size, show_gradient=show_gradient),
-                entry_point=CircleSquareEnv,
-                vector_entry_point=CircleSquareVectorEnv,
+                entry_point="ap_gym.envs.circle_square:CircleSquareEnv",
+                vector_entry_point="ap_gym.envs.circle_square:CircleSquareVectorEnv",
                 max_episode_steps=16,
             )
 
     gym.envs.registration.register(
         id="MNIST-v0",
-        entry_point=MNISTEnv,
-        vector_entry_point=MNISTVectorEnv,
+        entry_point="ap_gym.envs.mnist:MNISTEnv",
+        vector_entry_point="ap_gym.envs.mnist:MNISTVectorEnv",
         max_episode_steps=16,
     )
 

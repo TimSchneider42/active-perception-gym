@@ -9,8 +9,7 @@ import numpy as np
 import requests
 from mnist import MNIST
 
-from .image_classification_vector_env import ImageClassificationVectorEnv
-from .vector_to_single_wrapper import ActivePerceptionVectorToSingleWrapper
+from ap_gym import ImageClassificationVectorEnv, ActivePerceptionVectorToSingleWrapper
 
 logger = logging.getLogger(__name__)
 

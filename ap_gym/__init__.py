@@ -21,12 +21,10 @@ from .active_perception_vector_env import (
     PseudoActivePerceptionVectorWrapper,
     ensure_active_perception_vector_env,
 )
-from .circle_square_env import CircleSquareEnv, CircleSquareVectorEnv
 from .image_classification_vector_env import ImageClassificationVectorEnv
 from .image_space import ImageSpace
 from .loss_fn import LossFn, LambdaLossFn, ZeroLossFn
-from .mnist_env import MNISTEnv, MNISTVectorEnv
-from .registration import make, make_vec, register_envs
+from .envs.registration import make, make_vec, register_envs
 from .vector_to_single_wrapper import (
     VectorToSingleWrapper,
     ActivePerceptionVectorToSingleWrapper,
