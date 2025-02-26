@@ -75,45 +75,39 @@ class ActivePerceptionEnv(
     @abstractmethod
     def _step(
         self, action: ActType, prediction: PredType
-    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any]]:
+    ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any], PredTargetType]:
         pass
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:
-        obs, info, self.__current_prediction_target = self._reset(
-            seed=seed, options=options
-        )
+        obs, info, prediction_target = self._reset(seed=seed, options=options)
         info["prediction"] = {
-            "target": self.__current_prediction_target,
+            "target": prediction_target,
         }
         return obs, info
 
     def step(
         self, action: FullActType[ActType, PredType]
     ) -> Tuple[ObsType, float, bool, bool, Dict[str, Any]]:
-        obs, base_reward, terminated, truncated, info = self._step(
+        obs, base_reward, terminated, truncated, info, prediction_target = self._step(
             action["action"], action["prediction"]
         )
 
         batch_shape = (self.num_envs,) if isinstance(self, gym.vector.VectorEnv) else ()
         prediction_loss = self.loss_fn(
-            action["prediction"], self.__current_prediction_target, batch_shape
+            action["prediction"], prediction_target, batch_shape
         )
 
         info = {
             "base_reward": base_reward,
             "prediction": {
-                "target": self.__current_prediction_target,
+                "target": prediction_target,
                 "loss": prediction_loss,
             },
         }
 
         return obs, base_reward - prediction_loss, terminated, truncated, info
-
-    @property
-    def current_prediction_target(self) -> Optional[Any]:
-        return self.__current_prediction_target
 
 
 class ActivePerceptionWrapper(
