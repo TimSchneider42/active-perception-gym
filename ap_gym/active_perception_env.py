@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic
+from typing import Any, Generic, Literal
 
 import gymnasium as gym
 import numpy as np
@@ -42,6 +42,30 @@ class ActivePerceptionActionSpace(gym.spaces.Dict, Generic[ActType, PredType]):
     @property
     def prediction_space(self) -> gym.Space[PredType]:
         return self["prediction"]
+
+    @property
+    def as_dict(self):
+        return gym.spaces.Dict(
+            {"action": self.inner_action_space, "prediction": self.prediction_space},
+            seed=self._np_random,
+        )
+
+    @staticmethod
+    def from_dict(
+        d: gym.spaces.Dict[Literal["action", "prediction"], Any]
+    ) -> ActivePerceptionActionSpace:
+        return ActivePerceptionActionSpace(
+            d["action"], d["prediction"], seed=d._np_random
+        )
+
+
+@gym.vector.utils.batch_space.register(ActivePerceptionActionSpace)
+def _batch_space_active_perception_action_space(
+    space: ActivePerceptionActionSpace, n: int = 1
+):
+    return ActivePerceptionActionSpace.from_dict(
+        gym.vector.utils.batch_space(space.as_dict, n)
+    )
 
 
 class BaseActivePerceptionEnv(
