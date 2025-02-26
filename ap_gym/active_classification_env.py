@@ -134,23 +134,14 @@ class ActiveClassificationVectorEnv(
         num_envs: int,
         num_classes: int,
         single_inner_action_space: gym.Space[ActType],
-        inner_action_space: gym.Space[ActType],
     ):
         self.num_envs = num_envs
         single_prediction_space = gym.spaces.Box(-np.inf, np.inf, shape=(num_classes,))
         self.single_action_space = ActivePerceptionActionSpace(
             single_inner_action_space, single_prediction_space
         )
-        prediction_space = gym.spaces.Box(
-            -np.inf,
-            np.inf,
-            shape=(
-                num_envs,
-                num_classes,
-            ),
-        )
-        self.action_space = ActivePerceptionActionSpace(
-            inner_action_space, prediction_space
+        self.action_space = gym.vector.utils.batch_space(
+            self.single_action_space, num_envs
         )
         self.single_prediction_target_space = gym.spaces.Discrete(num_classes)
         self.prediction_target_space = gym.spaces.MultiDiscrete((num_envs, num_classes))
