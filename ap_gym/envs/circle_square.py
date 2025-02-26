@@ -17,8 +17,6 @@ class CircleSquareVectorEnv(ImageClassificationVectorEnv):
         shape_extents: int = 4,
         max_episode_steps: int | None = None,
         max_step_length: float | Sequence[float] = 0.2,
-        constraint_violation_penalty: float = 0.0,
-        interpolation_method: str = "linear",
         display_visitation: bool = True,
     ):
         self.__image_shape = image_shape
@@ -31,8 +29,6 @@ class CircleSquareVectorEnv(ImageClassificationVectorEnv):
             render_mode=render_mode,
             max_episode_steps=max_episode_steps,
             max_step_length=max_step_length,
-            constraint_violation_penalty=constraint_violation_penalty,
-            interpolation_method=interpolation_method,
             display_visitation=display_visitation,
         )
 
@@ -79,8 +75,6 @@ def CircleSquareEnv(
     shape_extents: int = 4,
     max_episode_steps: int | None = None,
     max_step_length: float | Sequence[float] = 0.2,
-    constraint_violation_penalty: float = 0.0,
-    interpolation_method: str = "linear",
     display_visitation: bool = True,
 ):
     return ActivePerceptionVectorToSingleWrapper(
@@ -92,8 +86,6 @@ def CircleSquareEnv(
             shape_extents=shape_extents,
             max_episode_steps=max_episode_steps,
             max_step_length=max_step_length,
-            constraint_violation_penalty=constraint_violation_penalty,
-            interpolation_method=interpolation_method,
             display_visitation=display_visitation,
         )
     )
