@@ -14,13 +14,13 @@ class CircleSquareVectorEnv(ImageClassificationVectorEnv):
         render_mode: Literal["rgb_array", "human"] = "rgb_array",
         show_gradient: bool = True,
         image_shape: tuple[int, int] = (28, 28),
-        shape_extents: int = 4,
+        object_extents: int = 8,
         max_episode_steps: int | None = None,
         max_step_length: float | Sequence[float] = 0.2,
         display_visitation: bool = True,
     ):
         self.__image_shape = image_shape
-        self.__object_extents = shape_extents
+        self.__object_extents = object_extents
         self.__show_gradient = show_gradient
         super().__init__(
             num_envs,
@@ -55,15 +55,15 @@ class CircleSquareVectorEnv(ImageClassificationVectorEnv):
         if label == 0:
             # Rectangle
             img[
-                (position[0] - self.__object_extents <= coords[:, :, 0])
-                & (coords[:, :, 0] <= position[0] + self.__object_extents)
-                & (position[1] - self.__object_extents <= coords[:, :, 1])
-                & (coords[:, :, 1] <= position[1] + self.__object_extents)
+                (position[0] - self.__object_extents / 2 <= coords[:, :, 0])
+                & (coords[:, :, 0] <= position[0] + self.__object_extents / 2)
+                & (position[1] - self.__object_extents / 2 <= coords[:, :, 1])
+                & (coords[:, :, 1] <= position[1] + self.__object_extents / 2)
             ] = 1.0
         else:
             # Circle
             img[
-                np.linalg.norm(position - coords, axis=-1) <= self.__object_extents
+                np.linalg.norm(position - coords, axis=-1) <= self.__object_extents / 2
             ] = 1.0
         return img[:, :, None], label
 
@@ -72,7 +72,7 @@ def CircleSquareEnv(
     render_mode: Literal["rgb_array", "human"] = "rgb_array",
     show_gradient: bool = True,
     image_shape: tuple[int, int] = (28, 28),
-    shape_extents: int = 4,
+    object_extents: int = 4,
     max_episode_steps: int | None = None,
     max_step_length: float | Sequence[float] = 0.2,
     display_visitation: bool = True,
@@ -83,7 +83,7 @@ def CircleSquareEnv(
             render_mode=render_mode,
             show_gradient=show_gradient,
             image_shape=image_shape,
-            shape_extents=shape_extents,
+            object_extents=object_extents,
             max_episode_steps=max_episode_steps,
             max_step_length=max_step_length,
             display_visitation=display_visitation,
