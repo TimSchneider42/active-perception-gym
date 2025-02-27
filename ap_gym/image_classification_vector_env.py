@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC
+from queue import Queue, Empty
+from threading import Thread
 from typing import Any, Literal, Sequence
 
 import gymnasium as gym
@@ -30,6 +32,7 @@ class ImageClassificationVectorEnv(
         max_episode_steps: int | None = None,
         max_step_length: float | Sequence[float] = 0.2,
         display_visitation: bool = True,
+        prefetch: bool = False,
     ):
         if max_episode_steps is None:
             max_episode_steps = 16
@@ -46,6 +49,12 @@ class ImageClassificationVectorEnv(
         self.__current_images: np.ndarray | None = None
         self.__interpolated_images: RegularGridInterpolator | None = None
         self.__display_visitation = display_visitation
+        self.__prefetch = prefetch
+        self.__prefetch_queue_in: Queue | None = None
+        self.__prefetch_queue_out: Queue | None = None
+        self.__prefetch_thread = None
+        self.__prefetch_buffer_size = 128
+        self.__terminating = None
         *self.__image_size, self.__channels = self._load_image(0)[0].shape
         self.single_observation_space = ImageSpace(
             self.__sensor_size[1],
@@ -62,7 +71,7 @@ class ImageClassificationVectorEnv(
         max_step_length = np.array(max_step_length)
         assert max_step_length.shape in {(2,), (1,), ()}
         self.__max_step_length = np.ones(2) * np.array(max_step_length)
-        self.__current_rng = None
+        self.__current_rng = self.__sample_rng = None
         render_width = 640
         self.__render_scaling = render_width / self.__image_size[1]
         render_height = int(round(self.__render_scaling * self.__image_size[0]))
@@ -85,19 +94,44 @@ class ImageClassificationVectorEnv(
         )
 
     def _load_image_batch(self, idx: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        imgs, labels = zip(*[self._load_image(i) for i in idx])
+        imgs, labels = zip(*[self._load_image(int(i)) for i in idx])
         return np.stack(imgs, axis=0), np.array(labels, dtype=np.int32)
 
     def _reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[np.ndarray, dict[str, Any], Any]:
         self.__current_rng = np.random.default_rng(seed)
-        self.__current_data_point_idx = self.__current_rng.integers(
-            0, self.__image_count, size=self.num_envs
+        self.__sample_rng = np.random.default_rng(
+            self.__current_rng.integers(0, 2**32)
         )
-        self.__current_images, self.__current_labels = self._load_image_batch(
-            self.__current_data_point_idx
-        )
+        if self.__prefetch:
+            self.__terminating = False
+            self.__prefetch_queue_in = Queue()
+            for idx in self.__sample_rng.integers(
+                0, self.__image_count, size=(self.__prefetch_buffer_size, self.num_envs)
+            ):
+                self.__prefetch_queue_in.put(idx)
+            self.__prefetch_queue_out = Queue()
+            self.__prefetch_thread = Thread(target=self.__prefetch_thread_fn)
+            self.__prefetch_thread.start()
+        return self.__reset()
+
+    def __reset(self) -> tuple[np.ndarray, dict[str, Any], Any]:
+        if self.__prefetch:
+            res = self.__prefetch_queue_out.get()
+            if isinstance(res, Exception):
+                raise res
+            self.__current_images, self.__current_labels, self.__current_data_point_idx = res
+            self.__prefetch_queue_in.put(
+                self.__sample_rng.integers(0, self.__image_count, size=self.num_envs)
+            )
+        else:
+            self.__current_data_point_idx = self.__sample_rng.integers(
+                0, self.__image_count, size=self.num_envs
+            )
+            self.__current_images, self.__current_labels = self._load_image_batch(
+                self.__current_data_point_idx
+            )
         coords_y = (
             np.arange(0, self.__current_images.shape[1])
             - (self.__current_images.shape[1] - 1) / 2
@@ -124,14 +158,14 @@ class ImageClassificationVectorEnv(
 
     def _step(
         self, action: np.ndarray, prediction: np.ndarray
-    ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any], np.ndarray]:
+    ) -> tuple[
+        np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], np.ndarray
+    ]:
         self._update_visitation_overlay(prediction=prediction)
         if np.any(self.__prev_done):
             if not np.all(self.__prev_done):
                 raise NotImplementedError("Partial reset is not supported.")
-            obs, info, self.__current_labels = self._reset(
-                seed=self.__current_rng.integers(0, 2**32)
-            )
+            obs, info, self.__current_labels = self.__reset()
             terminated = False
             base_reward = np.zeros(self.num_envs)
         else:
@@ -195,6 +229,16 @@ class ImageClassificationVectorEnv(
             axis=0,
         ).clip(0, 1)
         return sensor_img.astype(np.float32)
+
+    def __prefetch_thread_fn(self):
+        while not self.__terminating:
+            try:
+                idx = self.__prefetch_queue_in.get(timeout=0.1)
+                self.__prefetch_queue_out.put(self._load_image_batch(idx) + (idx,))
+            except Empty:
+                pass
+            except Exception as e:
+                self.__prefetch_queue_out.put(e)
 
     def render(self) -> np.ndarray | None:
         if self.__render_mode == "human":
@@ -262,6 +306,13 @@ class ImageClassificationVectorEnv(
         rgb_img = np.stack(rgb_imgs, axis=0)
 
         return np.array(rgb_img)
+
+    def close(self):
+        if self.__prefetch_thread is not None:
+            self.__terminating = True
+            self.__prefetch_thread.join()
+            self.__prefetch_thread = None
+            self.__prefetch_queue_in = self.__prefetch_queue_out = None
 
     @property
     def render_mode(self) -> Literal["rgb_array", "human"]:
