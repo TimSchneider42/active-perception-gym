@@ -261,7 +261,7 @@ class ImageClassificationVectorEnv(
             rgb_imgs.append(rgb_img)
         rgb_img = np.stack(rgb_imgs, axis=0)
 
-        return np.array(rgb_img) / 255
+        return np.array(rgb_img)
 
     @property
     def render_mode(self) -> Literal["rgb_array", "human"]:
