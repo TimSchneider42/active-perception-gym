@@ -15,7 +15,7 @@ dependencies = [
     "gymnasium>=1.0.0",
     "scipy",
     "numpy",
-    "python-mnist"
+    "datasets"
 ]
 
 [project.urls]
