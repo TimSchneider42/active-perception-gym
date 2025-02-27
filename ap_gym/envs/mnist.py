@@ -63,7 +63,7 @@ class MNISTVectorEnv(ImageClassificationVectorEnv):
 def MNISTEnv(
     render_mode: Literal["rgb_array", "human"] = "rgb_array",
     max_episode_steps: int | None = None,
-    max_step_length: float = 1.0,
+    max_step_length: float = 0.2,
 ):
     return ActivePerceptionVectorToSingleWrapper(
         MNISTVectorEnv(
