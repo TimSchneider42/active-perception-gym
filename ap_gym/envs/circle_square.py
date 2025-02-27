@@ -72,7 +72,7 @@ def CircleSquareEnv(
     render_mode: Literal["rgb_array", "human"] = "rgb_array",
     show_gradient: bool = True,
     image_shape: tuple[int, int] = (28, 28),
-    object_extents: int = 4,
+    object_extents: int = 8,
     max_episode_steps: int | None = None,
     max_step_length: float | Sequence[float] = 0.2,
     display_visitation: bool = True,
