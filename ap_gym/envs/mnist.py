@@ -22,7 +22,7 @@ class MNISTVectorEnv(ImageClassificationVectorEnv):
         max_episode_steps: int | None = None,
         max_step_length: float = 0.2,
     ):
-        data_path = Path.home() / ".local" / "share" / "mnist-data"
+        data_path = Path.home() / ".local" / "share" / "ap_gym-data"
         mnist = MNIST(str(data_path), return_type="numpy")
         try:
             loaded = mnist.load_training()
