@@ -33,8 +33,9 @@ def register_envs():
 
     gym.envs.registration.register(
         id="MNIST-v0",
-        entry_point="ap_gym.envs.mnist:MNISTEnv",
-        vector_entry_point="ap_gym.envs.mnist:MNISTVectorEnv",
+        entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationEnv",
+        vector_entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationVectorEnv",
+        kwargs=dict(dataset_name="mnist"),
         max_episode_steps=16,
     )
 
