@@ -37,9 +37,7 @@ class ImageClassificationVectorEnv(
         single_inner_action_space = gym.spaces.Box(
             -np.ones(2, dtype=np.float32), np.ones(2, dtype=np.float32)
         )
-        super().__init__(
-            num_envs, label_count, single_inner_action_space
-        )
+        super().__init__(num_envs, label_count, single_inner_action_space)
         self.__image_count = image_count
         self.__sensor_size = sensor_size
         self.__sensor_scale = sensor_scale
@@ -55,7 +53,9 @@ class ImageClassificationVectorEnv(
             self.__channels,
             dtype=np.float32,
         )
-        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, self.num_envs)
+        self.observation_space = gym.vector.utils.batch_space(
+            self.single_observation_space, self.num_envs
+        )
         self.__current_sensor_pos_norm: np.ndarray | None = None
         self.__current_time_step = None
         self.__max_steps = max_episode_steps
@@ -235,10 +235,9 @@ class ImageClassificationVectorEnv(
             )
 
             if self.__display_visitation:
-                # Unfortunately, we cannot use Pillows alpha_composite here because it does not support RBG base images. We
-                # cannot change the base image to RGBA because of a bug in Pillow that prevents the rectangle from being
-                # drawn correctly. See:
-                # https://github.com/python-pillow/Pillow/issues/2496
+                # Unfortunately, we cannot use Pillows alpha_composite here because it does not support RBG base images.
+                # We cannot change the base image to RGBA because of a bug in Pillow that prevents the rectangle from
+                # being drawn correctly. See: https://github.com/python-pillow/Pillow/issues/2496
                 # So we do it manually here.
                 alpha = ol[..., -1:] / 255
                 rgb_img = Image.fromarray(
