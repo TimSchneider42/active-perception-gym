@@ -1,6 +1,10 @@
 import unittest
 import numpy as np
-import torch
+
+try:
+    import torch
+except ImportError:
+    torch = None
 
 try:
     import jax
@@ -27,15 +31,16 @@ class TestActiveClassificationEnv(unittest.TestCase):
             batch_shape = shape[:batch_shape_length]
             expected = loss_fn.numpy(prediction, target, batch_shape)
             with self.subTest("torch", shape=shape):
-                np.testing.assert_allclose(
-                    loss_fn.torch(
-                        torch.from_numpy(prediction),
-                        torch.from_numpy(target),
-                        batch_shape,
-                    ).numpy(),
-                    expected,
-                    rtol=1e-4,
-                )
+                if torch is not None:
+                    np.testing.assert_allclose(
+                        loss_fn.torch(
+                            torch.from_numpy(prediction),
+                            torch.from_numpy(target),
+                            batch_shape,
+                        ).numpy(),
+                        expected,
+                        rtol=1e-4,
+                    )
             with self.subTest("jax", shape=shape):
                 if jax is not None:
                     np.testing.assert_allclose(
