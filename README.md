@@ -1,5 +1,3 @@
-from typing import Any
-
 # Active Perception Gym
 
 Extension of [Gymnasium](https://github.com/Farama-Foundation/Gymnasium/) for active perception tasks.
@@ -107,7 +105,25 @@ Additionally, aside of Gymnasium wrappers, `ap_gym.ActivePerceptionVectorRestore
 
 _ap_gym_ currently comes with a number of image classification environments, which are described in detail in the [image classification documentation](doc/image_classification.md).
 
-TODO: GIFS
+<table align="center" style="border-collapse: collapse; border: none;">
+    <tr style="border: none;">
+        <td align="center" style="border: none; padding: 10px;">
+            <a href="doc/circle_square.md">
+                <img src="doc/circle_square.gif" alt="CircleSquare-v0" width="200px"/>
+                <br/>
+                CircleSquare-v0
+            </a>
+        </td>
+        <td align="center" style="border: none; padding: 10px;">
+            <a href="doc/mnist.md">
+                <img src="doc/mnist.gif" alt="MNIST-v0" width="200px"/>
+                <br/>
+                MNIST-v0
+            </a>
+        </td>
+    </tr>
+</table>
+
 
 ### Converting Regular Gymnasium Environments to Active Perception Environments
 
