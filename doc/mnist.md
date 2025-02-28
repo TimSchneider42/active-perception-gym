@@ -1,6 +1,6 @@
 # MNIST
 
-![mnist.gif](mnist.gif)
+<p align="center"><img src="mnist.gif" alt="MNIST-v0" width="200px"/></p>
 
 This environment is part of the image classification environments.
 Refer to the [image classification environments overview](image_classification.md) for a general description of these environments.
@@ -35,11 +35,11 @@ env = ap_gym.make(
 
 ## Parameters
 
-| Parameter                    | Type                  | Default     | Description                                                                   |
-|------------------------------|-----------------------|-------------|-------------------------------------------------------------------------------|
-| `render_mode`                | `Literal`             | "rgb_array" | Rendering mode: "human" or "rgb_array".                                      |
-| `max_episode_steps`          | `int \| None`        | 16          | Maximum steps per episode.                                                    |
-| `max_step_length`            | `float`               | 1.0         | Maximum normalized sensor movement per step relative to the total image size. |
+| Parameter            | Type                           | Default     | Description                                                                   |
+|----------------------|--------------------------------|-------------|-------------------------------------------------------------------------------|
+| `render_mode`        | `Literal["human", "rgb_array"]` | "rgb_array" | Rendering mode: "human" or "rgb_array".                                       |
+| `max_episode_steps`  | `int \| None`                  | 16          | Maximum steps per episode.                                                    |
+| `max_step_length`    | `float`                        | 0.2         | Maximum normalized sensor movement per step relative to the total image size. |
 
 ## Example Usage
 
