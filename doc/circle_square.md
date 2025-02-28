@@ -10,6 +10,8 @@ Refer to the [image classification environments overview](image_classification.m
 | **Environment ID**    | CircleSquare-v0 |
 | **Image type**        | Grayscale       |
 | **Number of classes** | 2               |
+| **Image size**        | 28x28           |
+| **Glimpse size**      | 5               |
 
 ## Description
 

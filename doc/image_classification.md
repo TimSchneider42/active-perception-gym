@@ -5,14 +5,32 @@ The glimpse is never large enough to see the entire image at once, so the agent 
 
 All image classification environments in _ap_gym_ share the following properties:
 
-|                            |                                                               |
-|----------------------------|---------------------------------------------------------------|
-| **Action Space**           | `Box(-1.0, 1.0, shape=(2,), dtype=np.float32)`                |
-| **Prediction Space**       | `Box(-inf, inf, shape=(K,), dtype=np.float32)`                |
-| **Prediction Target Space**| `Discrete(K)`                                                 |
-| **Observation Space**      | `ImageSpace(width=5, height=5, channels=C, dtype=np.float32)` |
+<table>
+    <tr>
+        <td><strong>Action Space</strong></td>
+        <td><code>Box(-1.0, 1.0, shape=(2,), dtype=np.float32)</code></td>
+    </tr>
+    <tr>
+        <td><strong>Prediction Space</strong></td>
+        <td><code>Box(-inf, inf, shape=(K,), dtype=np.float32)</code></td>
+    </tr>
+    <tr>
+        <td><strong>Prediction Target Space</strong></td>
+        <td><code>Discrete(K)</code></td>
+    </tr>
+    <tr>
+        <td><strong>Observation Space</strong></td>
+        <td>
+            <code>Dict({</code><br>
+            <code>&nbsp;&nbsp;"glance": ImageSpace(width=G, height=G, channels=C, dtype=np.float32),</code><br>
+            <code>&nbsp;&nbsp;"glance_pos": Box(-1.0, 1.0, shape=(2,), dtype=np.float32)</code><br>
+            <code>})</code>
+        </td>
+    </tr>
+</table>
 
-where K is the number of classes in the environment and C is the number of image channels (1 for grayscale, 3 for RGB).
+
+where $K \in \mathbb{N}$ is the number of classes in the environment, $G \in \mathbb{N}$ is the glance size, and $C \in \mathbb{N}$ is the number of image channels (1 for grayscale, 3 for RGB).
 
 ## Action Space
 
@@ -25,7 +43,9 @@ The action is an `ndarray` with shape `(2,)` consisting of continuous values in 
 
 ## Observation Space
 
-The observation is a $5 \times 5 \times C$ `ndarray` representing a glimpse of the image where each pixel is in the range $[-1, 1]$.
+The observation is a dictionary with keys `"glimpse"` and `"glimpse_pos"`.
+The glimpse is a $G \times G \times C$ `ndarray` representing a glimpse of the image where each pixel is in the range $[-1, 1]$.
+The `"glimpse_pos"` is an `ndarray` with shape `(2,)` containing the normalized position of the glimpse within the image in the range $[-1, 1]$.
 
 ## Prediction Space
 
@@ -49,7 +69,7 @@ The episode ends when the maximum number of steps (`max_episode_steps`, default:
 
 ## Overview of Implemented Environments
 
-| Environment ID                      | Image type | Number of classes | Image description                              |
-|-------------------------------------|------------|-------------------|------------------------------------------------|
-| [CircleSquare-v0](circle_square.md) | Grayscale  | 2                 | An image containing either a circle or square. |
-| [MNIST-v0](mnist.md)                | Grayscale  | 10                | Handwritten digits from the [MNIST dataset](http://yann.lecun.com/exdb/mnist/). |
+| Environment ID                      | Image type | Number of classes | Image size | Glimpse size | Image description                                                               |
+|-------------------------------------|------------|-------------------|------------|--------------|---------------------------------------------------------------------------------|
+| [CircleSquare-v0](circle_square.md)              | Grayscale  | 2                 | 28x28      | 5            | An image containing either a circle or square.                                  |
+| [MNIST-v0](mnist.md)                | Grayscale  | 10                | 28x28      | 5            | Handwritten digits from the [MNIST dataset](http://yann.lecun.com/exdb/mnist/). |
