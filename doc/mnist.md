@@ -5,11 +5,14 @@
 This environment is part of the image classification environments.
 Refer to the [image classification environments overview](image_classification.md) for a general description of these environments.
 
-|                       |               |
-|-----------------------|---------------|
-| **Environment ID**    | MNIST-v0      |
-| **Image type**        | Grayscale     |
-| **Number of classes** | 10            |
+|                       |           |
+|-----------------------|-----------|
+| **Environment ID**    | MNIST-v0  |
+| **Image type**        | Grayscale |
+| **Number of classes** | 10        |
+| **Image size**        | 28x28     |
+| **Glimpse size**      | 5         |
+
 
 ## Description
 

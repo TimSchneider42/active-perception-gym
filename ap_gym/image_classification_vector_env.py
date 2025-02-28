@@ -17,7 +17,10 @@ from .image_space import ImageSpace
 
 
 class ImageClassificationVectorEnv(
-    ActiveClassificationVectorEnv[np.ndarray, np.ndarray], ABC
+    ActiveClassificationVectorEnv[
+        dict[Literal["glance", "glance_pos"], np.ndarray], np.ndarray
+    ],
+    ABC,
 ):
     metadata: dict[str, Any] = {"render_modes": ["rgb_array", "human"], "render_fps": 2}
 
@@ -56,11 +59,16 @@ class ImageClassificationVectorEnv(
         self.__prefetch_buffer_size = 128
         self.__terminating = None
         *self.__image_size, self.__channels = self._load_image(0)[0].shape
-        self.single_observation_space = ImageSpace(
-            self.__sensor_size[1],
-            self.__sensor_size[0],
-            self.__channels,
-            dtype=np.float32,
+        self.single_observation_space = gym.spaces.Dict(
+            {
+                "glance": ImageSpace(
+                    self.__sensor_size[1],
+                    self.__sensor_size[0],
+                    self.__channels,
+                    dtype=np.float32,
+                ),
+                "glance_pos": gym.spaces.Box(-1, 1, (2,), np.float32),
+            }
         )
         self.observation_space = gym.vector.utils.batch_space(
             self.single_observation_space, self.num_envs
@@ -97,9 +105,7 @@ class ImageClassificationVectorEnv(
         imgs, labels = zip(*[self._load_image(int(i)) for i in idx])
         return np.stack(imgs, axis=0), np.array(labels, dtype=np.int32)
 
-    def _reset(
-        self, *, seed: int | None = None, options: dict[str, Any | None] = None
-    ) -> tuple[np.ndarray, dict[str, Any], Any]:
+    def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
         self.__current_rng = np.random.default_rng(seed)
         self.__sample_rng = np.random.default_rng(
             self.__current_rng.integers(0, 2**32)
@@ -116,12 +122,16 @@ class ImageClassificationVectorEnv(
             self.__prefetch_thread.start()
         return self.__reset()
 
-    def __reset(self) -> tuple[np.ndarray, dict[str, Any], Any]:
+    def __reset(self):
         if self.__prefetch:
             res = self.__prefetch_queue_out.get()
             if isinstance(res, Exception):
                 raise res
-            self.__current_images, self.__current_labels, self.__current_data_point_idx = res
+            (
+                self.__current_images,
+                self.__current_labels,
+                self.__current_data_point_idx,
+            ) = res
             self.__prefetch_queue_in.put(
                 self.__sample_rng.integers(0, self.__image_count, size=self.num_envs)
             )
@@ -156,11 +166,7 @@ class ImageClassificationVectorEnv(
         self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
         return self._get_obs(), info, self.__current_labels
 
-    def _step(
-        self, action: np.ndarray, prediction: np.ndarray
-    ) -> tuple[
-        np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], np.ndarray
-    ]:
+    def _step(self, action: np.ndarray, prediction: np.ndarray):
         self._update_visitation_overlay(prediction=prediction)
         if np.any(self.__prev_done):
             if not np.all(self.__prev_done):
@@ -212,7 +218,7 @@ class ImageClassificationVectorEnv(
         if prediction is not None:
             self.__last_prediction_map[coords] = prediction[:, np.newaxis, np.newaxis]
 
-    def _get_obs(self):
+    def _get_obs(self) -> dict[Literal["glance", "glance_pos"], np.ndarray]:
         sensing_point_offsets = np.meshgrid(
             (np.arange(self.__sensor_size[0]) - (self.__sensor_size[0] - 1) / 2)
             * self.__sensor_scale,
@@ -228,7 +234,10 @@ class ImageClassificationVectorEnv(
             [img(sp) for img, sp in zip(self.__interpolated_images, sensing_points)],
             axis=0,
         ).clip(0, 1)
-        return sensor_img.astype(np.float32)
+        return {
+            "glance": sensor_img.astype(np.float32),
+            "glance_pos": self.__current_sensor_pos_norm.astype(np.float32),
+        }
 
     def __prefetch_thread_fn(self):
         while not self.__terminating:
