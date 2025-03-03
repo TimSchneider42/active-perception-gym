@@ -39,6 +39,22 @@ def register_envs():
         max_episode_steps=16,
     )
 
+    gym.envs.registration.register(
+        id="CIFAR10-v0",
+        entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationEnv",
+        vector_entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationVectorEnv",
+        kwargs=dict(dataset_name="cifar10", image_feature_name="img"),
+        max_episode_steps=16,
+    )
+
+    gym.envs.registration.register(
+        id="TinyImageNet-v0",
+        entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationEnv",
+        vector_entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationVectorEnv",
+        kwargs=dict(dataset_name="zh-plus/tiny-imagenet", sensor_size=(10, 10)),
+        max_episode_steps=16,
+    )
+
 
 def make(
     id: str | gym.envs.registration.EnvSpec,
