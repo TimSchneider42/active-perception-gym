@@ -22,14 +22,14 @@ class ImageClassificationVectorEnv(
     ],
     ABC,
 ):
-    metadata: dict[str, Any] = {"render_modes": ["rgb_array", "human"], "render_fps": 2}
+    metadata: dict[str, Any] = {"render_modes": ["rgb_array"], "render_fps": 2}
 
     def __init__(
         self,
         num_envs: int,
         image_count: int,
         label_count: int,
-        render_mode: Literal["rgb_array", "human"] = "rgb_array",
+        render_mode: Literal["rgb_array"] = "rgb_array",
         sensor_size: tuple[int, int] = (5, 5),
         sensor_scale: float = 1.0,
         max_episode_steps: int | None = None,
@@ -37,6 +37,8 @@ class ImageClassificationVectorEnv(
         display_visitation: bool = True,
         prefetch: bool = False,
     ):
+        if render_mode not in self.metadata["render_modes"]:
+            raise ValueError(f"Unsupported render mode: {render_mode}")
         if max_episode_steps is None:
             max_episode_steps = 16
         # Target position of the sensor relative to the previous position of the sensor
@@ -256,8 +258,6 @@ class ImageClassificationVectorEnv(
                 self.__prefetch_queue_out.put(e)
 
     def render(self) -> np.ndarray | None:
-        if self.__render_mode == "human":
-            raise NotImplementedError()
         current_image = self.__current_images
         if self.__channels == 1:
             current_image = current_image[..., 0]
