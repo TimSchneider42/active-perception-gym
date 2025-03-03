@@ -142,6 +142,12 @@ class ImageClassificationVectorEnv(
             self.__current_images, self.__current_labels = self._load_image_batch(
                 self.__current_data_point_idx
             )
+        image_size = np.array(self.__current_images.shape[1:3])
+        if np.any(image_size < self.effective_sensor_size):
+            raise ValueError(
+                f"Image size {tuple(image_size)} is smaller than effective sensor size "
+                f"{tuple(self.effective_sensor_size)}."
+            )
         coords_y = (
             np.arange(0, self.__current_images.shape[1])
             - (self.__current_images.shape[1] - 1) / 2
@@ -336,11 +342,14 @@ class ImageClassificationVectorEnv(
         return self.__image_size
 
     @property
+    def effective_sensor_size(self):
+        return np.array(self.__sensor_size) * self.__sensor_scale
+
+    @property
     def current_sensor_pos(self):
-        effective_sensor_size = np.array(self.__sensor_size) * self.__sensor_scale
         sensor_pos_lim = (
             np.flip(np.array(self.__current_images.shape[1:3])) - 1
-        ) / 2 - (effective_sensor_size - 1) / 2
+        ) / 2 - (self.effective_sensor_size - 1) / 2
         return sensor_pos_lim * self.__current_sensor_pos_norm
 
     @property
