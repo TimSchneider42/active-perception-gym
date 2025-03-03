@@ -145,7 +145,7 @@ class ImageClassificationVectorEnv(
         image_size = np.array(self.__current_images.shape[1:3])
         if np.any(image_size < self.effective_sensor_size):
             raise ValueError(
-                f"Image size {tuple(image_size)} is smaller than effective sensor size "
+                f"Image size {tuple(image_size)} cannot be smaller than effective sensor size "
                 f"{tuple(self.effective_sensor_size)}."
             )
         coords_y = (
