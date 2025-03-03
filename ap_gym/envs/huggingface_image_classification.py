@@ -59,6 +59,8 @@ class HuggingfaceImageClassificationVectorEnv(ImageClassificationVectorEnv):
             img = img.astype(np.float32) / 255
         if len(img.shape) == 2:
             img = img[..., None]
+        if img.shape[-1] == 1:
+            img = np.repeat(img, 3, axis=-1)
         return img, data_point[self.__label_feature_name]
 
 
