@@ -133,3 +133,29 @@ class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
         return -jnp.take_along_axis(
             jax.nn.log_softmax(prediction), target[..., None], axis=-1
         )[..., 0]
+
+
+class MSELossFn(LossFn[np.ndarray, int | np.ndarray]):
+    def numpy(
+        self,
+        prediction: np.ndarray,
+        target: np.ndarray,
+        batch_shape: tuple[int, ...] = (),
+    ) -> float:
+        return np.mean((prediction - target) ** 2, axis=-1)
+
+    def torch(
+        self,
+        prediction: "torch.Tensor",
+        target: "torch.Tensor",
+        batch_shape: tuple[int, ...] = (),
+    ) -> "torch.Tensor":
+        return torch.mean((prediction - target) ** 2, dim=-1)
+
+    def jax(
+        self,
+        prediction: "jax.Array",
+        target: "jax.Array",
+        batch_shape: tuple[int, ...] = (),
+    ) -> "jax.Array":
+        return jnp.mean((prediction - target) ** 2, axis=-1)

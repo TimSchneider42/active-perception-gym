@@ -55,6 +55,12 @@ def register_envs():
         max_episode_steps=16,
     )
 
+    gym.envs.registration.register(
+        id="LightDark-v0",
+        entry_point="ap_gym.envs.light_dark:LightDarkEnv",
+        max_episode_steps=16,
+    )
+
 
 def make(
     id: str | gym.envs.registration.EnvSpec,
