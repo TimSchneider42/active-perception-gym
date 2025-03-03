@@ -4,6 +4,7 @@ import logging
 from typing import Literal
 
 import PIL.Image
+import aiohttp
 import numpy as np
 from datasets import load_dataset
 
@@ -23,7 +24,13 @@ class HuggingfaceImageClassificationVectorEnv(ImageClassificationVectorEnv):
         max_step_length: float = 0.2,
         prefetch: bool = True,
     ):
-        dataset = load_dataset(dataset_name)
+        dataset = load_dataset(
+            dataset_name,
+            trust_remote_code=True,
+            storage_options={
+                "client_kwargs": {"timeout": aiohttp.ClientTimeout(total=60 * 60 * 6)}
+            },
+        )
         self.__data = dataset[split]
 
         super().__init__(
