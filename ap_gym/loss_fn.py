@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, TYPE_CHECKING, Generic, Callable
+from typing import Any, Tuple, Generic, Callable
 
 import numpy as np
+import scipy
 
 from .types import PredType, PredTargetType
 
-if TYPE_CHECKING:
+try:
     import torch
-    import jax
+except ImportError:
+    torch = None
 
 try:
+    import jax
     import jax.numpy as jnp
 except ImportError:
+    jax = None
     jnp = None
 
 
@@ -95,3 +99,37 @@ class ZeroLossFn(LossFn[Tuple, Tuple]):
         self, prediction: Tuple, target: Tuple, batch_shape: tuple[int, ...] = ()
     ) -> "jax.Array":
         return jnp.zeros(batch_shape)
+
+
+class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
+    def numpy(
+        self,
+        prediction: np.ndarray,
+        target: int | np.ndarray,
+        batch_shape: tuple[int, ...] = (),
+    ) -> float:
+        return -np.take_along_axis(
+            scipy.special.log_softmax(prediction, axis=-1), target[..., None], axis=-1
+        )[..., 0]
+
+    def torch(
+        self,
+        prediction: "torch.Tensor",
+        target: int | "torch.Tensor",
+        batch_shape: tuple[int, ...] = (),
+    ) -> "torch.Tensor":
+        return -torch.take_along_dim(
+            torch.nn.functional.log_softmax(prediction, dim=-1),
+            target[..., None],
+            dim=-1,
+        )[..., 0]
+
+    def jax(
+        self,
+        prediction: "jax.Array",
+        target: int | "jax.Array",
+        batch_shape: tuple[int, ...] = (),
+    ) -> "jax.Array":
+        return -jnp.take_along_axis(
+            jax.nn.log_softmax(prediction), target[..., None], axis=-1
+        )[..., 0]
