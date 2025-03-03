@@ -10,7 +10,7 @@ img = env.render()
 
 fig, axes = plt.subplots(2, env.num_envs, squeeze=False)
 obs_plot = [
-    ax[0].imshow(np.zeros(env.observation_space["glance"].shape), vmin=0.0, vmax=1.0)
+    ax[0].imshow(np.zeros(env.observation_space["glance"].shape[1:]), vmin=0.0, vmax=1.0)
     for ax in axes.T
 ]
 render_plot = [ax[1].imshow(np.zeros_like(im)) for ax, im in zip(axes.T, img)]
