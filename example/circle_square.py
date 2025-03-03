@@ -33,6 +33,5 @@ for s in range(1000):
             f"Current loss: {env.loss_fn.numpy(action['prediction'], info['prediction']['target']):0.2f}"
         )
     obs_plot.set_data(obs["glance"])
-    print(obs["glance_pos"])
     render_plot.set_data(env.render())
     plt.pause(1 / env.metadata["render_fps"])
