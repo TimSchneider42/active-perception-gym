@@ -20,6 +20,7 @@ class HuggingfaceImageClassificationVectorEnv(ImageClassificationVectorEnv):
         dataset_name: str,
         split: str = "train",
         render_mode: Literal["rgb_array", "human"] = "rgb_array",
+        sensor_size: tuple[int, int] = (5, 5),
         max_episode_steps: int | None = None,
         max_step_length: float = 0.2,
         prefetch: bool = True,
@@ -41,6 +42,7 @@ class HuggingfaceImageClassificationVectorEnv(ImageClassificationVectorEnv):
             max_episode_steps=max_episode_steps,
             max_step_length=max_step_length,
             prefetch=prefetch,
+            sensor_size=sensor_size,
         )
 
     def _load_image(self, idx: int) -> tuple[np.ndarray, int]:
@@ -60,6 +62,7 @@ def HuggingfaceImageClassificationEnv(
     dataset_name: str,
     split: str = "train",
     render_mode: Literal["rgb_array", "human"] = "rgb_array",
+    sensor_size: tuple[int, int] = (5, 5),
     max_episode_steps: int | None = None,
     max_step_length: float = 0.2,
 ):
@@ -69,6 +72,7 @@ def HuggingfaceImageClassificationEnv(
             dataset_name,
             split,
             render_mode=render_mode,
+            sensor_size=sensor_size,
             max_episode_steps=max_episode_steps,
             max_step_length=max_step_length,
             prefetch=False,  # Must be false as we cannot predict the seeds of the reset calls
