@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import TypeVar, Generic, Any
+from typing import Generic, Any
 
 import gymnasium as gym
 import numpy as np
-import scipy.special
 
 from .active_perception_env import (
     ActivePerceptionEnv,
-    LossFn,
     ActivePerceptionActionSpace,
 )
 from .active_perception_vector_env import (
@@ -17,55 +15,8 @@ from .active_perception_vector_env import (
     FullActType,
     PredType,
 )
-
-try:
-    import torch
-except ImportError:
-    torch = None
-
-try:
-    import jax
-    import jax.numpy as jnp
-except ImportError:
-    jax = None
-    jnp = None
-
-ObsType = TypeVar("ObsType")
-ActType = TypeVar("ActType")
-
-
-class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
-    def numpy(
-        self,
-        prediction: np.ndarray,
-        target: int | np.ndarray,
-        batch_shape: tuple[int, ...] = (),
-    ) -> float:
-        return -np.take_along_axis(
-            scipy.special.log_softmax(prediction, axis=-1), target[..., None], axis=-1
-        )[..., 0]
-
-    def torch(
-        self,
-        prediction: "torch.Tensor",
-        target: int | "torch.Tensor",
-        batch_shape: tuple[int, ...] = (),
-    ) -> "torch.Tensor":
-        return -torch.take_along_dim(
-            torch.nn.functional.log_softmax(prediction, dim=-1),
-            target[..., None],
-            dim=-1,
-        )[..., 0]
-
-    def jax(
-        self,
-        prediction: "jax.Array",
-        target: int | "jax.Array",
-        batch_shape: tuple[int, ...] = (),
-    ) -> "jax.Array":
-        return -jnp.take_along_axis(
-            jax.nn.log_softmax(prediction), target[..., None], axis=-1
-        )[..., 0]
+from .loss_fn import CrossEntropyLossFn
+from .types import ObsType, ActType
 
 
 class ActiveClassificationEnv(
@@ -166,7 +117,9 @@ class ActiveClassificationVectorEnv(
         self, action: FullActType[ActType, PredType]
     ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super().step(action)
-        is_correct = info["prediction"]["target"] == action["prediction"].argmax(axis=-1)
+        is_correct = info["prediction"]["target"] == action["prediction"].argmax(
+            axis=-1
+        )
         self.__current_correct_sum += is_correct
         self.__current_correct_sum[self.__prev_done] = 0
         self.__current_step[self.__prev_done] = 0
