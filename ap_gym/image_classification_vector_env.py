@@ -82,18 +82,8 @@ class ImageClassificationVectorEnv(
         assert max_step_length.shape in {(2,), (1,), ()}
         self.__max_step_length = np.ones(2) * np.array(max_step_length)
         self.__current_rng = self.__sample_rng = None
-        render_width = 640
-        self.__render_scaling = render_width / self.__image_size[1]
-        render_height = int(round(self.__render_scaling * self.__image_size[0]))
-        self.__render_size = (render_width, render_height)
-        self.__visitation_counts = np.zeros(
-            (self.num_envs, self.__render_size[1], self.__render_size[0]),
-            dtype=np.int32,
-        )
-        self.__last_prediction_map = np.zeros(
-            (self.num_envs, self.__render_size[1], self.__render_size[0], label_count),
-            dtype=np.int32,
-        )
+        self.__render_size = self.__render_scaling = None
+        self.__visitation_counts = self.__last_prediction_map = None
         self.__last_prediction = np.zeros((self.num_envs, label_count), dtype=np.int32)
         self.__prev_done: np.ndarray | None = None
         self.__current_labels: np.ndarray | None = None
@@ -168,11 +158,34 @@ class ImageClassificationVectorEnv(
         )
         info = {"index": self.__current_data_point_idx}
         self.__current_time_step = 0
-        self.__visitation_counts.fill(0)
-        self.__last_prediction_map.fill(0)
         self.__last_prediction.fill(0)
+
+        obs = self._get_obs()
+
+        if self.__visitation_counts is None:
+            render_width = max(128, obs["glance"].shape[2])
+            self.__render_scaling = render_width / self.__image_size[1]
+            render_height = int(round(self.__render_scaling * self.__image_size[0]))
+            self.__render_size = (render_width, render_height)
+            self.__visitation_counts = np.zeros(
+                (self.num_envs, self.__render_size[1], self.__render_size[0]),
+                dtype=np.int32,
+            )
+            self.__last_prediction_map = np.zeros(
+                (
+                    self.num_envs,
+                    self.__render_size[1],
+                    self.__render_size[0],
+                    self.single_prediction_target_space.n,
+                ),
+                dtype=np.int32,
+            )
+        else:
+            self.__visitation_counts.fill(0)
+            self.__last_prediction_map.fill(0)
+
         self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
-        return self._get_obs(), info, self.__current_labels
+        return obs, info, self.__current_labels
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         self._update_visitation_overlay(prediction=prediction)
@@ -269,7 +282,7 @@ class ImageClassificationVectorEnv(
         bottom_right = pos + size / 2
 
         glance_shadow_color = (0, 0, 0, 80)
-        glance_border_width = 5
+        glance_border_width = max(1, int(round(1 / 128 * self.__render_size[0])))
         glance_border_color = (0, 55, 255)
         glance_shadow_offset = glance_border_width
 
