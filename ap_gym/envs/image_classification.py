@@ -64,7 +64,6 @@ class ImageClassificationVectorEnv(
         prediction_quality = softmax(prediction, axis=-1)[
             np.arange(self.num_envs), self.__image_perception_module.current_labels
         ]
-        self.__last_prediction = prediction
         (
             obs,
             base_reward,
