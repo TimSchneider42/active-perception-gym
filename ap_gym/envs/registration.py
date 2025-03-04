@@ -97,8 +97,8 @@ def register_envs():
     )
 
     gym.envs.registration.register(
-        id="Localization2D-v0",
-        entry_point="ap_gym.envs.localization2d:Localization2DEnv",
+        id="LIDARLocalization2D-v0",
+        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
         max_episode_steps=16,
     )
 

@@ -11,7 +11,7 @@ from PIL import Image
 from ap_gym import ActivePerceptionEnv, ActivePerceptionActionSpace, MSELossFn
 
 
-class Localization2DEnv(
+class LIDARLocalization2DEnv(
     ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 ):
     metadata = {
