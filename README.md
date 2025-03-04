@@ -21,7 +21,7 @@ This guide assumes that you are familiar with Gymnasium, otherwise, please check
 
 In the active perception domain, an agent's main objective is to gather information and make predictions about a desired property of the environment.
 Examples of such properties could be the location of an object in case of a search task or the class of an object the agent in case of a classification task.
-To gather information, the agent must interact with the environment, e.g. by moving a glimpse around in case of the [CircleSquare](doc/circle_square.md) and [MNIST](doc/mnist.md) tasks.
+To gather information, the agent must interact with the environment, e.g. by moving a glimpse around in case of the [CircleSquare](doc/CircleSquare) and [MNIST](doc/MNIST) tasks.
 
 _ap_gym_ models active perception tasks as episodic processes in a way that is fully compatible to Gymnasium.
 Each task is defined as a Gymnasium environment, in which the agent is additionally provided with a differentiable loss function.
@@ -103,22 +103,46 @@ Additionally, aside of Gymnasium wrappers, `ap_gym.ActivePerceptionVectorRestore
 
 ### Environments
 
-_ap_gym_ currently comes with a number of image classification environments, which are described in detail in the [image classification documentation](doc/image_classification.md).
+TODO: document test environments
+TOOD: document other environments (light dark, cifar10, TinyImageNet)
+
+_ap_gym_ currently comes with a number of image classification environments, which are described in detail in the [image classification documentation](doc/ImageClassification).
 
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
         <td align="center" style="border: none; padding: 10px;">
-            <a href="doc/circle_square.md">
-                <img src="doc/circle_square.gif" alt="CircleSquare-v0" width="200px"/>
+            <a href="doc/CircleSquare.md">
+                <img src="doc/img/CircleSquare-v0.gif" alt="CircleSquare-v0" width="200px"/>
                 <br/>
                 CircleSquare-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
-            <a href="doc/mnist.md">
-                <img src="doc/mnist.gif" alt="MNIST-v0" width="200px"/>
+            <a href="doc/MNIST.md">
+                <img src="doc/img/MNIST-v0.gif" alt="MNIST-v0" width="200px"/>
                 <br/>
                 MNIST-v0
+            </a>
+        </td>
+        <td align="center" style="border: none; padding: 10px;">
+            <a href="doc/LightDark.md">
+                <img src="doc/img/LightDark-v0.gif" alt="MNIST-v0" width="200px"/>
+                <br/>
+                LightDark-v0
+            </a>
+        </td>
+        <td align="center" style="border: none; padding: 10px;">
+            <a href="doc/TinyImageNet.md">
+                <img src="doc/img/TinyImageNet-v0.gif" alt="MNIST-v0" width="200px"/>
+                <br/>
+                TinyImageNet-v0
+            </a>
+        </td>
+        <td align="center" style="border: none; padding: 10px;">
+            <a href="doc/CIFAR10.md">
+                <img src="doc/img/CIFAR10-v0.gif" alt="MNIST-v0" width="200px"/>
+                <br/>
+                CIFAR10-v0
             </a>
         </td>
     </tr>
@@ -196,7 +220,9 @@ class MyCustomEnv(ap_gym.ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray,
         return obs, base_reward, terminated, truncated, info, self._current_class
 ```
 
-or like this for vectorized environments:
+If you wish to see a full example, check out the [LightDark](doc/light_dark.md) [implementation](ap_gym/envs/light_dark.py).
+
+For vectorized environments, subclass `ap_gym.ActivePerceptionVectorEnv` instead:
 
 ```python
 from typing import Any

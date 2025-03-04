@@ -71,5 +71,5 @@ The episode ends when the maximum number of steps (`max_episode_steps`, default:
 
 | Environment ID                      | Image type | Number of classes | Image size | Glimpse size | Image description                                                               |
 |-------------------------------------|------------|-------------------|------------|--------------|---------------------------------------------------------------------------------|
-| [CircleSquare-v0](circle_square.md)              | Grayscale  | 2                 | 28x28      | 5            | An image containing either a circle or square.                                  |
-| [MNIST-v0](mnist.md)                | Grayscale  | 10                | 28x28      | 5            | Handwritten digits from the [MNIST dataset](http://yann.lecun.com/exdb/mnist/). |
+| [CircleSquare-v0](CircleSquare)              | Grayscale  | 2                 | 28x28      | 5            | An image containing either a circle or square.                                  |
+| [MNIST-v0](MNIST)                | Grayscale  | 10                | 28x28      | 5            | Handwritten digits from the [MNIST dataset](http://yann.lecun.com/exdb/mnist/). |
