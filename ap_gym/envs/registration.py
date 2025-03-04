@@ -88,9 +88,11 @@ def register_envs():
     )
 
     gym.envs.registration.register(
-    id="Maze-v0",
-    entry_point="ap_gym.envs.maze:MazeEnv",
-    max_episode_steps=16,)
+        id="Localization2D-v0",
+        entry_point="ap_gym.envs.localization2d:Localization2DEnv",
+        max_episode_steps=16,
+    )
+
 
 def make(
     id: str | gym.envs.registration.EnvSpec,

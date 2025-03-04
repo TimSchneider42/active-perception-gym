@@ -1,26 +1,29 @@
+import io
+import math
+import random
 from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
-from PIL import Image, ImageDraw
+import pygame
+from PIL import Image
 
 from ap_gym import ActivePerceptionEnv, ActivePerceptionActionSpace, MSELossFn
 
-import random
-import pygame
-import io
-import math
 
-
-class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray]):
-    metadata = {"render_modes": ["rgb_array"], "render_fps": 4, "screen_width": 600, "screen_height": 600}
+class Localization2DEnv(
+    ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+):
+    metadata = {
+        "render_modes": ["rgb_array"],
+        "render_fps": 4,
+    }
 
     def __init__(self, render_mode: Literal["rgb_array"] = "rgb_array"):
         super().__init__()
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
-        
-        
+
         self.__maze_width = 28
         self.__maze_height = 28
         self.__scale = 30
@@ -30,24 +33,33 @@ class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray
         self.__lidar_range = 100
         self.__lidar_directions = [i * (math.pi / 4) for i in range(8)]  # 8 directions
 
-        
-
-        maze = self._generate_maze(self.__maze_width, self.__maze_height, self.__num_rooms, self.__branching_prob)
-        maze = np.array(maze, dtype=np.uint8) * 255 
+        maze = self._generate_maze(
+            self.__maze_width,
+            self.__maze_height,
+            self.__num_rooms,
+            self.__branching_prob,
+        )
+        maze = np.array(maze, dtype=np.uint8) * 255
         self.__base_image = maze
 
-        self.__bitmap = self._maze_to_pygame_surface(self.__base_image, scale=self.__scale)
-        self.__bitmap  = pygame.transform.scale(self.__bitmap , (self.metadata["screen_width"], self.metadata["screen_height"]))
-        pygame.init()
-        
-        self.__screen = pygame.display.set_mode((self.metadata["screen_width"], self.metadata["screen_height"]))
-        self.__clock = pygame.time.Clock()
-        
-        coords_x, coords_y = np.meshgrid(
-            np.linspace(-1, 1, self.__maze_width), np.linspace(-1, 1, self.__maze_height), indexing="ij"
+        self.__bitmap = self._maze_to_pygame_surface(
+            self.__base_image, scale=self.__scale
         )
-    
-        
+        self.__screen_size = (600, 600)
+        self.__bitmap = pygame.transform.scale(
+            self.__bitmap,
+            self.__screen_size,
+        )
+        pygame.init()
+
+        self.__screen = pygame.display.set_mode(self.__screen_size)
+        self.__clock = pygame.time.Clock()
+
+        coords_x, coords_y = np.meshgrid(
+            np.linspace(-1, 1, self.__maze_width),
+            np.linspace(-1, 1, self.__maze_height),
+            indexing="ij",
+        )
 
         self.action_space = ActivePerceptionActionSpace(
             gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32),
@@ -66,20 +78,24 @@ class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray
         self.__last_obs = distances
         return self.__last_obs
 
-
     def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
-    
         self.__rng = np.random.default_rng(seed)
 
         while True:
-            self.__pos = self.__rng.uniform(np.array([0.0, -1.0]), np.ones(2), size=2).astype(np.float32)
+            self.__pos = self.__rng.uniform(
+                np.array([0.0, -1.0]), np.ones(2), size=2
+            ).astype(np.float32)
 
-            x_idx = int((self.__pos[0] + 1) / 2 * (self.metadata["screen_width"] - 1))  # Map 0-1 to maze grid x
-            y_idx = int((self.__pos[1] + 1) / 2 * (self.metadata["screen_height"]  - 1))  # Map -1 to 1 to maze grid y
+            x_idx = int(
+                (self.__pos[0] + 1) / 2 * (self.__screen_size[0] - 1)
+            )  # Map 0-1 to maze grid x
+            y_idx = int(
+                (self.__pos[1] + 1) / 2 * (self.__screen_size[1] - 1)
+            )  # Map -1 to 1 to maze grid y
             pixel_array = pygame.surfarray.array3d(self.__bitmap)
-            print(pixel_array[x_idx, y_idx,0])
+            print(pixel_array[x_idx, y_idx, 0])
             print(x_idx, y_idx)
-            if pixel_array[x_idx, y_idx,0] == 255:
+            if pixel_array[x_idx, y_idx, 0] == 255:
                 self.__pos = self.__pos
                 self._x = x_idx
                 self._y = y_idx
@@ -99,16 +115,22 @@ class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray
         return self.__get_obs(), base_reward, terminated, False, {}, self.__pos
 
     def render(self):
-        new_x = int((self.__pos[0] + 1) / 2 * (self.metadata["screen_width"] - 1))  # Map 0-1 to maze grid x
-        new_y = int((self.__pos[1] + 1) / 2 * (self.metadata["screen_height"]  - 1))  # Map -1 to 1 to maze grid y
-        self.__screen.blit(self.__bitmap , (0, 0))
+        new_x = int(
+            (self.__pos[0] + 1) / 2 * (self.__screen_size[0] - 1)
+        )  # Map 0-1 to maze grid x
+        new_y = int(
+            (self.__pos[1] + 1) / 2 * (self.__screen_size[1] - 1)
+        )  # Map -1 to 1 to maze grid y
+        self.__screen.blit(self.__bitmap, (0, 0))
         if self._can_move(new_x, new_y):
             self._x, self._y = new_x, new_y
-        
+
         for angle, dist in zip(self.__lidar_directions, self.__last_obs):
             end_x = int(self._x + math.cos(angle) * dist)
             end_y = int(self._y + math.sin(angle) * dist)
-            pygame.draw.line(self.__screen, (0, 255, 0), (self._x, self._y), (end_x, end_y), 1)
+            pygame.draw.line(
+                self.__screen, (0, 255, 0), (self._x, self._y), (end_x, end_y), 1
+            )
             pygame.draw.circle(self.__screen, (255, 0, 0), (end_x, end_y), 3)
 
         pygame.draw.circle(self.__screen, (0, 0, 255), (self._x, self._y), 5)
@@ -117,11 +139,9 @@ class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray
 
         # pygame.draw.circle(screen, (0, 0, 255), (x, y), 5)
 
-        return self.__bitmap 
-        
-    
+        return self.__bitmap
+
     def _generate_maze(self, width, height, num_rooms, branching_prob=1.0):
-        
         # Ensure dimensions are odd
         if width % 2 == 0:
             width += 1
@@ -130,7 +150,7 @@ class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray
 
         # Create a maze full of walls (represented by 1)
         maze = [[1 for _ in range(width)] for _ in range(height)]
-        
+
         def carve(x, y):
             directions = [(2, 0), (-2, 0), (0, 2), (0, -2)]
             random.shuffle(directions)
@@ -140,7 +160,9 @@ class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray
                 if 0 < nx < width and 0 < ny < height and maze[ny][nx] == 1:
                     # Always carve the first eligible branch; subsequent ones only if allowed by branching_prob
                     if first or random.random() < branching_prob:
-                        maze[y + dy // 2][x + dx // 2] = 0  # Carve passage between cells
+                        maze[y + dy // 2][
+                            x + dx // 2
+                        ] = 0  # Carve passage between cells
                         maze[ny][nx] = 0
                         carve(nx, ny)
                         first = False
@@ -167,7 +189,9 @@ class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray
         img = Image.new("1", (width * scale, height * scale), 1)  # white background
         for y in range(height):
             for x in range(width):
-                color = 1 if maze[y][x] == 0 else 0  # 1: white for path, 0: black for wall
+                color = (
+                    1 if maze[y][x] == 0 else 0
+                )  # 1: white for path, 0: black for wall
                 for i in range(scale):
                     for j in range(scale):
                         img.putpixel((x * scale + j, y * scale + i), color)
@@ -179,10 +203,13 @@ class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray
         img_bytes.seek(0)
         pygame_img = pygame.image.load(img_bytes)
         return pygame_img
-    
+
     # Check if pixel at position is white (traversable)
     def _can_move(self, pos_x, pos_y):
-        if 0 <= pos_x < self.metadata["screen_width"] and 0 <= pos_y <  self.metadata["screen_height"]:
+        if (
+            0 <= pos_x < self.__screen_size[0]
+            and 0 <= pos_y < self.__screen_size[1]
+        ):
             return self.__bitmap.get_at((int(pos_x), int(pos_y)))[:3] == (255, 255, 255)
         return False
 
@@ -199,4 +226,3 @@ class MazeEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray
                 dist += 1
             distances.append(dist)
         return distances
-
