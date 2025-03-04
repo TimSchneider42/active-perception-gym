@@ -2,6 +2,7 @@ from .active_classification_env import (
     ActiveClassificationEnv,
     ActiveClassificationVectorEnv,
 )
+from .active_regression_env import ActiveRegressionEnv, ActiveRegressionVectorEnv
 from .active_perception_env import (
     ActivePerceptionEnv,
     BaseActivePerceptionEnv,

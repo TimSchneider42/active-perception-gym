@@ -4,14 +4,14 @@ import gymnasium as gym
 import numpy as np
 from PIL import Image, ImageDraw
 
-from ap_gym import ActivePerceptionEnv, ActivePerceptionActionSpace, MSELossFn
+from ap_gym import MSELossFn, ActiveRegressionEnv
 
 
-class LightDarkEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray]):
+class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
     metadata = {"render_modes": ["rgb_array"], "render_fps": 4}
 
     def __init__(self, render_mode: Literal["rgb_array"] = "rgb_array"):
-        super().__init__()
+        super().__init__(2, gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32))
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
         self.__pos = self.__last_obs = self.__rng = self.__last_pred = None
@@ -29,17 +29,9 @@ class LightDarkEnv(ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.nd
             (res, res, 3),
         )
 
-        self.action_space = ActivePerceptionActionSpace(
-            gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32),
-            gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32),
-        )
-        self.prediction_target_space = gym.spaces.Box(
-            low=-1, high=1, shape=(2,), dtype=np.float32
-        )
         self.observation_space = gym.spaces.Box(
             low=-2, high=2, shape=(2,), dtype=np.float32
         )
-        self.loss_fn = MSELossFn()
 
     def __compute_brightness(self, pos: np.ndarray) -> np.ndarray:
         dist_squared = np.sum(
