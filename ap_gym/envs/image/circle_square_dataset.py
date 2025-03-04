@@ -1,38 +1,28 @@
 from __future__ import annotations
 
-from typing import Literal, Sequence
-
 import numpy as np
 
-from ap_gym import ImageClassificationVectorEnv, ActivePerceptionVectorToSingleWrapper
+from .image_classification_dataset import ImageClassificationDataset
 
 
-class CircleSquareVectorEnv(ImageClassificationVectorEnv):
+class CircleSquareDataset(ImageClassificationDataset):
     def __init__(
         self,
-        num_envs: int,
-        render_mode: Literal["rgb_array", "human"] = "rgb_array",
         show_gradient: bool = True,
         image_shape: tuple[int, int] = (28, 28),
         object_extents: int = 8,
-        max_episode_steps: int | None = None,
-        max_step_length: float | Sequence[float] = 0.2,
-        display_visitation: bool = True,
     ):
         self.__image_shape = image_shape
         self.__object_extents = object_extents
         self.__show_gradient = show_gradient
-        super().__init__(
-            num_envs,
-            2 * np.prod(image_shape),
-            2,
-            render_mode=render_mode,
-            max_episode_steps=max_episode_steps,
-            max_step_length=max_step_length,
-            display_visitation=display_visitation,
-        )
 
-    def _load_image(self, idx: int) -> tuple[np.ndarray, int]:
+    def _get_length(self) -> int:
+        return 2 * np.prod(self.__image_shape)
+
+    def _get_num_classes(self) -> int:
+        return 2
+
+    def _get_data_point(self, idx: int) -> tuple[np.ndarray, int]:
         label = int(idx >= np.prod(self.__image_shape))
         idx -= np.prod(self.__image_shape) * label
         pos_x = idx % self.__image_shape[1]
@@ -66,26 +56,3 @@ class CircleSquareVectorEnv(ImageClassificationVectorEnv):
                 np.linalg.norm(position - coords, axis=-1) <= self.__object_extents / 2
             ] = 1.0
         return img[:, :, None], label
-
-
-def CircleSquareEnv(
-    render_mode: Literal["rgb_array", "human"] = "rgb_array",
-    show_gradient: bool = True,
-    image_shape: tuple[int, int] = (28, 28),
-    object_extents: int = 8,
-    max_episode_steps: int | None = None,
-    max_step_length: float | Sequence[float] = 0.2,
-    display_visitation: bool = True,
-):
-    return ActivePerceptionVectorToSingleWrapper(
-        CircleSquareVectorEnv(
-            1,
-            render_mode=render_mode,
-            show_gradient=show_gradient,
-            image_shape=image_shape,
-            object_extents=object_extents,
-            max_episode_steps=max_episode_steps,
-            max_step_length=max_step_length,
-            display_visitation=display_visitation,
-        )
-    )

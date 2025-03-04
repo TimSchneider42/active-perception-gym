@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
 from queue import Queue, Empty
 from threading import Thread
 from typing import Any, Literal, Sequence
@@ -12,23 +11,25 @@ from PIL.Image import Resampling
 from scipy.interpolate import RegularGridInterpolator
 from scipy.special import softmax
 
-from .active_classification_env import ActiveClassificationVectorEnv
-from .image_space import ImageSpace
+from ap_gym import (
+    ActiveClassificationVectorEnv,
+    ImageSpace,
+    ActivePerceptionVectorToSingleWrapper,
+)
+from .image import ImageClassificationDataset
 
 
 class ImageClassificationVectorEnv(
     ActiveClassificationVectorEnv[
         dict[Literal["glance", "glance_pos"], np.ndarray], np.ndarray
     ],
-    ABC,
 ):
     metadata: dict[str, Any] = {"render_modes": ["rgb_array"], "render_fps": 2}
 
     def __init__(
         self,
         num_envs: int,
-        image_count: int,
-        label_count: int,
+        dataset: ImageClassificationDataset,
         render_mode: Literal["rgb_array"] = "rgb_array",
         sensor_size: tuple[int, int] = (5, 5),
         sensor_scale: float = 1.0,
@@ -37,6 +38,7 @@ class ImageClassificationVectorEnv(
         display_visitation: bool = True,
         prefetch: bool = False,
     ):
+        self.__dataset = dataset
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Unsupported render mode: {render_mode}")
         if max_episode_steps is None:
@@ -45,8 +47,6 @@ class ImageClassificationVectorEnv(
         single_inner_action_space = gym.spaces.Box(
             -np.ones(2, dtype=np.float32), np.ones(2, dtype=np.float32)
         )
-        super().__init__(num_envs, label_count, single_inner_action_space)
-        self.__image_count = image_count
         self.__sensor_size = sensor_size
         self.__sensor_scale = sensor_scale
         self.__render_mode = render_mode
@@ -60,7 +60,11 @@ class ImageClassificationVectorEnv(
         self.__prefetch_thread = None
         self.__prefetch_buffer_size = 128
         self.__terminating = None
-        *self.__image_size, self.__channels = self._load_image(0)[0].shape
+        self.__dataset.load()
+        super().__init__(
+            num_envs, self.__dataset.num_classes, single_inner_action_space
+        )
+        *self.__image_size, self.__channels = self.__dataset[0][0].shape
         self.single_observation_space = gym.spaces.Dict(
             {
                 "glance": ImageSpace(
@@ -84,18 +88,11 @@ class ImageClassificationVectorEnv(
         self.__current_rng = self.__sample_rng = None
         self.__render_size = self.__render_scaling = None
         self.__visitation_counts = self.__last_prediction_map = None
-        self.__last_prediction = np.zeros((self.num_envs, label_count), dtype=np.int32)
+        self.__last_prediction = np.zeros(
+            (self.num_envs, self.__dataset.num_classes), dtype=np.int32
+        )
         self.__prev_done: np.ndarray | None = None
         self.__current_labels: np.ndarray | None = None
-
-    def _load_image(self, idx: int) -> tuple[np.ndarray, int]:
-        raise NotImplementedError(
-            "Either _load_image or _load_image_batch must be implemented."
-        )
-
-    def _load_image_batch(self, idx: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        imgs, labels = zip(*[self._load_image(int(i)) for i in idx])
-        return np.stack(imgs, axis=0), np.array(labels, dtype=np.int32)
 
     def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
         self.__current_rng = np.random.default_rng(seed)
@@ -106,7 +103,9 @@ class ImageClassificationVectorEnv(
             self.__terminating = False
             self.__prefetch_queue_in = Queue()
             for idx in self.__sample_rng.integers(
-                0, self.__image_count, size=(self.__prefetch_buffer_size, self.num_envs)
+                0,
+                self.__dataset.num_classes,
+                size=(self.__prefetch_buffer_size, self.num_envs),
             ):
                 self.__prefetch_queue_in.put(idx)
             self.__prefetch_queue_out = Queue()
@@ -125,15 +124,17 @@ class ImageClassificationVectorEnv(
                 self.__current_data_point_idx,
             ) = res
             self.__prefetch_queue_in.put(
-                self.__sample_rng.integers(0, self.__image_count, size=self.num_envs)
+                self.__sample_rng.integers(
+                    0, self.__dataset.num_classes, size=self.num_envs
+                )
             )
         else:
             self.__current_data_point_idx = self.__sample_rng.integers(
-                0, self.__image_count, size=self.num_envs
+                0, self.__dataset.num_classes, size=self.num_envs
             )
-            self.__current_images, self.__current_labels = self._load_image_batch(
+            self.__current_images, self.__current_labels = self.__dataset[
                 self.__current_data_point_idx
-            )
+            ]
         image_size = np.array(self.__current_images.shape[1:3])
         if np.any(image_size < self.effective_sensor_size):
             raise ValueError(
@@ -264,7 +265,7 @@ class ImageClassificationVectorEnv(
         while not self.__terminating:
             try:
                 idx = self.__prefetch_queue_in.get(timeout=0.1)
-                self.__prefetch_queue_out.put(self._load_image_batch(idx) + (idx,))
+                self.__prefetch_queue_out.put(self.__dataset[idx] + (idx,))
             except Empty:
                 pass
             except Exception as e:
@@ -377,3 +378,27 @@ class ImageClassificationVectorEnv(
             * self.__render_scaling
         )
         return pos, size
+
+
+def ImageClassificationEnv(
+    dataset: ImageClassificationDataset,
+    render_mode: Literal["rgb_array"] = "rgb_array",
+    sensor_size: tuple[int, int] = (5, 5),
+    sensor_scale: float = 1.0,
+    max_episode_steps: int | None = None,
+    max_step_length: float | Sequence[float] = 0.2,
+    display_visitation: bool = True,
+):
+    return ActivePerceptionVectorToSingleWrapper(
+        ImageClassificationVectorEnv(
+            1,
+            dataset,
+            render_mode=render_mode,
+            sensor_size=sensor_size,
+            sensor_scale=sensor_scale,
+            max_episode_steps=max_episode_steps,
+            max_step_length=max_step_length,
+            display_visitation=display_visitation,
+            prefetch=False,
+        )
+    )

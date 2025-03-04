@@ -11,7 +11,28 @@ from ap_gym import (
     BaseActivePerceptionVectorEnv,
     ensure_active_perception_vector_env,
 )
-from .huggingface_dataset import HuggingfaceDataset
+from .image import (
+    HuggingfaceImageClassificationDataset,
+    CircleSquareDataset,
+    ImageClassificationDataset,
+)
+
+
+def register_image_classification_env(
+    name: str,
+    dataset: ImageClassificationDataset,
+    max_episode_steps: int,
+    kwargs: dict[str, Any] | None = None,
+):
+    if kwargs is None:
+        kwargs = {}
+    gym.envs.registration.register(
+        id=name,
+        kwargs=dict(dataset=dataset, **kwargs),
+        entry_point="ap_gym.envs.image_classification:ImageClassificationEnv",
+        vector_entry_point="ap_gym.envs.image_classification:ImageClassificationVectorEnv",
+        max_episode_steps=max_episode_steps,
+    )
 
 
 def register_envs():
@@ -24,11 +45,11 @@ def register_envs():
 
     for size_suffix, size in SIZES.items():
         for sg_suffix, show_gradient in SHOW_GRADIENT.items():
-            gym.envs.registration.register(
-                id=f"CircleSquare{size_suffix}{sg_suffix}-v0",
-                kwargs=dict(image_shape=size, show_gradient=show_gradient),
-                entry_point="ap_gym.envs.circle_square:CircleSquareEnv",
-                vector_entry_point="ap_gym.envs.circle_square:CircleSquareVectorEnv",
+            register_image_classification_env(
+                name=f"CircleSquare{size_suffix}{sg_suffix}-v0",
+                dataset=CircleSquareDataset(
+                    image_shape=size, show_gradient=show_gradient
+                ),
                 max_episode_steps=16,
             )
 
@@ -37,33 +58,27 @@ def register_envs():
         if split == "train":
             split_names.append("")
         for split_name in split_names:
-            gym.envs.registration.register(
-                id=f"MNIST{split_name}-v0",
-                entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationEnv",
-                vector_entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationVectorEnv",
-                kwargs=dict(dataset=HuggingfaceDataset("mnist", split=split)),
+            register_image_classification_env(
+                name=f"MNIST{split_name}-v0",
+                dataset=HuggingfaceImageClassificationDataset("mnist", split=split),
                 max_episode_steps=16,
             )
 
-            gym.envs.registration.register(
-                id=f"CIFAR10{split_name}-v0",
-                entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationEnv",
-                vector_entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationVectorEnv",
-                kwargs=dict(
-                    dataset=HuggingfaceDataset("cifar10", image_feature_name="img")
+            register_image_classification_env(
+                name=f"CIFAR10{split_name}-v0",
+                dataset=HuggingfaceImageClassificationDataset(
+                    "cifar10", image_feature_name="img", split=split
                 ),
                 max_episode_steps=16,
             )
 
-            gym.envs.registration.register(
-                id=f"TinyImageNet{split_name}-v0",
-                entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationEnv",
-                vector_entry_point="ap_gym.envs.huggingface_image_classification:HuggingfaceImageClassificationVectorEnv",
-                kwargs=dict(
-                    dataset=HuggingfaceDataset("zh-plus/tiny-imagenet"),
-                    sensor_size=(10, 10),
+            register_image_classification_env(
+                name=f"TinyImageNet{split_name}-v0",
+                dataset=HuggingfaceImageClassificationDataset(
+                    "zh-plus/tiny-imagenet", split=split
                 ),
                 max_episode_steps=16,
+                kwargs=dict(sensor_size=(10, 10)),
             )
 
     gym.envs.registration.register(
