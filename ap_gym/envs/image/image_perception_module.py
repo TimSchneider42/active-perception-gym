@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Sequence, Dict, Any
 
+import PIL.Image
 import gymnasium as gym
 import numpy as np
 from PIL import Image, ImageDraw
@@ -192,6 +193,12 @@ class ImagePerceptionModule:
             self.__prediction_quality_map[coords] = prediction_quality[:, None, None]
 
     def _get_obs(self) -> ObsType:
+        return {
+            "glance": self.get_glance(self.__current_sensor_pos_norm),
+            "glance_pos": self.__current_sensor_pos_norm.astype(np.float32),
+        }
+
+    def get_glance(self, pos_norm: np.ndarray) -> np.ndarray:
         sensing_point_offsets = np.meshgrid(
             (
                 np.arange(self.__config.sensor_size[0])
@@ -206,19 +213,24 @@ class ImagePerceptionModule:
             indexing="ij",
         )
         sensing_points = (
-            np.flip(self.current_sensor_pos, axis=-1)[:, None, None]
+            np.flip(self.denormalize_coords(pos_norm), axis=-1)[:, None, None]
             + np.stack(sensing_point_offsets, axis=-1)[None]
         )
-        sensor_img = np.stack(
-            [img(sp) for img, sp in zip(self.__interpolated_images, sensing_points)],
-            axis=0,
-        ).clip(0, 1)
-        return {
-            "glance": sensor_img.astype(np.float32),
-            "glance_pos": self.__current_sensor_pos_norm.astype(np.float32),
-        }
+        return (
+            np.stack(
+                [
+                    img(sp)
+                    for img, sp in zip(self.__interpolated_images, sensing_points)
+                ],
+                axis=0,
+            )
+            .clip(0, 1)
+            .astype(np.float32)
+        )
 
-    def render(self) -> np.ndarray | None:
+    def render(
+        self, return_pil_imgs: bool = False
+    ) -> np.ndarray | list[PIL.Image.Image] | None:
         current_image = self.__current_images
         if self.__channels == 1:
             current_image = current_image[..., 0]
@@ -229,8 +241,7 @@ class ImagePerceptionModule:
         top_left = pos - size / 2
         bottom_right = pos + size / 2
 
-        glance_border_width = max(1, int(round(1 / 128 * self.__render_size[0])))
-        glance_shadow_offset = glance_border_width
+        glance_shadow_offset = self.glance_border_width
 
         visited = self.__visitation_counts > 0
         render_good_color = self.__config.render_good_color
@@ -279,17 +290,28 @@ class ImagePerceptionModule:
             draw.rectangle(
                 tuple(glance_coords + glance_shadow_offset),
                 outline=self.__config.render_glance_shadow_color,
-                width=glance_border_width,
+                width=self.glance_border_width,
             )
             draw.rectangle(
                 tuple(glance_coords),
                 outline=self.__config.render_glance_border_color,
-                width=glance_border_width,
+                width=self.glance_border_width,
             )
             rgb_imgs.append(rgb_img)
-        rgb_img = np.stack(rgb_imgs, axis=0)
 
-        return np.array(rgb_img)
+        return rgb_imgs if return_pil_imgs else np.asarray(rgb_imgs)
+
+    def denormalize_coords(self, size: np.ndarray) -> np.ndarray:
+        sensor_pos_lim = (
+            np.flip(np.array(self.__current_images.shape[1:3])) - 1
+        ) / 2 - (self.effective_sensor_size - 1) / 2
+        return size * sensor_pos_lim
+
+    def to_render_coords(self, pos_norm: np.ndarray) -> np.ndarray:
+        return self.scale_to_render_coords(pos_norm) + np.array(self.__render_size) / 2
+
+    def scale_to_render_coords(self, size_norm: np.ndarray) -> np.ndarray:
+        return self.denormalize_coords(size_norm) * self.__render_scaling
 
     def close(self):
         if isinstance(self.__data_loader, BufferedIterator):
@@ -309,22 +331,12 @@ class ImagePerceptionModule:
 
     @property
     def current_sensor_pos(self):
-        sensor_pos_lim = (
-            np.flip(np.array(self.__current_images.shape[1:3])) - 1
-        ) / 2 - (self.effective_sensor_size - 1) / 2
-        return sensor_pos_lim * self.__current_sensor_pos_norm
+        return self.denormalize_coords(self.__current_sensor_pos_norm)
 
     @property
     def __sensor_rects(self):
-        pos = (
-            self.current_sensor_pos * self.__render_scaling
-            + np.array(self.__render_size) / 2
-        )
-        size = (
-            np.flip(np.array(self.__config.sensor_size))
-            * self.__config.sensor_scale
-            * self.__render_scaling
-        )
+        pos = self.to_render_coords(self.__current_sensor_pos_norm)
+        size = self.effective_sensor_size * self.__render_scaling
         return pos, size
 
     @property
@@ -344,5 +356,17 @@ class ImagePerceptionModule:
         return self.__current_images
 
     @property
+    def glance_border_width(self):
+        return max(1, int(round(1 / 128 * self.__render_size[0])))
+
+    @property
     def current_labels(self) -> np.ndarray:
         return self.__current_labels
+
+    @property
+    def render_scaling(self):
+        return self.__render_scaling
+
+    @property
+    def render_size(self):
+        return self.__render_size

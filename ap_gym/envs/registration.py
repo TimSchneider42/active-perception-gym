@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import Any, Sequence, Callable
 
 import gymnasium as gym
@@ -19,7 +20,9 @@ from .image import (
 )
 
 
-def register_image_classification_env(
+def register_image_env(
+    entry_point: str,
+    vector_entry_point: str,
     name: str,
     dataset: ImageClassificationDataset,
     max_episode_steps: int,
@@ -32,10 +35,23 @@ def register_image_classification_env(
         kwargs=dict(
             image_perception_config=ImagePerceptionConfig(dataset=dataset, **kwargs)
         ),
-        entry_point="ap_gym.envs.image_classification:ImageClassificationEnv",
-        vector_entry_point="ap_gym.envs.image_classification:ImageClassificationVectorEnv",
+        entry_point=entry_point,
+        vector_entry_point=vector_entry_point,
         max_episode_steps=max_episode_steps,
     )
+
+
+register_image_classification_env = partial(
+    register_image_env,
+    entry_point="ap_gym.envs.image_classification:ImageClassificationEnv",
+    vector_entry_point="ap_gym.envs.image_classification:ImageClassificationVectorEnv",
+)
+
+register_image_localization_env = partial(
+    register_image_env,
+    entry_point="ap_gym.envs.image_localization:ImageLocalizationEnv",
+    vector_entry_point="ap_gym.envs.image_localization:ImageLocalizationVectorEnv",
+)
 
 
 def register_envs():
@@ -56,6 +72,12 @@ def register_envs():
                 max_episode_steps=16,
             )
 
+    image_env_render_kwargs = dict(
+        render_overlay_base_color=(0, 0, 0, 128),
+        render_good_color=(0, 255, 0, 60),
+        render_bad_color=(255, 0, 0, 60),
+    )
+
     for split in ["train", "test"]:
         split_names = [f"-{split}"]
         if split == "train":
@@ -67,18 +89,13 @@ def register_envs():
                 max_episode_steps=16,
             )
 
-            render_kwargs = dict(
-                render_overlay_base_color=(0, 0, 0, 128),
-                render_good_color=(0, 255, 0, 60),
-                render_bad_color=(255, 0, 0, 60),
-            )
             register_image_classification_env(
                 name=f"CIFAR10{split_name}-v0",
                 dataset=HuggingfaceImageClassificationDataset(
                     "cifar10", image_feature_name="img", split=split
                 ),
                 max_episode_steps=16,
-                kwargs=render_kwargs,
+                kwargs=image_env_render_kwargs,
             )
 
             register_image_classification_env(
@@ -87,7 +104,25 @@ def register_envs():
                     "zh-plus/tiny-imagenet", split=split
                 ),
                 max_episode_steps=16,
-                kwargs=dict(sensor_size=(10, 10), **render_kwargs),
+                kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
+            )
+
+            register_image_localization_env(
+                name=f"CIFAR10Loc{split_name}-v0",
+                dataset=HuggingfaceImageClassificationDataset(
+                    "cifar10", image_feature_name="img", split=split
+                ),
+                max_episode_steps=16,
+                kwargs=image_env_render_kwargs,
+            )
+
+            register_image_localization_env(
+                name=f"TinyImageNetLoc{split_name}-v0",
+                dataset=HuggingfaceImageClassificationDataset(
+                    "zh-plus/tiny-imagenet", split=split
+                ),
+                max_episode_steps=16,
+                kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
             )
 
     gym.envs.registration.register(
