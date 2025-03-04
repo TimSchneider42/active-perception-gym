@@ -1,9 +1,9 @@
 # MNIST
 
-<p align="center"><img src="mnist.gif" alt="MNIST-v0" width="200px"/></p>
+<p align="center"><img src="MNIST-v0.gif" alt="MNIST-v0" width="200px"/></p>
 
 This environment is part of the image classification environments.
-Refer to the [image classification environments overview](image_classification.md) for a general description of these environments.
+Refer to the [image classification environments overview](ImageClassification) for a general description of these environments.
 
 |                       |           |
 |-----------------------|-----------|
