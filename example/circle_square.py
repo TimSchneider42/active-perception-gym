@@ -16,7 +16,7 @@ render_plot = ax[1].imshow(np.zeros_like(img))
 plt.show(block=False)
 
 seed = 0
-prev_done = True
+prev_done = False
 for s in range(1000):
     if prev_done:
         obs, _ = env.reset(seed=seed)

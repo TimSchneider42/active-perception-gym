@@ -5,18 +5,19 @@ import ap_gym
 
 env = ap_gym.make_vec("CircleSquare-v0", num_envs=4, render_mode="rgb_array")
 
-env.reset(seed=0)
+obs, _ = env.reset(seed=0)
 img = env.render()
 
 fig, axes = plt.subplots(2, env.num_envs, squeeze=False)
 obs_plot = [
-    ax[0].imshow(np.zeros(env.observation_space["glance"].shape[1:]), vmin=0.0, vmax=1.0)
+    ax[0].imshow(
+        np.zeros(env.observation_space["glance"].shape[1:]), vmin=0.0, vmax=1.0
+    )
     for ax in axes.T
 ]
 render_plot = [ax[1].imshow(np.zeros_like(im)) for ax, im in zip(axes.T, img)]
 plt.show(block=False)
 
-obs, _ = env.reset(seed=0)
 for s in range(1000):
     action = {
         "action": env.inner_action_space.sample(),
