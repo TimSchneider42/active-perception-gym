@@ -72,6 +72,10 @@ def register_envs():
         max_episode_steps=16,
     )
 
+    gym.envs.registration.register(
+    id="Maze-v0",
+    entry_point="ap_gym.envs.maze:MazeEnv",
+    max_episode_steps=16,)
 
 def make(
     id: str | gym.envs.registration.EnvSpec,
