@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from queue import Queue, Empty
-from threading import Thread
 from typing import Any, Literal, Sequence
 
 import gymnasium as gym
@@ -17,6 +15,7 @@ from ap_gym import (
     ActivePerceptionVectorToSingleWrapper,
 )
 from .image import ImageClassificationDataset
+from .image.dataset_loader import DatasetLoader, BufferedIterator
 
 
 class ImageClassificationVectorEnv(
@@ -36,7 +35,7 @@ class ImageClassificationVectorEnv(
         max_episode_steps: int | None = None,
         max_step_length: float | Sequence[float] = 0.2,
         display_visitation: bool = True,
-        prefetch: bool = False,
+        prefetch: bool = True,
     ):
         self.__dataset = dataset
         if render_mode not in self.metadata["render_modes"]:
@@ -55,9 +54,6 @@ class ImageClassificationVectorEnv(
         self.__interpolated_images: RegularGridInterpolator | None = None
         self.__display_visitation = display_visitation
         self.__prefetch = prefetch
-        self.__prefetch_queue_in: Queue | None = None
-        self.__prefetch_queue_out: Queue | None = None
-        self.__prefetch_thread = None
         self.__prefetch_buffer_size = 128
         self.__terminating = None
         self.__dataset.load()
@@ -93,48 +89,27 @@ class ImageClassificationVectorEnv(
         )
         self.__prev_done: np.ndarray | None = None
         self.__current_labels: np.ndarray | None = None
+        self.__data_loader: DatasetLoader | BufferedIterator | None = None
 
     def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
         self.__current_rng = np.random.default_rng(seed)
-        self.__sample_rng = np.random.default_rng(
-            self.__current_rng.integers(0, 2**32)
+        self.__data_loader = DatasetLoader(
+            self.__dataset,
+            batch_size=self.num_envs,
+            seed=self.__current_rng.integers(0, 2**32),
         )
         if self.__prefetch:
-            self.__terminating = False
-            self.__prefetch_queue_in = Queue()
-            for idx in self.__sample_rng.integers(
-                0,
-                self.__dataset.num_classes,
-                size=(self.__prefetch_buffer_size, self.num_envs),
-            ):
-                self.__prefetch_queue_in.put(idx)
-            self.__prefetch_queue_out = Queue()
-            self.__prefetch_thread = Thread(target=self.__prefetch_thread_fn)
-            self.__prefetch_thread.start()
+            self.__data_loader = BufferedIterator(
+                self.__data_loader, buffer_size=self.__prefetch_buffer_size
+            )
         return self.__reset()
 
     def __reset(self):
-        if self.__prefetch:
-            res = self.__prefetch_queue_out.get()
-            if isinstance(res, Exception):
-                raise res
-            (
-                self.__current_images,
-                self.__current_labels,
-                self.__current_data_point_idx,
-            ) = res
-            self.__prefetch_queue_in.put(
-                self.__sample_rng.integers(
-                    0, self.__dataset.num_classes, size=self.num_envs
-                )
-            )
-        else:
-            self.__current_data_point_idx = self.__sample_rng.integers(
-                0, self.__dataset.num_classes, size=self.num_envs
-            )
-            self.__current_images, self.__current_labels = self.__dataset[
-                self.__current_data_point_idx
-            ]
+        (
+            self.__current_images,
+            self.__current_labels,
+            self.__current_data_point_idx,
+        ) = next(self.__data_loader)
         image_size = np.array(self.__current_images.shape[1:3])
         if np.any(image_size < self.effective_sensor_size):
             raise ValueError(
@@ -261,16 +236,6 @@ class ImageClassificationVectorEnv(
             "glance_pos": self.__current_sensor_pos_norm.astype(np.float32),
         }
 
-    def __prefetch_thread_fn(self):
-        while not self.__terminating:
-            try:
-                idx = self.__prefetch_queue_in.get(timeout=0.1)
-                self.__prefetch_queue_out.put(self.__dataset[idx] + (idx,))
-            except Empty:
-                pass
-            except Exception as e:
-                self.__prefetch_queue_out.put(e)
-
     def render(self) -> np.ndarray | None:
         current_image = self.__current_images
         if self.__channels == 1:
@@ -337,11 +302,8 @@ class ImageClassificationVectorEnv(
         return np.array(rgb_img)
 
     def close(self):
-        if self.__prefetch_thread is not None:
-            self.__terminating = True
-            self.__prefetch_thread.join()
-            self.__prefetch_thread = None
-            self.__prefetch_queue_in = self.__prefetch_queue_out = None
+        if isinstance(self.__data_loader, BufferedIterator):
+            self.__data_loader.close()
 
     @property
     def render_mode(self) -> Literal["rgb_array", "human"]:
