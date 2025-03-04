@@ -49,7 +49,7 @@ class ActiveClassificationEnv(
         self, action: FullActType[ActType, PredType]
     ) -> tuple[ObsType, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super().step(action)
-        is_correct = self.current_prediction_target == action["prediction"].argmax(
+        is_correct = info["prediction"]["target"] == action["prediction"].argmax(
             axis=-1
         )
         self.__current_correct_sum += is_correct
