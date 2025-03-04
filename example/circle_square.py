@@ -35,3 +35,5 @@ for s in range(1000):
     obs_plot.set_data(obs["glance"])
     render_plot.set_data(env.render())
     plt.pause(1 / env.metadata["render_fps"])
+
+env.close()
