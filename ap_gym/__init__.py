@@ -20,7 +20,6 @@ from .active_perception_vector_env import (
     PseudoActivePerceptionVectorWrapper,
     ensure_active_perception_vector_env,
 )
-from .image_classification_vector_env import ImageClassificationVectorEnv
 from .image_space import ImageSpace
 from .loss_fn import LossFn, LambdaLossFn, ZeroLossFn, CrossEntropyLossFn, MSELossFn
 from .envs.registration import make, make_vec, register_envs
