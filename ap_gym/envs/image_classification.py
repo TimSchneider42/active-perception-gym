@@ -251,6 +251,7 @@ class ImageClassificationVectorEnv(
         glance_border_width = max(1, int(round(1 / 128 * self.__render_size[0])))
         glance_border_color = (0, 55, 255)
         glance_shadow_offset = glance_border_width
+        overlay_base_color = (0, 0, 0, 128)
 
         visited = self.__visitation_counts > 0
         correct_color = np.array([0, 255, 0, 80], dtype=np.uint8)
@@ -259,12 +260,20 @@ class ImageClassificationVectorEnv(
         correct_prob_map = last_prediction_map_probs[
             np.arange(self.num_envs), ..., self.__current_labels
         ]
-        overlay = visited[..., None] * (
-            correct_prob_map[..., np.newaxis]
-            * correct_color[np.newaxis, np.newaxis, np.newaxis, :]
-            + (1 - correct_prob_map[..., np.newaxis])
-            * incorrect_color[np.newaxis, np.newaxis, np.newaxis, :]
-        ).round().astype(np.uint8)
+        overlay = (
+            (
+                visited[..., None]
+                * (
+                    correct_prob_map[..., np.newaxis]
+                    * correct_color[np.newaxis, np.newaxis, np.newaxis, :]
+                    + (1 - correct_prob_map[..., np.newaxis])
+                    * incorrect_color[np.newaxis, np.newaxis, np.newaxis, :]
+                )
+                + ~visited[..., None] * overlay_base_color
+            )
+            .round()
+            .astype(np.uint8)
+        )
         for img, tl, br, ol in zip(current_image, top_left, bottom_right, overlay):
             rgb_img = (
                 Image.fromarray((img * 255).astype(np.uint8))
