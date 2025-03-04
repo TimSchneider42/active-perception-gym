@@ -32,3 +32,5 @@ for s in range(1000):
         op.set_data(o)
         rp.set_data(img)
     plt.pause(1 / env.metadata["render_fps"])
+
+env.close()

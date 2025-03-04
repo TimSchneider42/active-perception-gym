@@ -30,3 +30,5 @@ if __name__ == "__main__":
             imgs[-1].append(env.render())
     imgs_flat = [img for ep_imgs in imgs for img in ep_imgs]
     imageio.mimsave(args.filename, imgs_flat, fps=env.metadata["render_fps"])
+
+    env.close()
