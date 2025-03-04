@@ -15,6 +15,7 @@ from .image import (
     HuggingfaceImageClassificationDataset,
     CircleSquareDataset,
     ImageClassificationDataset,
+    ImagePerceptionConfig,
 )
 
 
@@ -28,7 +29,9 @@ def register_image_classification_env(
         kwargs = {}
     gym.envs.registration.register(
         id=name,
-        kwargs=dict(dataset=dataset, **kwargs),
+        kwargs=dict(
+            image_perception_config=ImagePerceptionConfig(dataset=dataset, **kwargs)
+        ),
         entry_point="ap_gym.envs.image_classification:ImageClassificationEnv",
         vector_entry_point="ap_gym.envs.image_classification:ImageClassificationVectorEnv",
         max_episode_steps=max_episode_steps,
@@ -64,12 +67,18 @@ def register_envs():
                 max_episode_steps=16,
             )
 
+            render_kwargs = dict(
+                render_overlay_base_color=(0, 0, 0, 128),
+                render_good_color=(0, 255, 0, 60),
+                render_bad_color=(255, 0, 0, 60),
+            )
             register_image_classification_env(
                 name=f"CIFAR10{split_name}-v0",
                 dataset=HuggingfaceImageClassificationDataset(
                     "cifar10", image_feature_name="img", split=split
                 ),
                 max_episode_steps=16,
+                kwargs=render_kwargs,
             )
 
             register_image_classification_env(
@@ -78,7 +87,7 @@ def register_envs():
                     "zh-plus/tiny-imagenet", split=split
                 ),
                 max_episode_steps=16,
-                kwargs=dict(sensor_size=(10, 10)),
+                kwargs=dict(sensor_size=(10, 10), **render_kwargs),
             )
 
     gym.envs.registration.register(
