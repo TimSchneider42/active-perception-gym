@@ -62,10 +62,7 @@ class ImageClassificationDataset(ABC):
     def _process_img(self, img: PIL.Image | np.ndarray) -> np.ndarray:
         return self._process_img_batch([img])[0]
 
-    def _process_img_batch(
-        self, imgs: Sequence[np.ndarray] | Sequence[PIL.Image] | np.ndarray
-    ) -> np.ndarray:
-        imgs = np.asarray(imgs)
+    def _process_imgs_np(self, imgs: np.ndarray) -> np.ndarray:
         if imgs.dtype == np.uint8:
             imgs = imgs.astype(np.float32) / 255
         elif imgs.dtype != np.float32:
@@ -75,6 +72,16 @@ class ImageClassificationDataset(ABC):
         if imgs.shape[-1] == 1:
             imgs = np.repeat(imgs, 3, axis=-1)
         return imgs
+
+    def _process_img_batch(
+        self, imgs: Sequence[np.ndarray] | Sequence[PIL.Image] | np.ndarray
+    ) -> np.ndarray:
+        if isinstance(imgs, np.ndarray):
+            return self._process_imgs_np(imgs)
+        else:
+            return np.stack(
+                [self._process_imgs_np(np.asarray([img]))[0] for img in imgs]
+            )
 
     @property
     def num_classes(self) -> int:
