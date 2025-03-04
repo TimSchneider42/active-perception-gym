@@ -19,8 +19,8 @@ seed = 0
 prev_done = False
 for s in range(1000):
     if prev_done:
-        obs, _ = env.reset(seed=seed)
         seed += 1
+        obs, _ = env.reset(seed=seed)
         prev_done = False
     else:
         action = {
