@@ -19,16 +19,32 @@ class ImageClassificationDataset(ABC):
     def _get_length(self) -> int:
         pass
 
+    def __has_overridden(self, method_name: str) -> bool:
+        """Checks if the method is overridden in a subclass"""
+        super_method = getattr(ImageClassificationDataset, method_name)
+        actual_method = getattr(type(self), method_name)
+        return super_method != actual_method
+
     def _get_data_point(self, idx: int) -> tuple[np.ndarray | PIL.Image, SupportsInt]:
-        # TODO: check impl
-        imgs, labels = self._get_data_point_batch(np.array([idx]))
-        return next(iter(imgs)), next(iter(labels))
+        if self.__has_overridden("_get_data_point_batch"):
+            imgs, labels = self._get_data_point_batch(np.array([idx]))
+            return next(iter(imgs)), next(iter(labels))
+        else:
+            raise TypeError(
+                "At least one of _get_data_point or _get_data_point_batch must be implemented."
+            )
 
     def _get_data_point_batch(
         self, idx: np.ndarray
-    ) -> tuple[Sequence[np.ndarray] | Sequence[PIL.Image] | np.ndarray, Sequence[SupportsInt]]:
-        # TODO: check impl
-        return tuple(map(list, zip(*(self._get_data_point(int(i)) for i in idx))))
+    ) -> tuple[
+        Sequence[np.ndarray] | Sequence[PIL.Image] | np.ndarray, Sequence[SupportsInt]
+    ]:
+        if self.__has_overridden("_get_data_point"):
+            return tuple(map(list, zip(*(self._get_data_point(int(i)) for i in idx))))
+        else:
+            raise TypeError(
+                "At least one of _get_data_point or _get_data_point_batch must be implemented."
+            )
 
     def get_data_point(self, idx: SupportsInt) -> tuple[np.ndarray, int]:
         img, label = self._get_data_point(int(idx))
