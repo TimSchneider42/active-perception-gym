@@ -4,14 +4,16 @@ import gymnasium as gym
 import numpy as np
 from PIL import Image, ImageDraw
 
-from ap_gym import MSELossFn, ActiveRegressionEnv
+from ap_gym import ActiveRegressionEnv
 
 
 class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
     metadata = {"render_modes": ["rgb_array"], "render_fps": 4}
 
     def __init__(self, render_mode: Literal["rgb_array"] = "rgb_array"):
-        super().__init__(2, gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32))
+        super().__init__(
+            2, gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
+        )
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
         self.__pos = self.__last_obs = self.__rng = self.__last_pred = None
@@ -52,7 +54,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
     def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
         self.__rng = np.random.default_rng(seed)
         self.__pos = self.__rng.uniform(
-            np.array([0.0, -1.0]),
+            -np.ones(2),
             np.ones(2),
             size=2,
         ).astype(np.float32)
@@ -60,7 +62,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         self.__last_pred = prediction
-        base_reward = np.sum(action**2, axis=-1)
+        base_reward = 1e-3 * np.sum(action**2, axis=-1)
         action_clipped = np.clip(action, -1, 1)
         self.__pos += action_clipped * 0.15
         terminated = False
