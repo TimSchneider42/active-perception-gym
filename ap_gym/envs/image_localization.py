@@ -30,7 +30,7 @@ class ImageLocalizationVectorEnv(
         image_perception_config: ImagePerceptionConfig,
         render_mode: Literal["rgb_array"] = "rgb_array",
         max_episode_steps: int = 16,
-        prefetch: bool = False,
+        prefetch: bool = True,
     ):
         self.__image_perception_module = ImagePerceptionModule(
             num_envs,
