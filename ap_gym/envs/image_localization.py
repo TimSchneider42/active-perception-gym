@@ -19,7 +19,7 @@ from .image import (
 
 class ImageLocalizationVectorEnv(
     ActiveRegressionVectorEnv[
-        dict[Literal["glance", "glance_pos", "target_glance"], np.ndarray], np.ndarray
+        dict[Literal["glimpse", "glimpse_pos", "target_glimpse"], np.ndarray], np.ndarray
     ],
 ):
     metadata: dict[str, Any] = {"render_modes": ["rgb_array"], "render_fps": 2}
@@ -49,7 +49,7 @@ class ImageLocalizationVectorEnv(
         self.single_observation_space = gym.spaces.Dict(
             {
                 **self.__image_perception_module.observation_space_dict,
-                "target_glance": ImageSpace(
+                "target_glimpse": ImageSpace(
                     image_perception_config.sensor_size[1],
                     image_perception_config.sensor_size[0],
                     image_perception_config.dataset[0][0].shape[-1],
@@ -78,7 +78,7 @@ class ImageLocalizationVectorEnv(
         return (
             {
                 **obs,
-                "target_glance": self.__image_perception_module.get_glance(
+                "target_glimpse": self.__image_perception_module.get_glimpse(
                     self.__current_prediction_target
                 ),
             },
@@ -108,7 +108,7 @@ class ImageLocalizationVectorEnv(
         return (
             {
                 **obs,
-                "target_glance": self.__image_perception_module.get_glance(
+                "target_glimpse": self.__image_perception_module.get_glimpse(
                     self.__current_prediction_target
                 ),
             },
@@ -125,7 +125,7 @@ class ImageLocalizationVectorEnv(
         if last_prediction is None:
             last_prediction = [None] * self.num_envs
 
-        glance_size = (
+        glimpse_size = (
             self.__image_perception_module.effective_sensor_size
             * self.__image_perception_module.render_scaling
         )
@@ -138,26 +138,26 @@ class ImageLocalizationVectorEnv(
             draw = ImageDraw.Draw(img, "RGBA")
             t_trans = self.__image_perception_module.to_render_coords(target)
             draw.rectangle(
-                (tuple(t_trans - glance_size / 2), tuple(t_trans + glance_size / 2)),
+                (tuple(t_trans - glimpse_size / 2), tuple(t_trans + glimpse_size / 2)),
                 outline=target_color,
-                width=self.__image_perception_module.glance_border_width,
+                width=self.__image_perception_module.glimpse_border_width,
             )
             if last_pred is not None:
                 lp_trans = self.__image_perception_module.to_render_coords(last_pred)
                 lp_coords = np.concatenate(
-                    [lp_trans - glance_size / 2, lp_trans + glance_size / 2]
+                    [lp_trans - glimpse_size / 2, lp_trans + glimpse_size / 2]
                 )
                 draw.rectangle(
                     tuple(lp_coords),
                     outline=pred_color,
-                    width=self.__image_perception_module.glance_border_width,
+                    width=self.__image_perception_module.glimpse_border_width,
                 )
                 draw.rectangle(
                     tuple(
-                        lp_coords + self.__image_perception_module.glance_border_width
+                        lp_coords + self.__image_perception_module.glimpse_border_width
                     ),
-                    outline=self.__image_perception_module.config.render_glance_shadow_color,
-                    width=self.__image_perception_module.glance_border_width,
+                    outline=self.__image_perception_module.config.render_glimpse_shadow_color,
+                    width=self.__image_perception_module.glimpse_border_width,
                 )
 
         return np.asarray(imgs)

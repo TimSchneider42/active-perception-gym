@@ -27,12 +27,12 @@ class ImagePerceptionConfig:
     render_overlay_base_color: tuple[int, ...] = (0, 0, 0, 0)
     render_good_color: tuple[int, ...] = (0, 255, 0, 80)
     render_bad_color: tuple[int, ...] = (255, 0, 0, 80)
-    render_glance_shadow_color: tuple[int, ...] = (0, 0, 0, 80)
-    render_glance_border_color: tuple[int, ...] = (0, 55, 255)
+    render_glimpse_shadow_color: tuple[int, ...] = (0, 0, 0, 80)
+    render_glimpse_border_color: tuple[int, ...] = (0, 55, 255)
     prefetch_buffer_size: int = 128
 
 
-ObsType = dict[Literal["glance", "glance_pos"], np.ndarray]
+ObsType = dict[Literal["glimpse", "glimpse_pos"], np.ndarray]
 
 
 class ImagePerceptionModule:
@@ -59,13 +59,13 @@ class ImagePerceptionModule:
         self.__config.dataset.load()
         *self.__image_size, self.__channels = self.__config.dataset[0][0].shape
         self.__observation_space_dict = {
-            "glance": ImageSpace(
+            "glimpse": ImageSpace(
                 self.__config.sensor_size[1],
                 self.__config.sensor_size[0],
                 self.__channels,
                 dtype=np.float32,
             ),
-            "glance_pos": gym.spaces.Box(-1, 1, (2,), np.float32),
+            "glimpse_pos": gym.spaces.Box(-1, 1, (2,), np.float32),
         }
         self.__current_sensor_pos_norm: np.ndarray | None = None
         self.__current_time_step = None
@@ -127,7 +127,7 @@ class ImagePerceptionModule:
         obs = self._get_obs()
 
         if self.__visitation_counts is None:
-            render_width = max(128, obs["glance"].shape[2])
+            render_width = max(128, obs["glimpse"].shape[2])
             self.__render_scaling = render_width / self.__image_size[1]
             render_height = int(round(self.__render_scaling * self.__image_size[0]))
             self.__render_size = (render_width, render_height)
@@ -194,11 +194,11 @@ class ImagePerceptionModule:
 
     def _get_obs(self) -> ObsType:
         return {
-            "glance": self.get_glance(self.__current_sensor_pos_norm),
-            "glance_pos": self.__current_sensor_pos_norm.astype(np.float32),
+            "glimpse": self.get_glimpse(self.__current_sensor_pos_norm),
+            "glimpse_pos": self.__current_sensor_pos_norm.astype(np.float32),
         }
 
-    def get_glance(self, pos_norm: np.ndarray) -> np.ndarray:
+    def get_glimpse(self, pos_norm: np.ndarray) -> np.ndarray:
         sensing_point_offsets = np.meshgrid(
             (
                 np.arange(self.__config.sensor_size[0])
@@ -241,7 +241,7 @@ class ImagePerceptionModule:
         top_left = pos - size / 2
         bottom_right = pos + size / 2
 
-        glance_shadow_offset = self.glance_border_width
+        glimpse_shadow_offset = self.glimpse_border_width
 
         visited = self.__visitation_counts > 0
         render_good_color = self.__config.render_good_color
@@ -286,16 +286,16 @@ class ImagePerceptionModule:
                 )
 
             draw = ImageDraw.Draw(rgb_img, "RGBA")
-            glance_coords = np.concatenate([tl, br])
+            glimpse_coords = np.concatenate([tl, br])
             draw.rectangle(
-                tuple(glance_coords + glance_shadow_offset),
-                outline=self.__config.render_glance_shadow_color,
-                width=self.glance_border_width,
+                tuple(glimpse_coords + glimpse_shadow_offset),
+                outline=self.__config.render_glimpse_shadow_color,
+                width=self.glimpse_border_width,
             )
             draw.rectangle(
-                tuple(glance_coords),
-                outline=self.__config.render_glance_border_color,
-                width=self.glance_border_width,
+                tuple(glimpse_coords),
+                outline=self.__config.render_glimpse_border_color,
+                width=self.glimpse_border_width,
             )
             rgb_imgs.append(rgb_img)
 
@@ -356,7 +356,7 @@ class ImagePerceptionModule:
         return self.__current_images
 
     @property
-    def glance_border_width(self):
+    def glimpse_border_width(self):
         return max(1, int(round(1 / 128 * self.__render_size[0])))
 
     @property

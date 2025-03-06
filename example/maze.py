@@ -28,8 +28,8 @@ for s in range(1000):
         )
         img = env.render()
 
-    # obs_plot.set_data(obs["glance"])
-    # print(obs["glance_pos"])
+    # obs_plot.set_data(obs["glimpse"])
+    # print(obs["glimpse_pos"])
 
 
 

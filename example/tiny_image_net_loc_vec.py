@@ -9,15 +9,15 @@ obs, _ = env.reset(seed=0)
 img = env.render()
 
 fig, axes = plt.subplots(3, env.num_envs, squeeze=False)
-glance_plot = [
+glimpse_plot = [
     ax[0].imshow(
-        np.zeros(env.observation_space["glance"].shape[1:]), vmin=0.0, vmax=1.0
+        np.zeros(env.observation_space["glimpse"].shape[1:]), vmin=0.0, vmax=1.0
     )
     for ax in axes.T
 ]
-target_glance_plot = [
+target_glimpse_plot = [
     ax[1].imshow(
-        np.zeros(env.observation_space["target_glance"].shape[1:]), vmin=0.0, vmax=1.0
+        np.zeros(env.observation_space["target_glimpse"].shape[1:]), vmin=0.0, vmax=1.0
     )
     for ax in axes.T
 ]
@@ -35,11 +35,11 @@ for s in range(1000):
         f"Current loss: {env.loss_fn.numpy(action['prediction'], info['prediction']['target'])}"
     )
     for gp, tgp, rp, g, tg, img in zip(
-        glance_plot,
-        target_glance_plot,
+        glimpse_plot,
+        target_glimpse_plot,
         render_plot,
-        obs["glance"],
-        obs["target_glance"],
+        obs["glimpse"],
+        obs["target_glimpse"],
         env.render(),
     ):
         gp.set_data(g)
