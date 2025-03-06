@@ -15,7 +15,8 @@ dependencies = [
     "gymnasium>=1.0.0",
     "scipy",
     "numpy",
-    "datasets"
+    "datasets",
+    "shapely",
 ]
 
 [project.urls]
