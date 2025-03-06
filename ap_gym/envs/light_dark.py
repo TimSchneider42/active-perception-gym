@@ -77,18 +77,11 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         draw = ImageDraw.Draw(img, mode="RGBA")
 
         base_color = (55, 255, 0)
-        pred_color = (255, 55, 0)
+        agent_color = (0, 55, 255)
+        pred_color = (255, 0, 255)
         dot_radius = 0.01 * img.size[0]
 
         pos = (self.__pos + 1) / 2 * np.array(img.size[::-1])
-        draw.ellipse(
-            [
-                tuple(pos - dot_radius),
-                tuple(pos + dot_radius),
-            ],
-            fill=base_color,
-            outline=None,
-        )
 
         std_radius = self.__get_std_dev(self.__pos) / 2 * np.array(img.size[::-1])
         draw.ellipse(
@@ -101,6 +94,13 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         )
 
         last_obs = (self.__last_obs + 1) / 2 * np.array(img.size[::-1])
+        draw.line(
+            (
+                tuple(pos),
+                tuple(last_obs),
+            ),
+            fill=base_color + (80,),
+        )
         draw.ellipse(
             [
                 tuple(last_obs - dot_radius),
@@ -112,6 +112,15 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
         if self.__last_pred is not None:
             last_pred = (self.__last_pred + 1) / 2 * np.array(img.size[::-1])
+
+            draw.line(
+                (
+                    tuple(pos),
+                    tuple(last_pred),
+                ),
+                fill=pred_color + (80,),
+            )
+
             draw.ellipse(
                 [
                     tuple(last_pred - dot_radius),
@@ -120,5 +129,14 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 fill=pred_color + (100,),
                 outline=None,
             )
+
+        draw.ellipse(
+            [
+                tuple(pos - dot_radius),
+                tuple(pos + dot_radius),
+            ],
+            fill=agent_color,
+            outline=None,
+        )
 
         return np.array(img)
