@@ -2,19 +2,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import ap_gym
-import pygame
 
-env = ap_gym.make("Maze-v0", render_mode="rgb_array")
+env = ap_gym.make("LIDARLocMaze-v0", render_mode="rgb_array")
 
 env.reset(seed=0)
 img = env.render()
 
+fig, ax = plt.subplots(1, 1)
+render_plot = ax.imshow(np.zeros_like(img))
+plt.show(block=False)
+
 seed = 0
-prev_done = True
+prev_done = False
 for s in range(1000):
     if prev_done:
-        obs, _ = env.reset(seed=seed)
         seed += 1
+        obs, _ = env.reset(seed=seed)
         prev_done = False
     else:
         action = {
@@ -26,10 +29,7 @@ for s in range(1000):
         print(
             f"Current loss: {env.loss_fn.numpy(action['prediction'], info['prediction']['target']):0.2f}"
         )
-        img = env.render()
+    render_plot.set_data(env.render())
+    plt.pause(1 / env.metadata["render_fps"])
 
-    # obs_plot.set_data(obs["glimpse"])
-    # print(obs["glimpse_pos"])
-
-
-
+env.close()
