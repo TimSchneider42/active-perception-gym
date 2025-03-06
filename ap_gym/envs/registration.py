@@ -57,7 +57,7 @@ register_image_localization_env = partial(
 def register_envs():
     SIZES = {
         "": (28, 28),
-        **{f"-s{s}": (s, s) for s in [10, 20, 28]},
+        **{f"-s{s}": (s, s) for s in [15, 20, 28]},
     }
 
     SHOW_GRADIENT = {"": True, "-nograd": False}
