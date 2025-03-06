@@ -132,9 +132,16 @@ def register_envs():
     )
 
     gym.envs.registration.register(
-        id="LIDARLocalization2D-v0",
-        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
-        max_episode_steps=16,
+        id="LIDARLocMazeStatic-v0",
+        entry_point="ap_gym.envs.lidar_localization2d_maze:LIDARLocalization2DMazeEnv",
+        max_episode_steps=100,
+    )
+
+    gym.envs.registration.register(
+        id="LIDARLocMaze-v0",
+        entry_point="ap_gym.envs.lidar_localization2d_maze:LIDARLocalization2DMazeEnv",
+        max_episode_steps=100,
+        kwargs=dict(static_map=False),
     )
 
 

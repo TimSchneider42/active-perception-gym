@@ -1,228 +1,259 @@
-import io
-import math
-import random
+from abc import abstractmethod
 from typing import Any, Literal
 
+import PIL.Image
+import PIL.ImageDraw
 import gymnasium as gym
 import numpy as np
-import pygame
-from PIL import Image
+import shapely
 
-from ap_gym import ActivePerceptionEnv, ActivePerceptionActionSpace, MSELossFn
+from ap_gym import ActiveRegressionEnv, ImageSpace
 
 
-class LIDARLocalization2DEnv(
-    ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-):
+class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
     metadata = {
         "render_modes": ["rgb_array"],
         "render_fps": 4,
     }
 
-    def __init__(self, render_mode: Literal["rgb_array"] = "rgb_array"):
-        super().__init__()
+    def __init__(
+        self,
+        render_mode: Literal["rgb_array"] = "rgb_array",
+        static_map: bool = True,
+        lidar_beam_count: int = 8,
+    ):
+        super().__init__(
+            2, gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
+        )
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
 
-        self.__maze_width = 28
-        self.__maze_height = 28
-        self.__scale = 30
-        self.__num_rooms = 5
-        self.__branching_prob = 1.0
+        self.__static_map = static_map
 
         self.__lidar_range = 100
-        self.__lidar_directions = [i * (math.pi / 4) for i in range(8)]  # 8 directions
-
-        maze = self._generate_maze(
-            self.__maze_width,
-            self.__maze_height,
-            self.__num_rooms,
-            self.__branching_prob,
+        lidar_angles = np.linspace(
+            -np.pi, np.pi, lidar_beam_count, dtype=np.float32, endpoint=False
         )
-        maze = np.array(maze, dtype=np.uint8) * 255
-        self.__base_image = maze
-
-        self.__bitmap = self._maze_to_pygame_surface(
-            self.__base_image, scale=self.__scale
-        )
-        self.__screen_size = (600, 600)
-        self.__bitmap = pygame.transform.scale(
-            self.__bitmap,
-            self.__screen_size,
-        )
-        pygame.init()
-
-        self.__screen = pygame.display.set_mode(self.__screen_size)
-        self.__clock = pygame.time.Clock()
-
-        coords_x, coords_y = np.meshgrid(
-            np.linspace(-1, 1, self.__maze_width),
-            np.linspace(-1, 1, self.__maze_height),
-            indexing="ij",
+        self.__lidar_directions = (
+            np.stack([np.cos(lidar_angles), np.sin(lidar_angles)], axis=-1) * 3
         )
 
-        self.action_space = ActivePerceptionActionSpace(
-            gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32),
-            gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32),
-        )
-        self.prediction_target_space = gym.spaces.Box(
-            low=-1, high=1, shape=(2,), dtype=np.float32
-        )
-        self.observation_space = gym.spaces.Box(
-            low=-2, high=2, shape=(2,), dtype=np.float32
-        )
-        self.loss_fn = MSELossFn()
+        observation_dict = {
+            "lidar": gym.spaces.Box(
+                low=-1, high=1, shape=(lidar_beam_count,), dtype=np.float32
+            )
+        }
+
+        if not static_map:
+            observation_dict["map"] = ImageSpace(width=64, height=64, channels=1)
+
+        self.observation_space = gym.spaces.Dict(observation_dict)
+
+        self.__map = None
+        self.__map_shapely = None
+        self.__map_obs = None
+        self.__pos = None
+        self.__last_pred = None
 
     def __get_obs(self):
-        distances = self.__lidar_scan(self._x, self._y)
-        self.__last_obs = distances
-        return self.__last_obs
+        distances = self.__lidar_scan(self.__pos, self.__pos + self.__lidar_directions)
+        self.__last_lidar_readings = distances
+        obs = {"lidar": distances}
+        if not self.__static_map:
+            obs["map"] = self.__map_obs
+        return obs
+
+    @abstractmethod
+    def _get_map(self, seed: int):
+        pass
 
     def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+        self.__last_lidar_readings = None
         self.__rng = np.random.default_rng(seed)
 
-        while True:
-            self.__pos = self.__rng.uniform(
-                np.array([0.0, -1.0]), np.ones(2), size=2
-            ).astype(np.float32)
+        if not self.__static_map or self.__map is None:
+            map_seed = 0 if self.__static_map else self.__rng.integers(0, 2**32)
+            self.__map = self._get_map(map_seed)
+            coords = np.meshgrid(
+                np.arange(self.__map.shape[1]), np.arange(self.__map.shape[0])
+            )
+            occupied_coords = np.stack(
+                [coords[0][self.__map], coords[1][self.__map]], axis=-1
+            )
+            self.__map_shapely = shapely.union_all(
+                [shapely.box(*c, *(c + 1)) for c in occupied_coords]
+            )
+        if not self.__static_map:
+            target_shape = self.observation_space["map"].shape[-2::-1]
+            map_pil = PIL.Image.fromarray(self.__map).convert("L").resize(target_shape)
+            self.__map_obs = np.array(map_pil).astype(np.float32) / 255
+        valid_starting_coords = np.where(self.__map == 0)
+        idx = self.__rng.integers(0, len(valid_starting_coords[0]))
+        self.__pos = (
+            np.array(
+                [valid_starting_coords[1][idx], valid_starting_coords[0][idx]],
+                dtype=np.float32,
+            )
+            + 0.5
+        )
 
-            x_idx = int(
-                (self.__pos[0] + 1) / 2 * (self.__screen_size[0] - 1)
-            )  # Map 0-1 to maze grid x
-            y_idx = int(
-                (self.__pos[1] + 1) / 2 * (self.__screen_size[1] - 1)
-            )  # Map -1 to 1 to maze grid y
-            pixel_array = pygame.surfarray.array3d(self.__bitmap)
-            print(pixel_array[x_idx, y_idx, 0])
-            print(x_idx, y_idx)
-            if pixel_array[x_idx, y_idx, 0] == 255:
-                self.__pos = self.__pos
-                self._x = x_idx
-                self._y = y_idx
-                break  # Exit loop once a valid position is found
         return self.__get_obs(), {}, self.__pos
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
-        self.__last_pred = prediction
+        map_size = np.array(
+            [self.__map.shape[1], self.__map.shape[0]], dtype=np.float32
+        )
+        self.__last_pred = (prediction + 1) / 2 * map_size
         base_reward = np.sum(action**2, axis=-1)
         action_clipped = np.clip(action, -1, 1)
-        self.__pos += action_clipped * 0.05
+        target_pos = self.__pos + action_clipped
+        direction = target_pos - self.__pos
+        total_dist = np.linalg.norm(direction)
+        direction /= total_dist
+        dist_to_wall = self.__lidar_scan(self.__pos, target_pos[None])[0]
+        self.__pos += direction * dist_to_wall
+
+        # Make agent slide along wall
+        remaining_dist = total_dist - dist_to_wall
+        if remaining_dist > 0:
+            remaining_vec = direction * remaining_dist
+            direction_candidates = np.eye(2, dtype=np.float32) * remaining_vec
+            target_pos_candidates = self.__pos + direction_candidates
+            dist_to_wall_candidates = self.__lidar_scan(
+                self.__pos, target_pos_candidates
+            )
+            if dist_to_wall_candidates[0] > 0:
+                idx = 0
+            else:
+                idx = 1
+            self.__pos += (
+                direction_candidates[idx]
+                / np.linalg.norm(direction_candidates[idx])
+                * dist_to_wall_candidates[idx]
+            )
+
         terminated = False
-        if np.any(np.abs(self.__pos) >= 1):
+        pos_min = np.zeros(2, dtype=np.float32)
+        pos_max = np.array([self.__map.shape[1], self.__map.shape[0]], dtype=np.float32)
+        if np.any(self.__pos < pos_min) or np.any(self.__pos >= pos_max):
             base_reward -= 20
             terminated = True
-        self.__pos = np.clip(self.__pos, -1, 1)
-        return self.__get_obs(), base_reward, terminated, False, {}, self.__pos
+        self.__pos = np.clip(
+            self.__pos,
+            pos_min,
+            pos_max,
+        )
+
+        normalized_pos = self.__pos / map_size * 2 - 1
+
+        return self.__get_obs(), base_reward, terminated, False, {}, normalized_pos
 
     def render(self):
-        new_x = int(
-            (self.__pos[0] + 1) / 2 * (self.__screen_size[0] - 1)
-        )  # Map 0-1 to maze grid x
-        new_y = int(
-            (self.__pos[1] + 1) / 2 * (self.__screen_size[1] - 1)
-        )  # Map -1 to 1 to maze grid y
-        self.__screen.blit(self.__bitmap, (0, 0))
-        if self._can_move(new_x, new_y):
-            self._x, self._y = new_x, new_y
-
-        for angle, dist in zip(self.__lidar_directions, self.__last_obs):
-            end_x = int(self._x + math.cos(angle) * dist)
-            end_y = int(self._y + math.sin(angle) * dist)
-            pygame.draw.line(
-                self.__screen, (0, 255, 0), (self._x, self._y), (end_x, end_y), 1
+        width = 500
+        scale = width / self.__map.shape[1]
+        base_img = (
+            PIL.Image.fromarray(~self.__map)
+            .resize(
+                (
+                    int(round(self.__map.shape[1] * scale)),
+                    int(round(self.__map.shape[0] * scale)),
+                )
             )
-            pygame.draw.circle(self.__screen, (255, 0, 0), (end_x, end_y), 3)
+            .convert("RGB")
+        )
 
-        pygame.draw.circle(self.__screen, (0, 0, 255), (self._x, self._y), 5)
-        pygame.display.flip()
-        self.__clock.tick(6)
+        draw = PIL.ImageDraw.Draw(base_img, mode="RGBA")
+        contact_marker_radius = 0.1
+        agent_radius = 0.2
+        agent_color = (0, 55, 255)
+        pred_color = (255, 0, 255)
+        lidar_color = (55, 255, 55)
+        lidar_contact_color = (255, 55, 55)
 
-        # pygame.draw.circle(screen, (0, 0, 255), (x, y), 5)
+        if self.__last_lidar_readings is not None:
+            directions_norm = self.__lidar_directions / np.linalg.norm(
+                self.__lidar_directions, axis=-1, keepdims=True
+            )
+            for dist, direction in zip(self.__last_lidar_readings, directions_norm):
+                draw.line(
+                    (
+                        self.__pos[0] * scale,
+                        self.__pos[1] * scale,
+                        (self.__pos + direction * dist)[0] * scale,
+                        (self.__pos + direction * dist)[1] * scale,
+                    ),
+                    fill=lidar_color,
+                )
+                contact_point = self.__pos + direction * dist
+                draw.ellipse(
+                    (
+                        (contact_point[0] - contact_marker_radius) * scale,
+                        (contact_point[1] - contact_marker_radius) * scale,
+                        (contact_point[0] + contact_marker_radius) * scale,
+                        (contact_point[1] + contact_marker_radius) * scale,
+                    ),
+                    fill=lidar_contact_color,
+                )
+        if self.__last_pred is not None:
+            draw.line(
+                (
+                    self.__pos[0] * scale,
+                    self.__pos[1] * scale,
+                    self.__last_pred[0] * scale,
+                    self.__last_pred[1] * scale,
+                ),
+                fill=pred_color + (80,),
+            )
 
-        return self.__bitmap
+            draw.ellipse(
+                (
+                    (self.__last_pred[0] - agent_radius) * scale,
+                    (self.__last_pred[1] - agent_radius) * scale,
+                    (self.__last_pred[0] + agent_radius) * scale,
+                    (self.__last_pred[1] + agent_radius) * scale,
+                ),
+                fill=pred_color,
+            )
 
-    def _generate_maze(self, width, height, num_rooms, branching_prob=1.0):
-        # Ensure dimensions are odd
-        if width % 2 == 0:
-            width += 1
-        if height % 2 == 0:
-            height += 1
+        draw.ellipse(
+            (
+                (self.__pos[0] - agent_radius) * scale,
+                (self.__pos[1] - agent_radius) * scale,
+                (self.__pos[0] + agent_radius) * scale,
+                (self.__pos[1] + agent_radius) * scale,
+            ),
+            fill=agent_color,
+        )
 
-        # Create a maze full of walls (represented by 1)
-        maze = [[1 for _ in range(width)] for _ in range(height)]
-
-        def carve(x, y):
-            directions = [(2, 0), (-2, 0), (0, 2), (0, -2)]
-            random.shuffle(directions)
-            first = True  # Always carve at least one direction to ensure connectivity
-            for dx, dy in directions:
-                nx, ny = x + dx, y + dy
-                if 0 < nx < width and 0 < ny < height and maze[ny][nx] == 1:
-                    # Always carve the first eligible branch; subsequent ones only if allowed by branching_prob
-                    if first or random.random() < branching_prob:
-                        maze[y + dy // 2][
-                            x + dx // 2
-                        ] = 0  # Carve passage between cells
-                        maze[ny][nx] = 0
-                        carve(nx, ny)
-                        first = False
-
-        # Start carving from the initial cell
-        maze[1][1] = 0
-        carve(1, 1)
-
-        # Add random open areas (rooms)
-        for _ in range(num_rooms):
-            area_x = random.randint(2, width - 8)
-            area_y = random.randint(2, height - 8)
-            area_width = random.randint(3, 7)
-            area_height = random.randint(3, 7)
-            for i in range(area_y, min(area_y + area_height, height - 1)):
-                for j in range(area_x, min(area_x + area_width, width - 1)):
-                    maze[i][j] = 0  # Open space (white)
-
-        return maze
-
-    def _maze_to_pygame_surface(self, maze, scale=10):
-        height = len(maze)
-        width = len(maze[0])
-        img = Image.new("1", (width * scale, height * scale), 1)  # white background
-        for y in range(height):
-            for x in range(width):
-                color = (
-                    1 if maze[y][x] == 0 else 0
-                )  # 1: white for path, 0: black for wall
-                for i in range(scale):
-                    for j in range(scale):
-                        img.putpixel((x * scale + j, y * scale + i), color)
-        # Convert the PIL image to RGB mode (for Pygame compatibility)
-        img = img.convert("RGB")
-        # Save image to a bytes buffer and load directly into Pygame
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format="PNG")
-        img_bytes.seek(0)
-        pygame_img = pygame.image.load(img_bytes)
-        return pygame_img
-
-    # Check if pixel at position is white (traversable)
-    def _can_move(self, pos_x, pos_y):
-        if (
-            0 <= pos_x < self.__screen_size[0]
-            and 0 <= pos_y < self.__screen_size[1]
-        ):
-            return self.__bitmap.get_at((int(pos_x), int(pos_y)))[:3] == (255, 255, 255)
-        return False
+        return np.array(base_img)
 
     # LiDAR sensor function
-    def __lidar_scan(self, x, y):
-        distances = []
-        for angle in self.__lidar_directions:
-            dist = 0
-            while dist < self.__lidar_range:
-                check_x = int(x + math.cos(angle) * dist)
-                check_y = int(y + math.sin(angle) * dist)
-                if not self._can_move(check_x, check_y):
-                    break
-                dist += 1
-            distances.append(dist)
-        return distances
+    def __lidar_scan(self, pos: np.ndarray, target_pos: np.ndarray, eps=1e-3):
+        output = np.empty(target_pos.shape[0], dtype=np.float32)
+        for i, target in enumerate(target_pos):
+            line = shapely.LineString([pos, target])
+            intersections = line.intersection(self.__map_shapely)
+            if (
+                isinstance(intersections, shapely.LineString)
+                and not intersections.is_empty
+            ):
+                output[i] = (
+                    np.linalg.norm(
+                        np.array([intersections.xy[0][0], intersections.xy[1][0]]) - pos
+                    )
+                    - eps
+                )
+            elif isinstance(intersections, shapely.Point):
+                output[i] = 0
+            elif isinstance(intersections, shapely.MultiPoint) or isinstance(
+                intersections, shapely.MultiLineString
+            ):
+                intersection_points = np.array(
+                    [[p.xy[0][0], p.xy[1][0]] for p in intersections.geoms],
+                    dtype=np.float32,
+                )
+                distances = np.linalg.norm(intersection_points - pos, axis=-1)
+                output[i] = np.min(distances) - eps
+            else:
+                output[i] = np.linalg.norm(target - pos)
+        return output
