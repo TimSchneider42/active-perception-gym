@@ -192,6 +192,13 @@ the [image classification documentation](doc/ImageClassification).
                 LightDark-v0
             </a>
         </td>
+        <td align="center" style="border: none; padding: 10px;">
+            <a href="doc/LIDARLocMaze.md">
+                <img src="doc/img/LIDARLocMaze-v0.gif" alt="LIDARLocMaze-v0" width="200px"/>
+                <br/>
+                LIDARLocMaze-v0
+            </a>
+        </td>
     </tr>
 </table>
 

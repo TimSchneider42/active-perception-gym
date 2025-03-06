@@ -8,7 +8,7 @@ The environment simulates an active regression task where the agent can move to 
 This environment is useful for testing active regression models, where the agent must strategically explore its environment to obtain more reliable observations before making predictions.
 
 The visualization shown above has to be interpreted as follows:
-- **Green Dot**: Agent's true position.
+- **Blue Dot**: Agent's true position.
 - **Green Transparent Circle**: Observation uncertainty (higher in dark regions).
 - **Red Dot**: Agent's last prediction.
 - **White Background**: Bright regions with low uncertainty.
