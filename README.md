@@ -296,7 +296,7 @@ class MyCustomEnv(ap_gym.ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray,
 ```
 
 If you wish to see a full example, check out
-the [LightDark](doc/light_dark.md) [implementation](ap_gym/envs/light_dark.py).
+the [LightDark](doc/light_dark) [implementation](ap_gym/envs/light_dark.py).
 
 For vectorized environments, subclass `ap_gym.ActivePerceptionVectorEnv` instead:
 
