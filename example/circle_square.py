@@ -10,7 +10,7 @@ img = env.render()
 
 fig, ax = plt.subplots(1, 2)
 obs_plot = ax[0].imshow(
-    np.zeros(env.observation_space["glance"].shape), vmin=0.0, vmax=1.0
+    np.zeros(env.observation_space["glimpse"].shape), vmin=0.0, vmax=1.0
 )
 render_plot = ax[1].imshow(np.zeros_like(img))
 plt.show(block=False)
@@ -32,7 +32,7 @@ for s in range(1000):
         print(
             f"Current loss: {env.loss_fn.numpy(action['prediction'], info['prediction']['target']):0.2f}"
         )
-    obs_plot.set_data(obs["glance"])
+    obs_plot.set_data(obs["glimpse"])
     render_plot.set_data(env.render())
     plt.pause(1 / env.metadata["render_fps"])
 
