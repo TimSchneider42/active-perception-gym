@@ -18,9 +18,12 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
     def __init__(
         self,
+        map_width: int,
+        map_height: int,
         render_mode: Literal["rgb_array"] = "rgb_array",
         static_map: bool = True,
         lidar_beam_count: int = 8,
+        lidar_range: float = 5,
     ):
         super().__init__(
             2, gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
@@ -29,23 +32,29 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             raise ValueError(f"Invalid render mode: {render_mode}")
 
         self.__static_map = static_map
+        self.__map_width = map_width
+        self.__map_height = map_height
 
-        self.__lidar_range = 100
+        self.__lidar_range = lidar_range
         lidar_angles = np.linspace(
             -np.pi, np.pi, lidar_beam_count, dtype=np.float32, endpoint=False
         )
         self.__lidar_directions = (
-            np.stack([np.cos(lidar_angles), np.sin(lidar_angles)], axis=-1) * 3
+            np.stack([np.cos(lidar_angles), np.sin(lidar_angles)], axis=-1)
+            * self.__lidar_range
         )
 
         observation_dict = {
             "lidar": gym.spaces.Box(
-                low=-1, high=1, shape=(lidar_beam_count,), dtype=np.float32
-            )
+                low=0, high=1, shape=(lidar_beam_count,), dtype=np.float32
+            ),
+            "odometry": gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32),
         }
 
         if not static_map:
-            observation_dict["map"] = ImageSpace(width=64, height=64, channels=1)
+            observation_dict["map"] = ImageSpace(
+                width=self.__map_width, height=self.__map_height, channels=1
+            )
 
         self.observation_space = gym.spaces.Dict(observation_dict)
 
@@ -54,11 +63,24 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__map_obs = None
         self.__pos = None
         self.__last_pred = None
+        self.__initial_pos = None
 
     def __get_obs(self):
-        distances = self.__lidar_scan(self.__pos, self.__pos + self.__lidar_directions)
-        self.__last_lidar_readings = distances
-        obs = {"lidar": distances}
+        self.__last_lidar_readings = distances = self.__lidar_scan(
+            self.__pos, self.__pos + self.__lidar_directions
+        )
+        odometry = self.__pos - self.__initial_pos
+        odometry_max_value = np.array(
+            [self.__map_width, self.__map_height], dtype=np.float32
+        )
+        odometry_min_value = -odometry_max_value
+        odometry_norm = (odometry - odometry_min_value) / (
+            odometry_max_value - odometry_min_value
+        ) * 2 - 1
+        obs = {
+            "lidar": distances / self.__lidar_range,
+            "odometry": odometry_norm,
+        }
         if not self.__static_map:
             obs["map"] = self.__map_obs
         return obs
@@ -72,8 +94,14 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__rng = np.random.default_rng(seed)
 
         if not self.__static_map or self.__map is None:
-            map_seed = 0 if self.__static_map else self.__rng.integers(0, 2**32)
-            self.__map = self._get_map(map_seed)
+            map_seed = (
+                0
+                if self.__static_map
+                else self.__rng.integers(0, 2**32 - 1, endpoint=True)
+            )
+            new_map = self._get_map(map_seed)
+            assert new_map.shape == (self.__map_height, self.__map_width)
+            self.__map = new_map
             coords = np.meshgrid(
                 np.arange(self.__map.shape[1]), np.arange(self.__map.shape[0])
             )
@@ -84,12 +112,10 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 [shapely.box(*c, *(c + 1)) for c in occupied_coords]
             )
         if not self.__static_map:
-            target_shape = self.observation_space["map"].shape[-2::-1]
-            map_pil = PIL.Image.fromarray(self.__map).convert("L").resize(target_shape)
-            self.__map_obs = np.array(map_pil).astype(np.float32) / 255
+            self.__map_obs = self.__map[..., None].astype(np.float32) / 255
         valid_starting_coords = np.where(self.__map == 0)
         idx = self.__rng.integers(0, len(valid_starting_coords[0]))
-        self.__pos = (
+        self.__pos = self.__initial_pos = (
             np.array(
                 [valid_starting_coords[1][idx], valid_starting_coords[0][idx]],
                 dtype=np.float32,
