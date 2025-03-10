@@ -17,7 +17,7 @@ Refer to the [image classification environments overview](ImageClassification) f
 
 ## Description
 
-In the TinyImageNet environment, the agent's objective is to classify natural images into 200 classes. 
+In the TinyImageNet environment, the agent's objective is to classify natural images into 200 classes.
 The agent has limited visibility, represented by a small movable glimpse that captures partial views of the image.
 It must strategically explore different regions of the image to gather enough information for accurate classification.
 
@@ -39,4 +39,3 @@ envs = ap_gym.make_vec("TinyImageNet-v0", num_envs=4)
 ## Version History
 
 - `v0`: Initial release.
-

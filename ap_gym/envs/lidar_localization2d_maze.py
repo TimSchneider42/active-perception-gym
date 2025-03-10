@@ -40,9 +40,9 @@ class LIDARLocalization2DMazeEnv(LIDARLocalization2DEnv):
                     # Always carve the first eligible branch; subsequent ones only if allowed by branching_prob
                     if first or rng.random() < self.__branching_prob:
                         intermediate_pos = pos + direction // 2
-                        maze[
-                            intermediate_pos[1], intermediate_pos[0]
-                        ] = False  # Carve passage between cells
+                        maze[intermediate_pos[1], intermediate_pos[0]] = (
+                            False  # Carve passage between cells
+                        )
                         maze[next_pos[1], next_pos[0]] = False  # Carve target cell
                         carve(next_pos)
                         first = False

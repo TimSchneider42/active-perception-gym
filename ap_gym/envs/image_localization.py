@@ -19,7 +19,8 @@ from .image import (
 
 class ImageLocalizationVectorEnv(
     ActiveRegressionVectorEnv[
-        dict[Literal["glimpse", "glimpse_pos", "target_glimpse"], np.ndarray], np.ndarray
+        dict[Literal["glimpse", "glimpse_pos", "target_glimpse"], np.ndarray],
+        np.ndarray,
     ],
 ):
     metadata: dict[str, Any] = {"render_modes": ["rgb_array"], "render_fps": 2}
@@ -88,10 +89,10 @@ class ImageLocalizationVectorEnv(
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         if np.any(self.__prev_done):
-            self.__current_prediction_target[
-                self.__prev_done
-            ] = self.__current_rng.uniform(-1, 1, (np.sum(self.__prev_done), 2)).astype(
-                np.float32
+            self.__current_prediction_target[self.__prev_done] = (
+                self.__current_rng.uniform(-1, 1, (np.sum(self.__prev_done), 2)).astype(
+                    np.float32
+                )
             )
         prediction_quality = 1 - np.linalg.norm(
             prediction - self.__current_prediction_target, axis=-1

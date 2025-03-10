@@ -166,8 +166,9 @@ def make_vec(
     num_envs: int = 1,
     vectorization_mode: gym.VectorizeMode | str | None = None,
     vector_kwargs: dict[str, Any | None] = None,
-    wrappers: Sequence[Callable[[BaseActivePerceptionEnv], ActivePerceptionWrapper]]
-    | None = None,
+    wrappers: (
+        Sequence[Callable[[BaseActivePerceptionEnv], ActivePerceptionWrapper]] | None
+    ) = None,
     **kwargs,
 ) -> BaseActivePerceptionVectorEnv:
     return ensure_active_perception_vector_env(

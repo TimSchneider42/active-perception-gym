@@ -88,12 +88,12 @@ class ImageClassificationDataset(ABC):
         return self._get_num_classes()
 
     @overload
-    def __getitem__(self, item: SupportsInt) -> tuple[np.ndarray, int]:
-        ...
+    def __getitem__(self, item: SupportsInt) -> tuple[np.ndarray, int]: ...
 
     @overload
-    def __getitem__(self, item: Sequence[SupportsInt]) -> tuple[np.ndarray, np.ndarray]:
-        ...
+    def __getitem__(
+        self, item: Sequence[SupportsInt]
+    ) -> tuple[np.ndarray, np.ndarray]: ...
 
     def __getitem__(self, item: int | Sequence[int] | np.ndarray):
         if isinstance(item, Sequence) or isinstance(item, np.ndarray):

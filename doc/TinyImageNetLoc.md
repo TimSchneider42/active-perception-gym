@@ -16,7 +16,7 @@ Refer to the [image localization environments overview](ImageLocalization) for a
 
 ## Description
 
-In the TinyImageNetLoc environment, the agent's objective is to localize a given glimpse in a natural image. 
+In the TinyImageNetLoc environment, the agent's objective is to localize a given glimpse in a natural image.
 The agent has limited visibility, represented by a small movable glimpse that captures partial views of the image.
 It must strategically explore different regions of the image to gather enough information for accurate classification.
 
@@ -38,4 +38,3 @@ envs = ap_gym.make_vec("TinyImageNetLoc-v0", num_envs=4)
 ## Version History
 
 - `v0`: Initial release.
-

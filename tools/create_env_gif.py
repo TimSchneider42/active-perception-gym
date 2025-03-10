@@ -11,7 +11,9 @@ if __name__ == "__main__":
     parser.add_argument("env_id", type=str, help="Environment ID.")
     parser.add_argument("filename", type=Path, help="Output filename.")
     parser.add_argument("--seed", type=int, default=0, help="Random seed.")
-    parser.add_argument("-n", "--num-eps", type=int, default=10, help="Number of episodes to run.")
+    parser.add_argument(
+        "-n", "--num-eps", type=int, default=10, help="Number of episodes to run."
+    )
     args = parser.parse_args()
 
     env = ap_gym.make(args.env_id, render_mode="rgb_array")
@@ -29,6 +31,8 @@ if __name__ == "__main__":
             done = terminated or truncated
             imgs[-1].append(env.render())
     imgs_flat = [img for ep_imgs in imgs for img in ep_imgs]
-    imageio.mimsave(args.filename, imgs_flat, fps=env.metadata["render_fps"], format="GIF-FI")
+    imageio.mimsave(
+        args.filename, imgs_flat, fps=env.metadata["render_fps"], format="GIF-FI"
+    )
 
     env.close()

@@ -67,10 +67,8 @@ The prediction target is a scalar integer in the range $[0, K - 1]$, representin
 ## Observation Space
 
 The observation is a dictionary with keys `"glimpse"` and `"glimpse_pos"`.
-The glimpse is a $G \times G \times C$ `np.ndarray` representing a glimpse of the image where each pixel is in the
-range $[-1, 1]$.
-The `"glimpse_pos"` is an `np.ndarray` with shape `(2,)` containing the normalized position of the glimpse within the
-image in the range $[-1, 1]$.
+The glimpse is a $G \times G \times C$ `np.ndarray` representing a glimpse of the image where each pixel is in the range $[-1, 1]$.
+The `"glimpse_pos"` is an `np.ndarray` with shape `(2,)` containing the normalized position of the glimpse within the image in the range $[-1, 1]$.
 
 ## Rewards
 

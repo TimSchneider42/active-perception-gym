@@ -162,9 +162,9 @@ class ActivePerceptionVectorWrapper(
         self._action_space: ActivePerceptionActionSpace[ActType, PredType] | None
         self._single_action_space: ActivePerceptionActionSpace[ActType, PredType] | None
         self._prediction_target_space: gym.Space[WrapperPredTargetType] | None = None
-        self._single_prediction_target_space: gym.Space[
-            WrapperPredTargetType
-        ] | None = None
+        self._single_prediction_target_space: (
+            gym.Space[WrapperPredTargetType] | None
+        ) = None
         self._loss_fn: LossFn[WrapperPredType, WrapperPredTargetType] | None = None
         super().__init__(env)
 

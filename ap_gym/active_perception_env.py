@@ -52,7 +52,7 @@ class ActivePerceptionActionSpace(gym.spaces.Dict, Generic[ActType, PredType]):
 
     @staticmethod
     def from_dict(
-        d: gym.spaces.Dict[Literal["action", "prediction"], Any]
+        d: gym.spaces.Dict[Literal["action", "prediction"], Any],
     ) -> ActivePerceptionActionSpace:
         return ActivePerceptionActionSpace(
             d["action"], d["prediction"], seed=d._np_random
@@ -164,9 +164,9 @@ class ActivePerceptionWrapper(
     ):
         assert isinstance(env, BaseActivePerceptionEnv)
         self._action_space: ActivePerceptionActionSpace[ActType, PredType] | None
-        self._prediction_target_space: gym.spaces.Space[
-            WrapperPredTargetType
-        ] | None = None
+        self._prediction_target_space: (
+            gym.spaces.Space[WrapperPredTargetType] | None
+        ) = None
         self._loss_fn: LossFn[WrapperPredType, WrapperPredTargetType] | None = None
         super().__init__(env)
 
