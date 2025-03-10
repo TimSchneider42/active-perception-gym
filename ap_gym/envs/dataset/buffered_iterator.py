@@ -35,5 +35,7 @@ class BufferedIterator(Iterator[InnerIteratorType], Generic[InnerIteratorType]):
                         break
                     except Full:
                         continue
+                else:
+                    break
         except Exception as e:
             self.__buffer.put(e)
