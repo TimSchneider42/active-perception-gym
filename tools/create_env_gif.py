@@ -19,6 +19,7 @@ if __name__ == "__main__":
     env = ap_gym.make(args.env_id, render_mode="rgb_array")
 
     env.reset(seed=args.seed)
+    env.action_space.seed(args.seed + args.num_eps)
     img = env.render()
 
     imgs = []
