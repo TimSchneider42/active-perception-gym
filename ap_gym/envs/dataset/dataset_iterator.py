@@ -2,10 +2,28 @@ from typing import Iterator, Generic, Any
 
 import numpy as np
 
-from .dataset import Dataset, DataPointBatchType
+from .dataset import Dataset, DataPointType, DataPointBatchType
 
 
-class DatasetLoader(
+class DatasetIterator(
+    Iterator[tuple[DataPointType, np.ndarray]],
+    Generic[DataPointType],
+):
+    def __init__(
+        self,
+        dataset: Dataset[DataPointType, Any],
+        seed: int = 0,
+    ):
+        self.__dataset = dataset
+        self.__rng = np.random.default_rng(seed)
+
+    def __next__(self):
+        idx = self.__rng.integers(0, len(self.__dataset))
+        data = self.__dataset.get_data_point(idx)
+        return data, idx
+
+
+class DatasetBatchIterator(
     Iterator[tuple[DataPointBatchType, np.ndarray]],
     Generic[DataPointBatchType],
 ):

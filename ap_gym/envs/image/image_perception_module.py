@@ -11,7 +11,7 @@ from PIL.Image import Resampling
 from scipy.interpolate import RegularGridInterpolator
 
 from ap_gym import ImageSpace
-from ap_gym.envs.dataset import DatasetLoader, BufferedIterator
+from ap_gym.envs.dataset import BufferedIterator, DataLoader, DatasetBatchIterator
 from ap_gym.envs.style import COLOR_AGENT, quality_color
 from .image_classification_dataset import ImageClassificationDataset
 
@@ -74,23 +74,22 @@ class ImagePerceptionModule:
         self.__visitation_counts = self.__prediction_quality_map = None
         self.__prev_done: np.ndarray | None = None
         self.__current_labels: np.ndarray | None = None
-        self.__data_loader: DatasetLoader | BufferedIterator | None = None
+        self.__data_loader: DataLoader | None = None
 
     def seed(self, seed: int | None = None):
         self.__current_rng = np.random.default_rng(seed)
-        if self.__data_loader is not None and isinstance(
-            self.__data_loader, BufferedIterator
-        ):
+        if self.__data_loader is not None:
             self.__data_loader.close()
-        self.__data_loader = DatasetLoader(
+        iterator = DatasetBatchIterator(
             self.__config.dataset,
             batch_size=self.__num_envs,
             seed=self.__current_rng.integers(0, 2**32 - 1, endpoint=True),
         )
-        if self.__prefetch:
-            self.__data_loader = BufferedIterator(
-                self.__data_loader, buffer_size=self.__config.prefetch_buffer_size
-            )
+        self.__data_loader = DataLoader(
+            iterator,
+            prefetch=self.__prefetch,
+            prefetch_buffer_size=self.__config.prefetch_buffer_size,
+        )
 
     def reset(self) -> tuple[ObsType, dict[str, Any]]:
         if self.__current_rng is None:
