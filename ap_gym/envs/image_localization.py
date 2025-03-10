@@ -157,7 +157,7 @@ class ImageLocalizationVectorEnv(
                     tuple(
                         lp_coords + self.__image_perception_module.glimpse_border_width
                     ),
-                    outline=self.__image_perception_module.config.render_glimpse_shadow_color,
+                    outline=(0, 0, 0, 80),
                     width=self.__image_perception_module.glimpse_border_width,
                 )
 
