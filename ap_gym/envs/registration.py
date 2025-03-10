@@ -144,6 +144,19 @@ def register_envs():
         kwargs=dict(static_map=False),
     )
 
+    gym.envs.registration.register(
+        id="LIDARLocIndoorStatic-v0",
+        entry_point="ap_gym.envs.lidar_localization2d_indoor:LIDARLocalization2DIndoorEnv",
+        max_episode_steps=100,
+    )
+
+    gym.envs.registration.register(
+        id="LIDARLocIndoor-v0",
+        entry_point="ap_gym.envs.lidar_localization2d_indoor:LIDARLocalization2DIndoorEnv",
+        max_episode_steps=100,
+        kwargs=dict(static_map=False),
+    )
+
 
 def make(
     id: str | gym.envs.registration.EnvSpec,
