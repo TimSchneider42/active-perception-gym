@@ -63,17 +63,22 @@ class ImageLocalizationVectorEnv(
             self.single_observation_space, self.num_envs
         )
         self.__current_prediction_target = None
-        self.__current_rng = None
         self.__prev_done = None
         self.__last_prediction = None
+        self.__seed_changed = False
 
-    def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+    def reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+        self.__seed_changed = seed is not None
+        return super().reset(seed=seed, options=options)
+
+    def _reset(self, *, options: dict[str, Any | None] = None):
+        if self.__seed_changed:
+            self.__image_perception_module.seed(
+                self.np_random.integers(0, 2**32 - 1, endpoint=True)
+            )
         self.__last_prediction = None
-        self.__current_rng = np.random.default_rng(seed)
-        obs, info = self.__image_perception_module.reset(
-            seed=self.__current_rng.integers(0, 2**32 - 1, endpoint=True)
-        )
-        self.__current_prediction_target = self.__current_rng.uniform(
+        obs, info = self.__image_perception_module.reset()
+        self.__current_prediction_target = self.np_random.uniform(
             -1, 1, (self.num_envs, 2)
         ).astype(np.float32)
         self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
@@ -90,11 +95,9 @@ class ImageLocalizationVectorEnv(
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         if np.any(self.__prev_done):
-            self.__current_prediction_target[
-                self.__prev_done
-            ] = self.__current_rng.uniform(-1, 1, (np.sum(self.__prev_done), 2)).astype(
-                np.float32
-            )
+            self.__current_prediction_target[self.__prev_done] = self.np_random.uniform(
+                -1, 1, (np.sum(self.__prev_done), 2)
+            ).astype(np.float32)
         prediction_quality = 1 - np.linalg.norm(
             prediction - self.__current_prediction_target, axis=-1
         ) / np.sqrt(4)
@@ -175,6 +178,7 @@ def ImageLocalizationEnv(
     image_perception_config: ImagePerceptionConfig,
     render_mode: Literal["rgb_array"] = "rgb_array",
     max_episode_steps: int = 16,
+    prefetch: bool = True,
 ):
     return ActivePerceptionVectorToSingleWrapper(
         ImageLocalizationVectorEnv(
@@ -182,6 +186,6 @@ def ImageLocalizationEnv(
             image_perception_config,
             render_mode=render_mode,
             max_episode_steps=max_episode_steps,
-            prefetch=False,
+            prefetch=prefetch,
         )
     )

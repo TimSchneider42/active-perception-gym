@@ -32,7 +32,7 @@ class MyCustomEnv(ap_gym.ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray,
         self._current_class = None
 
     def _reset(
-            self, *, seed: int | None = None, options: dict[str, Any | None] = None
+            self, *, options: dict[str, Any | None] = None
     ) -> tuple[np.ndarray, dict[str, Any], int]:
         self._current_class = ...  # Randomly choose a class
         obs = ...  # Generate the initial observation
@@ -89,7 +89,7 @@ class MyCustomVectorEnv(ap_gym.ActivePerceptionVectorEnv[np.ndarray, np.ndarray,
         self._current_classes = None
 
     def _reset(
-            self, *, seed: int | None = None, options: dict[str, Any | None] = None
+            self, *, options: dict[str, Any | None] = None
     ) -> tuple[np.ndarray, dict[str, Any], int]:
         self._current_class = ...  # Randomly choose classes (now an array)
         obs = ...  # Generate the initial observation
@@ -159,7 +159,7 @@ class MyClassificationVectorEnv(
         self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, num_envs)
 
     def _reset(
-            self, *, seed: int | None = None, options: dict[str, Any | None] = None
+            self, *, options: dict[str, Any | None] = None
     ) -> tuple[np.ndarray, dict[str, Any], np.ndarray]:
         ...  # Implement _reset as in the MyCustomVectorEnv example
 
@@ -206,7 +206,7 @@ class MyRegressionVectorEnv(
         self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, num_envs)
 
     def _reset(
-            self, *, seed: int | None = None, options: dict[str, Any | None] = None
+            self, *, options: dict[str, Any | None] = None
     ) -> tuple[np.ndarray, dict[str, Any], np.ndarray]:
         ...  # Implement _reset as in the MyCustomVectorEnv example
 

@@ -12,7 +12,7 @@ fig, axes = plt.subplots(1, env.num_envs, squeeze=False)
 render_plot = [ax[0].imshow(np.zeros_like(im)) for ax, im in zip(axes.T, img)]
 plt.show(block=False)
 
-for s in range(1000):
+for _ in range(1000):
     action = {
         "action": env.inner_action_space.sample(),
         "prediction": env.prediction_space.sample(),

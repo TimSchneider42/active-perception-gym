@@ -51,9 +51,18 @@ class ImageClassificationVectorEnv(
         self.observation_space = gym.vector.utils.batch_space(
             self.single_observation_space, self.num_envs
         )
+        self.__seed_changed = False
 
-    def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
-        obs, info = self.__image_perception_module.reset(seed=seed)
+    def reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+        self.__seed_changed = seed is not None
+        return super().reset(seed=seed, options=options)
+
+    def _reset(self, *, options: dict[str, Any | None] = None):
+        if self.__seed_changed:
+            self.__image_perception_module.seed(
+                self.np_random.integers(0, 2**32 - 1, endpoint=True)
+            )
+        obs, info = self.__image_perception_module.reset()
         return (
             obs,
             info,
@@ -95,6 +104,7 @@ def ImageClassificationEnv(
     image_perception_config: ImagePerceptionConfig,
     render_mode: Literal["rgb_array"] = "rgb_array",
     max_episode_steps: int = 16,
+    prefetch: bool = True,
 ):
     return ActivePerceptionVectorToSingleWrapper(
         ImageClassificationVectorEnv(
@@ -102,6 +112,6 @@ def ImageClassificationEnv(
             image_perception_config,
             render_mode=render_mode,
             max_episode_steps=max_episode_steps,
-            prefetch=False,
+            prefetch=prefetch,
         )
     )

@@ -3,7 +3,7 @@ import numpy as np
 
 import ap_gym
 
-env = ap_gym.make_vec("TinyImageNet-loc-v0", num_envs=4, render_mode="rgb_array")
+env = ap_gym.make_vec("TinyImageNetLoc-v0", num_envs=4, render_mode="rgb_array")
 
 obs, _ = env.reset(seed=0)
 img = env.render()
@@ -24,7 +24,7 @@ target_glimpse_plot = [
 render_plot = [ax[2].imshow(np.zeros_like(im)) for ax, im in zip(axes.T, img)]
 plt.show(block=False)
 
-for s in range(1000):
+for _ in range(1000):
     action = {
         "action": env.inner_action_space.sample(),
         "prediction": env.prediction_space.sample(),
