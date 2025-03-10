@@ -19,7 +19,9 @@ class LIDARLocalization2DMazeEnv(LIDARLocalization2DEnv):
         self.__width = width
         self.__height = height
         self.__branching_prob = branching_prob
-        super().__init__(render_mode=render_mode, static_map=static_map)
+        super().__init__(
+            self.__width, self.__height, render_mode=render_mode, static_map=static_map
+        )
 
     def _get_map(self, seed: int):
         rng = np.random.default_rng(seed)
@@ -40,9 +42,9 @@ class LIDARLocalization2DMazeEnv(LIDARLocalization2DEnv):
                     # Always carve the first eligible branch; subsequent ones only if allowed by branching_prob
                     if first or rng.random() < self.__branching_prob:
                         intermediate_pos = pos + direction // 2
-                        maze[intermediate_pos[1], intermediate_pos[0]] = (
-                            False  # Carve passage between cells
-                        )
+                        maze[
+                            intermediate_pos[1], intermediate_pos[0]
+                        ] = False  # Carve passage between cells
                         maze[next_pos[1], next_pos[0]] = False  # Carve target cell
                         carve(next_pos)
                         first = False
