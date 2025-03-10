@@ -85,7 +85,7 @@ class ImagePerceptionModule:
         self.__data_loader = DatasetLoader(
             self.__config.dataset,
             batch_size=self.__num_envs,
-            seed=self.__current_rng.integers(0, 2**32),
+            seed=self.__current_rng.integers(0, 2**32 - 1, endpoint=True),
         )
         if self.__prefetch:
             self.__data_loader = BufferedIterator(
