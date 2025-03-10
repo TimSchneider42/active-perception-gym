@@ -73,9 +73,8 @@ def register_envs():
             )
 
     image_env_render_kwargs = dict(
-        render_overlay_base_color=(0, 0, 0, 128),
-        render_good_color=(0, 255, 0, 60),
-        render_bad_color=(255, 0, 0, 60),
+        render_unvisited_opacity=0.5,
+        render_visited_opacity=0.25,
     )
 
     for split in ["train", "test"]:
