@@ -6,7 +6,6 @@ import ap_gym
 env = ap_gym.make_vec("CircleSquare-v0", num_envs=4, render_mode="rgb_array")
 
 obs, _ = env.reset(seed=0)
-obs, _ = env.reset(seed=0)
 img = env.render()
 
 fig, axes = plt.subplots(2, env.num_envs, squeeze=False)
