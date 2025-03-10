@@ -51,17 +51,9 @@ class ImageClassificationVectorEnv(
         self.observation_space = gym.vector.utils.batch_space(
             self.single_observation_space, self.num_envs
         )
-        self.__seed_changed = False
-
-    def reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
-        self.__seed_changed = seed is not None
-        return super().reset(seed=seed, options=options)
+        self.__np_random = None
 
     def _reset(self, *, options: dict[str, Any | None] = None):
-        if self.__seed_changed:
-            self.__image_perception_module.seed(
-                self.np_random.integers(0, 2**32 - 1, endpoint=True)
-            )
         obs, info = self.__image_perception_module.reset()
         return (
             obs,
@@ -98,6 +90,17 @@ class ImageClassificationVectorEnv(
     @property
     def render_mode(self) -> Literal["rgb_array"]:
         return self.__render_mode
+
+    @property
+    def _np_random(self):
+        return self.__np_random
+
+    @_np_random.setter
+    def _np_random(self, np_random):
+        self.__image_perception_module.seed(
+            np_random.integers(0, 2**32 - 1, endpoint=True)
+        )
+        self.__np_random = np_random
 
 
 def ImageClassificationEnv(
