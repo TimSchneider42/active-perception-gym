@@ -15,6 +15,7 @@ from ap_gym import (
 )
 from .dataset_loader import DatasetLoader, BufferedIterator
 from .image_classification_dataset import ImageClassificationDataset
+from ap_gym.envs.style import COLOR_AGENT, quality_color
 
 
 @dataclass(frozen=True)
@@ -24,11 +25,8 @@ class ImagePerceptionConfig:
     sensor_scale: float = 1.0
     max_step_length: float | Sequence[float] = 0.2
     display_visitation: bool = True
-    render_overlay_base_color: tuple[int, ...] = (0, 0, 0, 0)
-    render_good_color: tuple[int, ...] = (0, 255, 0, 80)
-    render_bad_color: tuple[int, ...] = (255, 0, 0, 80)
-    render_glimpse_shadow_color: tuple[int, ...] = (0, 0, 0, 80)
-    render_glimpse_border_color: tuple[int, ...] = (0, 55, 255)
+    render_unvisited_opacity: float = 0.0
+    render_visited_opacity: float = 0.3
     prefetch_buffer_size: int = 128
 
 
@@ -190,7 +188,9 @@ class ImagePerceptionModule:
         )
         self.__visitation_counts[coords] += 1
         if prediction_quality is not None:
-            self.__prediction_quality_map[coords] = prediction_quality[:, None, None]
+            self.__prediction_quality_map[coords] = np.clip(
+                prediction_quality[:, None, None], 0, 1
+            )
 
     def _get_obs(self) -> ObsType:
         return {
@@ -244,24 +244,21 @@ class ImagePerceptionModule:
         glimpse_shadow_offset = self.glimpse_border_width
 
         visited = self.__visitation_counts > 0
-        render_good_color = self.__config.render_good_color
-        if len(render_good_color) == 3:
-            render_good_color = (*render_good_color, 255)
-        render_bad_color = self.__config.render_bad_color
-        if len(render_bad_color) == 3:
-            render_bad_color = (*render_bad_color, 255)
-        good_color = np.array(render_good_color, dtype=np.uint8)
-        bad_color = np.array(render_bad_color, dtype=np.uint8)
         overlay = (
             (
                 visited[..., None]
-                * (
-                    self.__prediction_quality_map[..., None]
-                    * good_color[None, None, None, :]
-                    + (1 - self.__prediction_quality_map[..., None])
-                    * bad_color[None, None, None, :]
+                * np.concatenate(
+                    [
+                        quality_color(self.__prediction_quality_map),
+                        np.full_like(
+                            self.__prediction_quality_map[..., None],
+                            int(255 * self.__config.render_visited_opacity),
+                        ),
+                    ],
+                    axis=-1,
                 )
-                + ~visited[..., None] * self.__config.render_overlay_base_color
+                + ~visited[..., None]
+                * (0, 0, 0, int(255 * self.__config.render_unvisited_opacity))
             )
             .round()
             .astype(np.uint8)
@@ -289,12 +286,12 @@ class ImagePerceptionModule:
             glimpse_coords = np.concatenate([tl, br])
             draw.rectangle(
                 tuple(glimpse_coords + glimpse_shadow_offset),
-                outline=self.__config.render_glimpse_shadow_color,
+                outline=(0, 0, 0, 80),
                 width=self.glimpse_border_width,
             )
             draw.rectangle(
                 tuple(glimpse_coords),
-                outline=self.__config.render_glimpse_border_color,
+                outline=COLOR_AGENT,
                 width=self.glimpse_border_width,
             )
             rgb_imgs.append(rgb_img)

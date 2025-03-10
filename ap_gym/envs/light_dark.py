@@ -1,3 +1,4 @@
+from collections import deque
 from typing import Any, Literal
 
 import gymnasium as gym
@@ -5,6 +6,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from ap_gym import ActiveRegressionEnv
+from .style import COLOR_PRED, COLOR_AGENT, COLOR_OBS_PRIMARY, quality_color
 
 
 class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
@@ -35,6 +37,8 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             low=-2, high=2, shape=(2,), dtype=np.float32
         )
 
+        self.__trajectory = deque()
+
     def __compute_brightness(self, pos: np.ndarray) -> np.ndarray:
         dist_squared = np.sum(
             (pos - self.__light_pos) ** 2 + self.__light_height**2, axis=-1
@@ -58,6 +62,8 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             np.ones(2),
             size=2,
         ).astype(np.float32)
+        self.__trajectory.clear()
+        self.__trajectory.append((self.__pos, None))
         return self.__get_obs(), {}, self.__pos
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
@@ -70,15 +76,16 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             base_reward -= 20
             terminated = True
         self.__pos = np.clip(self.__pos, -1, 1)
+        prediction_quality = np.linalg.norm(prediction - self.__pos, axis=-1) / np.sqrt(
+            4
+        )
+        self.__trajectory.append((self.__pos, prediction_quality))
         return self.__get_obs(), base_reward, terminated, False, {}, self.__pos
 
     def render(self):
         img = Image.fromarray(self.__base_image)  # Convert base image to PIL format
         draw = ImageDraw.Draw(img, mode="RGBA")
 
-        base_color = (55, 255, 0)
-        agent_color = (0, 55, 255)
-        pred_color = (255, 0, 255)
         dot_radius = 0.01 * img.size[0]
 
         pos = (self.__pos + 1) / 2 * np.array(img.size[::-1])
@@ -89,9 +96,26 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 tuple(pos - std_radius),
                 tuple(pos + std_radius),
             ],
-            fill=base_color + (30,),
+            fill=COLOR_OBS_PRIMARY + (30,),
             outline=None,
         )
+
+        traj_hist = list(self.__trajectory)
+        for (pos_a, qual_a), (pos_b, qual_b) in zip(
+            traj_hist[:-1], list(traj_hist)[1:]
+        ):
+            pos_a = (pos_a + 1) / 2 * np.array(img.size[::-1])
+            pos_b = (pos_b + 1) / 2 * np.array(img.size[::-1])
+            draw.line(
+                (
+                    pos_a[0],
+                    pos_a[1],
+                    pos_b[0],
+                    pos_b[1],
+                ),
+                width=2,
+                fill=quality_color(qual_b),
+            )
 
         last_obs = (self.__last_obs + 1) / 2 * np.array(img.size[::-1])
         draw.line(
@@ -99,14 +123,14 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 tuple(pos),
                 tuple(last_obs),
             ),
-            fill=base_color + (80,),
+            fill=COLOR_OBS_PRIMARY + (80,),
         )
         draw.ellipse(
             [
                 tuple(last_obs - dot_radius),
                 tuple(last_obs + dot_radius),
             ],
-            fill=base_color + (100,),
+            fill=COLOR_OBS_PRIMARY + (100,),
             outline=None,
         )
 
@@ -118,7 +142,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                     tuple(pos),
                     tuple(last_pred),
                 ),
-                fill=pred_color + (80,),
+                fill=COLOR_PRED + (80,),
             )
 
             draw.ellipse(
@@ -126,7 +150,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                     tuple(last_pred - dot_radius),
                     tuple(last_pred + dot_radius),
                 ],
-                fill=pred_color + (100,),
+                fill=COLOR_PRED + (100,),
                 outline=None,
             )
 
@@ -135,7 +159,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 tuple(pos - dot_radius),
                 tuple(pos + dot_radius),
             ],
-            fill=agent_color,
+            fill=COLOR_AGENT,
             outline=None,
         )
 

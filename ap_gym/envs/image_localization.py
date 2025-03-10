@@ -15,6 +15,7 @@ from .image import (
     ImagePerceptionModule,
     ImagePerceptionConfig,
 )
+from .style import COLOR_PRED
 
 
 class ImageLocalizationVectorEnv(
@@ -130,8 +131,7 @@ class ImageLocalizationVectorEnv(
             self.__image_perception_module.effective_sensor_size
             * self.__image_perception_module.render_scaling
         )
-        pred_color = (255, 0, 255)
-        target_color = pred_color + (100,)
+        target_color = COLOR_PRED + (100,)
 
         for img, last_pred, target in zip(
             imgs, last_prediction, self.__current_prediction_target
@@ -150,7 +150,7 @@ class ImageLocalizationVectorEnv(
                 )
                 draw.rectangle(
                     tuple(lp_coords),
-                    outline=pred_color,
+                    outline=COLOR_PRED,
                     width=self.__image_perception_module.glimpse_border_width,
                 )
                 draw.rectangle(
