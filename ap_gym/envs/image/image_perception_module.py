@@ -76,8 +76,12 @@ class ImagePerceptionModule:
         self.__current_labels: np.ndarray | None = None
         self.__data_loader: DatasetLoader | BufferedIterator | None = None
 
-    def reset(self, *, seed: int | None = None):
+    def seed(self, seed: int | None = None):
         self.__current_rng = np.random.default_rng(seed)
+        if self.__data_loader is not None and isinstance(
+            self.__data_loader, BufferedIterator
+        ):
+            self.__data_loader.close()
         self.__data_loader = DatasetLoader(
             self.__config.dataset,
             batch_size=self.__num_envs,
@@ -87,9 +91,10 @@ class ImagePerceptionModule:
             self.__data_loader = BufferedIterator(
                 self.__data_loader, buffer_size=self.__config.prefetch_buffer_size
             )
-        return self.__reset()
 
-    def __reset(self) -> tuple[ObsType, dict[str, Any]]:
+    def reset(self) -> tuple[ObsType, dict[str, Any]]:
+        if self.__current_rng is None:
+            self.seed()
         (
             (
                 self.__current_images,
@@ -155,7 +160,7 @@ class ImagePerceptionModule:
         if np.any(self.__prev_done):
             if not np.all(self.__prev_done):
                 raise NotImplementedError("Partial reset is not supported.")
-            obs, info = self.__reset()
+            obs, info = self.reset()
             terminated = False
             base_reward = np.zeros(self.__num_envs)
         else:

@@ -18,7 +18,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         )
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
-        self.__pos = self.__last_obs = self.__rng = self.__last_pred = None
+        self.__pos = self.__last_obs = self.__last_pred = None
         self.__light_pos = np.array([0, -0.8], dtype=np.float32)
         self.__light_height = 0.2
 
@@ -46,7 +46,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         return self.__light_height**2 / dist_squared
 
     def __get_obs(self):
-        self.__last_obs = self.__pos + self.__rng.normal(size=2).astype(
+        self.__last_obs = self.__pos + self.np_random.normal(size=2).astype(
             np.float32
         ) * self.__get_std_dev(self.__pos)
         self.__last_obs = np.clip(self.__last_obs, -2, 2)
@@ -55,9 +55,8 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
     def __get_std_dev(self, pos: np.ndarray):
         return (1 - self.__compute_brightness(pos)) * 0.3
 
-    def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
-        self.__rng = np.random.default_rng(seed)
-        self.__pos = self.__rng.uniform(
+    def _reset(self, *, options: dict[str, Any | None] = None):
+        self.__pos = self.np_random.uniform(
             -np.ones(2),
             np.ones(2),
             size=2,

@@ -94,7 +94,7 @@ class ActivePerceptionEnv(
 ):
     @abstractmethod
     def _reset(
-        self, *, seed: int | None = None, options: dict[str, Any | None] = None
+        self, *, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any], PredTargetType]:
         pass
 
@@ -107,7 +107,8 @@ class ActivePerceptionEnv(
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any]]:
-        obs, info, prediction_target = self._reset(seed=seed, options=options)
+        super().reset(seed=seed, options=options)
+        obs, info, prediction_target = self._reset(options=options)
         info["prediction"] = {
             "target": prediction_target,
         }

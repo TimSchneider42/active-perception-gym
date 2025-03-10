@@ -5,19 +5,17 @@ import ap_gym
 
 env = ap_gym.make("LIDARLocIndoor-v0", render_mode="rgb_array")
 
-env.reset(seed=5)
+env.reset(seed=0)
 img = env.render()
 
 fig, ax = plt.subplots(1, 1)
 render_plot = ax.imshow(np.zeros_like(img))
 plt.show(block=False)
 
-seed = 0
 prev_done = False
-for s in range(1000):
+for _ in range(1000):
     if prev_done:
-        seed += 1
-        obs, _ = env.reset(seed=seed)
+        obs, _ = env.reset()
         prev_done = False
     else:
         action = {
