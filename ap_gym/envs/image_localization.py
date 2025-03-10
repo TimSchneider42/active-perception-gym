@@ -70,7 +70,7 @@ class ImageLocalizationVectorEnv(
         self.__last_prediction = None
         self.__current_rng = np.random.default_rng(seed)
         obs, info = self.__image_perception_module.reset(
-            seed=self.__current_rng.integers(0, 2**32)
+            seed=self.__current_rng.integers(0, 2**32 - 1, endpoint=True)
         )
         self.__current_prediction_target = self.__current_rng.uniform(
             -1, 1, (self.num_envs, 2)
