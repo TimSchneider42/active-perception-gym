@@ -324,7 +324,9 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 contact_point = np.array(
                     [intersections.xy[0][0], intersections.xy[1][0]]
                 )
-                output_distances[i] = np.linalg.norm(contact_point - pos) - eps
+                output_distances[i] = np.maximum(
+                    np.linalg.norm(contact_point - pos) - eps, 0
+                )
             elif isinstance(intersections, shapely.Point):
                 contact_point = pos
                 output_distances[i] = 0
@@ -338,7 +340,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 distances = np.linalg.norm(intersection_points - pos, axis=-1)
                 min_idx = np.argmin(distances)
                 contact_point = intersection_points[min_idx]
-                output_distances[i] = distances[min_idx] - eps
+                output_distances[i] = np.maximum(distances[min_idx] - eps, 0)
             else:
                 output_distances[i] = np.linalg.norm(target - pos)
                 contact_point = target
