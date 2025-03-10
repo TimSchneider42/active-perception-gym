@@ -3,7 +3,7 @@ import numpy as np
 
 import ap_gym
 
-env = ap_gym.make("LIDARLocIndoor-v0", render_mode="rgb_array")
+env = ap_gym.make("LIDARLocRooms-v0", render_mode="rgb_array")
 
 env.reset(seed=0)
 img = env.render()

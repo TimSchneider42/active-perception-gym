@@ -1,30 +1,27 @@
-from typing import Literal
+from typing import Sequence, SupportsInt
 
 import numpy as np
 
-from .lidar_localization2d import LIDARLocalization2DEnv
+from .floor_map_dataset import FloorMapDataset
 
 
-class LIDARLocalization2DIndoorEnv(LIDARLocalization2DEnv):
+class FloorMapDatasetRooms(FloorMapDataset):
     def __init__(
         self,
-        render_mode: Literal["rgb_array"] = "rgb_array",
         width: int = 32,
         height: int = 32,
         max_rooms: bool = 10,
-        static_map: bool = True,
+        door_width: int = 3,
     ):
         self.__width = width
         self.__height = height
         self.__max_rooms = max_rooms
-        self.__door_width = 3
+        self.__door_width = door_width
         self.__min_room_size = self.__door_width + 2
-        super().__init__(
-            self.__width, self.__height, render_mode=render_mode, static_map=static_map
-        )
+        super().__init__(self.__width, self.__height)
 
-    def _get_map(self, seed: int):
-        rng = np.random.default_rng(seed)
+    def get_data_point(self, idx: SupportsInt) -> np.ndarray:
+        rng = np.random.default_rng(int(idx))
 
         map_int = np.zeros((self.__height, self.__width), dtype=np.int8)
 
@@ -88,3 +85,11 @@ class LIDARLocalization2DIndoorEnv(LIDARLocalization2DEnv):
             map_int = map_int.T
 
         return map_int.astype(np.bool_)
+
+    def get_data_point_batch(
+        self, idx: Sequence[SupportsInt] | np.ndarray
+    ) -> np.ndarray:
+        return np.stack([self.get_data_point(i) for i in idx])
+
+    def _get_length(self) -> int:
+        return 2**32

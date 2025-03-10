@@ -1,30 +1,26 @@
-from typing import Literal
+from typing import Sequence, SupportsInt
 
 import numpy as np
 
-from .lidar_localization2d import LIDARLocalization2DEnv
+from .floor_map_dataset import FloorMapDataset
 
 
-class LIDARLocalization2DMazeEnv(LIDARLocalization2DEnv):
+class FloorMapDatasetMaze(FloorMapDataset):
     def __init__(
         self,
-        render_mode: Literal["rgb_array"] = "rgb_array",
         width: int = 21,
         height: int = 21,
         branching_prob: float = 1.0,
-        static_map: bool = True,
     ):
         if width % 2 == 0 or height % 2 == 0:
             raise ValueError("Width and height must be odd.")
         self.__width = width
         self.__height = height
         self.__branching_prob = branching_prob
-        super().__init__(
-            self.__width, self.__height, render_mode=render_mode, static_map=static_map
-        )
+        super().__init__(self.__width, self.__height)
 
-    def _get_map(self, seed: int):
-        rng = np.random.default_rng(seed)
+    def get_data_point(self, idx: SupportsInt) -> np.ndarray:
+        rng = np.random.default_rng(int(idx))
 
         # Create a maze full of walls (represented by 1)
         maze = np.ones((self.__height, self.__width), dtype=np.bool_)
@@ -55,3 +51,11 @@ class LIDARLocalization2DMazeEnv(LIDARLocalization2DEnv):
         carve(starting_pos)
 
         return maze
+
+    def get_data_point_batch(
+        self, idx: Sequence[SupportsInt] | np.ndarray
+    ) -> np.ndarray:
+        return np.stack([self.get_data_point(i) for i in idx])
+
+    def _get_length(self) -> int:
+        return 2**32

@@ -12,6 +12,7 @@ from ap_gym import (
     BaseActivePerceptionVectorEnv,
     ensure_active_perception_vector_env,
 )
+from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze
 from .image import (
     HuggingfaceImageClassificationDataset,
     CircleSquareDataset,
@@ -132,28 +133,30 @@ def register_envs():
 
     gym.envs.registration.register(
         id="LIDARLocMazeStatic-v0",
-        entry_point="ap_gym.envs.lidar_localization2d_maze:LIDARLocalization2DMazeEnv",
+        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
         max_episode_steps=100,
+        kwargs=dict(dataset=FloorMapDatasetMaze(), static_map=True),
     )
 
     gym.envs.registration.register(
         id="LIDARLocMaze-v0",
-        entry_point="ap_gym.envs.lidar_localization2d_maze:LIDARLocalization2DMazeEnv",
+        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
         max_episode_steps=100,
-        kwargs=dict(static_map=False),
+        kwargs=dict(dataset=FloorMapDatasetMaze()),
     )
 
     gym.envs.registration.register(
-        id="LIDARLocIndoorStatic-v0",
-        entry_point="ap_gym.envs.lidar_localization2d_indoor:LIDARLocalization2DIndoorEnv",
+        id="LIDARLocRoomsStatic-v0",
+        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
         max_episode_steps=100,
+        kwargs=dict(dataset=FloorMapDatasetRooms(), static_map=True),
     )
 
     gym.envs.registration.register(
-        id="LIDARLocIndoor-v0",
-        entry_point="ap_gym.envs.lidar_localization2d_indoor:LIDARLocalization2DIndoorEnv",
+        id="LIDARLocRooms-v0",
+        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
         max_episode_steps=100,
-        kwargs=dict(static_map=False),
+        kwargs=dict(dataset=FloorMapDatasetRooms()),
     )
 
 

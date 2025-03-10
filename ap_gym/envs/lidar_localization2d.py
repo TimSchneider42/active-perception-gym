@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from collections import deque
 from typing import Any, Literal
 
@@ -9,6 +8,8 @@ import numpy as np
 import shapely
 
 from ap_gym import ActiveRegressionEnv, ImageSpace
+from .dataset import DataLoader, DatasetIterator
+from .floor_map import FloorMapDataset
 from .style import (
     COLOR_AGENT,
     COLOR_PRED,
@@ -26,12 +27,14 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
     def __init__(
         self,
-        map_width: int,
-        map_height: int,
+        dataset: FloorMapDataset,
         render_mode: Literal["rgb_array"] = "rgb_array",
-        static_map: bool = True,
+        static_map: bool = False,
         lidar_beam_count: int = 8,
         lidar_range: float = 5,
+        static_map_index: int = 0,
+        prefetch: bool = True,
+        prefetch_buffer_size: int = 128,
     ):
         super().__init__(
             2, gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
@@ -40,8 +43,25 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             raise ValueError(f"Invalid render mode: {render_mode}")
 
         self.__static_map = static_map
-        self.__map_width = map_width
-        self.__map_height = map_height
+        self.__dataset = dataset
+        self.__prefetch = prefetch
+        self.__prefetch_buffer_size = prefetch_buffer_size
+
+        self.__map = None
+        self.__map_shapely = None
+        self.__map_obs = None
+        self.__pos = None
+        self.__last_pred = None
+        self.__initial_pos = None
+        self.__trajectory = deque()
+        self.__observation_map = None
+        self.__data_loader = None
+        self.__np_random = None
+        self.__map_idx = None
+
+        self.__dataset.load()
+        if self.__static_map:
+            self.__set_map(self.__dataset[static_map_index], static_map_index)
 
         self.__lidar_range = lidar_range
         lidar_angles = np.linspace(
@@ -65,19 +85,10 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
         if not static_map:
             observation_dict["map"] = ImageSpace(
-                width=self.__map_width, height=self.__map_height, channels=1
+                width=dataset.map_width, height=dataset.map_height, channels=1
             )
 
         self.observation_space = gym.spaces.Dict(observation_dict)
-
-        self.__map = None
-        self.__map_shapely = None
-        self.__map_obs = None
-        self.__pos = None
-        self.__last_pred = None
-        self.__initial_pos = None
-        self.__trajectory = deque()
-        self.__observation_map = None
 
     def __get_obs(self):
         distances, contact_coords = self.__lidar_scan(
@@ -100,7 +111,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
         odometry = self.__pos - self.__initial_pos
         odometry_max_value = np.array(
-            [self.__map_width, self.__map_height], dtype=np.float32
+            [self.__dataset.map_width, self.__dataset.map_height], dtype=np.float32
         )
         odometry_min_value = -odometry_max_value
         odometry_norm = (odometry - odometry_min_value) / (
@@ -114,40 +125,31 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             obs["map"] = self.__map_obs
         return obs
 
-    @abstractmethod
-    def _get_map(self, seed: int):
-        pass
+    def __set_map(self, new_map: np.ndarray, map_idx: int):
+        assert new_map.shape == (self.__dataset.map_height, self.__dataset.map_width)
+        self.__map = new_map
+        coords = np.meshgrid(
+            np.arange(self.__map.shape[1]), np.arange(self.__map.shape[0])
+        )
+        occupied_coords = np.stack(
+            [coords[0][self.__map], coords[1][self.__map]], axis=-1
+        )
+        self.__map_shapely = shapely.union_all(
+            [shapely.box(*c, *(c + 1)) for c in occupied_coords]
+        )
+        self.__map_idx = map_idx
 
-    def _reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+    def _reset(self, *, options: dict[str, Any | None] = None):
         self.__last_lidar_readings = None
-        self.__rng = np.random.default_rng(seed)
-
-        if not self.__static_map or self.__map is None:
-            map_seed = (
-                0
-                if self.__static_map
-                else self.__rng.integers(0, 2**32 - 1, endpoint=True)
-            )
-            new_map = self._get_map(map_seed)
-            assert new_map.shape == (self.__map_height, self.__map_width)
-            self.__map = new_map
-            coords = np.meshgrid(
-                np.arange(self.__map.shape[1]), np.arange(self.__map.shape[0])
-            )
-            occupied_coords = np.stack(
-                [coords[0][self.__map], coords[1][self.__map]], axis=-1
-            )
-            self.__map_shapely = shapely.union_all(
-                [shapely.box(*c, *(c + 1)) for c in occupied_coords]
-            )
 
         if not self.__static_map:
+            self.__set_map(*next(self.__data_loader))
             self.__map_obs = self.__map[..., None].astype(np.float32) / 255
 
         self.__observation_map = np.zeros_like(self.__map, dtype=np.bool_)
 
         valid_starting_coords = np.where(self.__map == 0)
-        idx = self.__rng.integers(0, len(valid_starting_coords[0]))
+        idx = self.np_random.integers(0, len(valid_starting_coords[0]))
         self.__pos = self.__initial_pos = (
             np.array(
                 [valid_starting_coords[1][idx], valid_starting_coords[0][idx]],
@@ -158,7 +160,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__trajectory.clear()
         self.__trajectory.append((self.__pos, None))
 
-        return self.__get_obs(), {}, self.__pos
+        return self.__get_obs(), {"map_idx": self.__map_idx}, self.__pos
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         map_size = np.array(
@@ -214,7 +216,14 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         ) / np.sqrt(4)
         self.__trajectory.append((self.__pos, np.clip(prediction_quality, 0, 1)))
 
-        return self.__get_obs(), base_reward, terminated, False, {}, normalized_pos
+        return (
+            self.__get_obs(),
+            base_reward,
+            terminated,
+            False,
+            {"map_idx": self.__map_idx},
+            normalized_pos,
+        )
 
     def render(self):
         width = 500
@@ -352,3 +361,24 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             else:
                 output_contact_coords[i] = -1
         return output_distances, output_contact_coords
+
+    def close(self):
+        if self.__data_loader is not None:
+            self.__data_loader.close()
+        super().close()
+
+    @property
+    def _np_random(self):
+        return self.__np_random
+
+    @_np_random.setter
+    def _np_random(self, np_random):
+        if not self.__static_map:
+            self.__data_loader = DataLoader(
+                DatasetIterator(
+                    self.__dataset, np_random.integers(0, 2**32, endpoint=True)
+                ),
+                self.__prefetch,
+                self.__prefetch_buffer_size,
+            )
+        self.__np_random = np_random
