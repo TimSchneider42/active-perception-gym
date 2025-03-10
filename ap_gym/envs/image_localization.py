@@ -160,6 +160,7 @@ class ImageLocalizationVectorEnv(
 
     def close(self):
         self.__image_perception_module.close()
+        super().close()
 
     @property
     def render_mode(self) -> Literal["rgb_array"]:
