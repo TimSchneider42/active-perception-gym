@@ -1,22 +1,19 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import SupportsInt, Sequence, overload
+from abc import abstractmethod
+from typing import SupportsInt, Sequence
 
 import PIL.Image
 import numpy as np
 
+from ap_gym.envs.dataset import Dataset
 
-class ImageClassificationDataset(ABC):
-    def load(self):
-        pass
 
+class ImageClassificationDataset(
+    Dataset[tuple[np.ndarray, int], tuple[np.ndarray, np.ndarray]]
+):
     @abstractmethod
     def _get_num_classes(self) -> int:
-        pass
-
-    @abstractmethod
-    def _get_length(self) -> int:
         pass
 
     def __has_overridden(self, method_name: str) -> bool:
@@ -86,20 +83,3 @@ class ImageClassificationDataset(ABC):
     @property
     def num_classes(self) -> int:
         return self._get_num_classes()
-
-    @overload
-    def __getitem__(self, item: SupportsInt) -> tuple[np.ndarray, int]:
-        ...
-
-    @overload
-    def __getitem__(self, item: Sequence[SupportsInt]) -> tuple[np.ndarray, np.ndarray]:
-        ...
-
-    def __getitem__(self, item: int | Sequence[int] | np.ndarray):
-        if isinstance(item, Sequence) or isinstance(item, np.ndarray):
-            return self.get_data_point_batch(item)
-        else:
-            return self.get_data_point(item)
-
-    def __len__(self):
-        return self._get_length()
