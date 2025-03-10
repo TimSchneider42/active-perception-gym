@@ -302,9 +302,6 @@ class MyCustomEnv(ap_gym.ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray,
         return obs, base_reward, terminated, truncated, info, self._current_class
 ```
 
-If you wish to see a full example, check out
-the [LightDark](doc/light_dark) [implementation](ap_gym/envs/light_dark.py).
-
 For vectorized environments, subclass `ap_gym.ActivePerceptionVectorEnv` instead:
 
 ```python
@@ -385,10 +382,8 @@ mse_loss_fn = ap_gym.LambdaLossFn(
 
 #### Custom Classification Environments
 
-Since a common task in active perception is image classification, _ap_gym_ provides a base classes for classification
-environments: `ap_gym.ActiveClassificationEnv` and `ap_gym.ActiveClassificationVectorEnv`.
-Aside from prediction and prediction target spaces, and using a cross entropy loss as loss function,
-`ap_gym.ActiveClassificationVectorEnv` also logs some statistics in the info dictionary.
+Since a common class of tasks in active perception is classification, _ap_gym_ provides a base classes for classification environments: `ap_gym.ActiveClassificationEnv` and `ap_gym.ActiveClassificationVectorEnv`. 
+Aside from defining prediction and prediction target spaces, and using a cross entropy loss as loss function, `ap_gym.ActiveClassificationVectorEnv` also logs some statistics in the info dictionary.
 
 Here is a brief usage example for a custom vectorized classification environment:
 
@@ -409,7 +404,7 @@ class MyClassificationVectorEnv(
 ):
     def __init__(self, num_envs: int):
         single_inner_action_space = gym.spaces.Box(-1.0, 1.0, shape=(2,), dtype=np.float32)
-        super().__init__(num_envs, 10, single_inner_action_space)
+        super().__init__(num_envs, 10, single_inner_action_space)  # 10 Classes
 
         self.single_observation_space = ap_gym.ImageSpace(width=5, height=5, channels=1)
         self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, num_envs)
@@ -427,6 +422,55 @@ class MyClassificationVectorEnv(
 ```
 
 The usage of `ap_gym.ActiveClassificationEnv` is analogous.
+
+If you wish to see a full example, check out the [image classification](doc/ImageClassification.md) [implementation](ap_gym/envs/image_classification.py).
+
+
+#### Custom Regression Environments
+
+Another common class of tasks in active perception are regression tasks.
+Therefore, _ap_gym_ provides a base classes for regression environments: `ap_gym.ActiveRegressionEnv` and `ap_gym.ActiveRegressionVectorEnv`.
+Aside from defining prediction and prediction target spaces, and using the mean squared error (MSE) as loss function, `ap_gym.ActiveRegressionVectorEnv` also logs some statistics in the info dictionary.
+
+Here is a brief usage example for a custom vectorized regression environment:
+
+```python
+from typing import Any
+
+import numpy as np
+import ap_gym
+import gymnasium as gym
+
+
+# Generic arguments are
+# ObsType: Type of the observation
+# ActType: Type of the action
+
+class MyRegressionVectorEnv(
+    ap_gym.ActiveRegressionVectorEnv[np.ndarray, np.ndarray]
+):
+    def __init__(self, num_envs: int):
+        single_inner_action_space = gym.spaces.Box(-1.0, 1.0, shape=(2,), dtype=np.float32)
+        super().__init__(num_envs, 2, single_inner_action_space)  # 2D predictions
+
+        self.single_observation_space = ap_gym.ImageSpace(width=5, height=5, channels=1)
+        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, num_envs)
+
+    def _reset(
+            self, *, seed: int | None = None, options: dict[str, Any | None] = None
+    ) -> tuple[np.ndarray, dict[str, Any], np.ndarray]:
+        ...  # Implement _reset as in the MyCustomVectorEnv example
+
+    def _step(
+            self, action: np.ndarray, prediction: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], np.ndarray]:
+        ...  # Implement _step as in the MyCustomVectorEnv example
+
+```
+
+The usage of `ap_gym.ActiveRegressionEnv` is analogous.
+
+If you wish to see a full example, check out the [LightDark](doc/light_dark) [implementation](ap_gym/envs/light_dark.py).
 
 #### Converting Vectorized Environments into Single Environments
 
