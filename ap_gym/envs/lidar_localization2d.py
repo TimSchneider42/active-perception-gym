@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from collections import deque
 from typing import Any, Literal
 
 import PIL.Image
@@ -8,6 +9,13 @@ import numpy as np
 import shapely
 
 from ap_gym import ActiveRegressionEnv, ImageSpace
+from .style import (
+    COLOR_AGENT,
+    COLOR_PRED,
+    COLOR_OBS_PRIMARY,
+    COLOR_OBS_SECONDARY,
+    quality_color,
+)
 
 
 class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
@@ -39,9 +47,13 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         lidar_angles = np.linspace(
             -np.pi, np.pi, lidar_beam_count, dtype=np.float32, endpoint=False
         )
-        self.__lidar_directions = (
-            np.stack([np.cos(lidar_angles), np.sin(lidar_angles)], axis=-1)
-            * self.__lidar_range
+        lidar_directions_unscaled = np.stack(
+            [np.cos(lidar_angles), np.sin(lidar_angles)], axis=-1
+        )
+        self.__lidar_directions = lidar_directions_unscaled * self.__lidar_range
+        self.__scan_points = (
+            np.arange(0, self.__lidar_range, 0.05)[None, :, None]
+            * lidar_directions_unscaled[:, None]
         )
 
         observation_dict = {
@@ -64,11 +76,28 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__pos = None
         self.__last_pred = None
         self.__initial_pos = None
+        self.__trajectory = deque()
+        self.__observation_map = None
 
     def __get_obs(self):
-        self.__last_lidar_readings = distances = self.__lidar_scan(
+        distances, contact_coords = self.__lidar_scan(
             self.__pos, self.__pos + self.__lidar_directions
         )
+        self.__last_lidar_readings = distances
+
+        valid_contact_coords = contact_coords[np.all(contact_coords >= 0, axis=-1)]
+        self.__observation_map[
+            valid_contact_coords[:, 1], valid_contact_coords[:, 0]
+        ] = True
+
+        # Not 100% exact but good enough for visualization
+        valid = np.linalg.norm(self.__scan_points, axis=-1) <= distances[..., None]
+        observed_pos = np.floor(self.__pos[None, None] + self.__scan_points).astype(
+            np.int_
+        )
+        observed_pos = observed_pos[valid]
+        self.__observation_map[observed_pos[..., 1], observed_pos[..., 0]] = True
+
         odometry = self.__pos - self.__initial_pos
         odometry_max_value = np.array(
             [self.__map_width, self.__map_height], dtype=np.float32
@@ -111,8 +140,12 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             self.__map_shapely = shapely.union_all(
                 [shapely.box(*c, *(c + 1)) for c in occupied_coords]
             )
+
         if not self.__static_map:
             self.__map_obs = self.__map[..., None].astype(np.float32) / 255
+
+        self.__observation_map = np.zeros_like(self.__map, dtype=np.bool_)
+
         valid_starting_coords = np.where(self.__map == 0)
         idx = self.__rng.integers(0, len(valid_starting_coords[0]))
         self.__pos = self.__initial_pos = (
@@ -122,6 +155,8 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             )
             + 0.5
         )
+        self.__trajectory.clear()
+        self.__trajectory.append((self.__pos, None))
 
         return self.__get_obs(), {}, self.__pos
 
@@ -130,13 +165,15 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             [self.__map.shape[1], self.__map.shape[0]], dtype=np.float32
         )
         self.__last_pred = (prediction + 1) / 2 * map_size
+
         base_reward = np.sum(action**2, axis=-1)
         action_clipped = np.clip(action, -1, 1)
         target_pos = self.__pos + action_clipped
         direction = target_pos - self.__pos
         total_dist = np.linalg.norm(direction)
         direction /= total_dist
-        dist_to_wall = self.__lidar_scan(self.__pos, target_pos[None])[0]
+        dist_to_wall, _ = self.__lidar_scan(self.__pos, target_pos[None])
+        dist_to_wall = dist_to_wall[0]
         self.__pos += direction * dist_to_wall
 
         # Make agent slide along wall
@@ -145,7 +182,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             remaining_vec = direction * remaining_dist
             direction_candidates = np.eye(2, dtype=np.float32) * remaining_vec
             target_pos_candidates = self.__pos + direction_candidates
-            dist_to_wall_candidates = self.__lidar_scan(
+            dist_to_wall_candidates, _ = self.__lidar_scan(
                 self.__pos, target_pos_candidates
             )
             if dist_to_wall_candidates[0] > 0:
@@ -172,29 +209,49 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
         normalized_pos = self.__pos / map_size * 2 - 1
 
+        prediction_quality = np.linalg.norm(
+            prediction - normalized_pos, axis=-1
+        ) / np.sqrt(4)
+        self.__trajectory.append((self.__pos, np.clip(prediction_quality, 0, 1)))
+
         return self.__get_obs(), base_reward, terminated, False, {}, normalized_pos
 
     def render(self):
         width = 500
         scale = width / self.__map.shape[1]
+        alpha = 0.25 + 0.75 * self.__observation_map.astype(np.float32)
         base_img = (
-            PIL.Image.fromarray(~self.__map)
+            PIL.Image.fromarray(
+                (alpha * (~self.__map).astype(np.float32) + (1.0 - alpha) * 0.5) * 255
+            )
             .resize(
                 (
                     int(round(self.__map.shape[1] * scale)),
                     int(round(self.__map.shape[0] * scale)),
-                )
+                ),
+                resample=PIL.Image.NEAREST,
             )
             .convert("RGB")
         )
 
         draw = PIL.ImageDraw.Draw(base_img, mode="RGBA")
-        contact_marker_radius = 0.1
+        contact_marker_radius = 0.2
         agent_radius = 0.2
-        agent_color = (0, 55, 255)
-        pred_color = (255, 0, 255)
-        lidar_color = (55, 255, 55)
-        lidar_contact_color = (255, 55, 55)
+
+        traj_hist = list(self.__trajectory)
+        for (pos_a, qual_a), (pos_b, qual_b) in zip(
+            traj_hist[:-1], list(traj_hist)[1:]
+        ):
+            draw.line(
+                (
+                    pos_a[0] * scale,
+                    pos_a[1] * scale,
+                    pos_b[0] * scale,
+                    pos_b[1] * scale,
+                ),
+                width=2,
+                fill=quality_color(qual_b),
+            )
 
         if self.__last_lidar_readings is not None:
             directions_norm = self.__lidar_directions / np.linalg.norm(
@@ -208,7 +265,8 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                         (self.__pos + direction * dist)[0] * scale,
                         (self.__pos + direction * dist)[1] * scale,
                     ),
-                    fill=lidar_color,
+                    width=2,
+                    fill=COLOR_OBS_PRIMARY,
                 )
                 contact_point = self.__pos + direction * dist
                 draw.ellipse(
@@ -218,7 +276,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                         (contact_point[0] + contact_marker_radius) * scale,
                         (contact_point[1] + contact_marker_radius) * scale,
                     ),
-                    fill=lidar_contact_color,
+                    fill=COLOR_OBS_SECONDARY,
                 )
         if self.__last_pred is not None:
             draw.line(
@@ -228,7 +286,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                     self.__last_pred[0] * scale,
                     self.__last_pred[1] * scale,
                 ),
-                fill=pred_color + (80,),
+                fill=COLOR_PRED + (80,),
             )
 
             draw.ellipse(
@@ -238,7 +296,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                     (self.__last_pred[0] + agent_radius) * scale,
                     (self.__last_pred[1] + agent_radius) * scale,
                 ),
-                fill=pred_color,
+                fill=COLOR_PRED,
             )
 
         draw.ellipse(
@@ -248,14 +306,14 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 (self.__pos[0] + agent_radius) * scale,
                 (self.__pos[1] + agent_radius) * scale,
             ),
-            fill=agent_color,
+            fill=COLOR_AGENT,
         )
 
         return np.array(base_img)
 
-    # LiDAR sensor function
     def __lidar_scan(self, pos: np.ndarray, target_pos: np.ndarray, eps=1e-3):
-        output = np.empty(target_pos.shape[0], dtype=np.float32)
+        output_distances = np.empty(target_pos.shape[0], dtype=np.float32)
+        output_contact_coords = np.empty((target_pos.shape[0], 2), dtype=np.int32)
         for i, target in enumerate(target_pos):
             line = shapely.LineString([pos, target])
             intersections = line.intersection(self.__map_shapely)
@@ -263,14 +321,13 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 isinstance(intersections, shapely.LineString)
                 and not intersections.is_empty
             ):
-                output[i] = (
-                    np.linalg.norm(
-                        np.array([intersections.xy[0][0], intersections.xy[1][0]]) - pos
-                    )
-                    - eps
+                contact_point = np.array(
+                    [intersections.xy[0][0], intersections.xy[1][0]]
                 )
+                output_distances[i] = np.linalg.norm(contact_point - pos) - eps
             elif isinstance(intersections, shapely.Point):
-                output[i] = 0
+                contact_point = pos
+                output_distances[i] = 0
             elif isinstance(intersections, shapely.MultiPoint) or isinstance(
                 intersections, shapely.MultiLineString
             ):
@@ -279,7 +336,17 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                     dtype=np.float32,
                 )
                 distances = np.linalg.norm(intersection_points - pos, axis=-1)
-                output[i] = np.min(distances) - eps
+                min_idx = np.argmin(distances)
+                contact_point = intersection_points[min_idx]
+                output_distances[i] = distances[min_idx] - eps
             else:
-                output[i] = np.linalg.norm(target - pos)
-        return output
+                output_distances[i] = np.linalg.norm(target - pos)
+                contact_point = target
+            if output_distances[i] < np.linalg.norm(target - pos):
+                coords = np.floor(contact_point)
+                exact = np.abs(coords - contact_point) < 1e-5
+                coords[exact & (target < pos)] -= 1
+                output_contact_coords[i] = coords
+            else:
+                output_contact_coords[i] = -1
+        return output_distances, output_contact_coords
