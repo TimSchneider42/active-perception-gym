@@ -1,32 +1,13 @@
 import weakref
 from queue import Queue, Full
 from threading import Thread, Event
-from typing import Iterator
+from typing import Iterator, Generic, TypeVar
 
-import numpy as np
-
-from .image_classification_dataset import ImageClassificationDataset
+InnerIteratorType = TypeVar("InnerIteratorType")
 
 
-class DatasetLoader(Iterator[tuple[np.ndarray, np.ndarray, np.ndarray]]):
-    def __init__(
-        self,
-        image_dataset: ImageClassificationDataset,
-        batch_size: int = 1,
-        seed: int = 0,
-    ):
-        self.__image_dataset = image_dataset
-        self.__rng = np.random.default_rng(seed)
-        self.__batch_size = batch_size
-
-    def __next__(self):
-        idx = self.__rng.integers(0, len(self.__image_dataset), self.__batch_size)
-        data = self.__image_dataset.get_data_point_batch(idx)
-        return data + (idx,)
-
-
-class BufferedIterator(Iterator):
-    def __init__(self, iterator: Iterator, buffer_size: int = 1):
+class BufferedIterator(Iterator[InnerIteratorType], Generic[InnerIteratorType]):
+    def __init__(self, iterator: Iterator[InnerIteratorType], buffer_size: int = 1):
         self.__iterator = iterator
         self.__buffer = Queue(maxsize=buffer_size)
         self.__termination_signal = Event()
@@ -34,7 +15,7 @@ class BufferedIterator(Iterator):
         weakref.finalize(self, self.close)
         self.__thread.start()
 
-    def __next__(self):
+    def __next__(self) -> InnerIteratorType:
         res = self.__buffer.get()
         if isinstance(res, Exception):
             raise res

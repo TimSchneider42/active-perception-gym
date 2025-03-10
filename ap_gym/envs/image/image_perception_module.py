@@ -10,12 +10,10 @@ from PIL import Image, ImageDraw
 from PIL.Image import Resampling
 from scipy.interpolate import RegularGridInterpolator
 
-from ap_gym import (
-    ImageSpace,
-)
-from .dataset_loader import DatasetLoader, BufferedIterator
-from .image_classification_dataset import ImageClassificationDataset
+from ap_gym import ImageSpace
+from ap_gym.envs.dataset import DatasetLoader, BufferedIterator
 from ap_gym.envs.style import COLOR_AGENT, quality_color
+from .image_classification_dataset import ImageClassificationDataset
 
 
 @dataclass(frozen=True)
@@ -93,8 +91,10 @@ class ImagePerceptionModule:
 
     def __reset(self) -> tuple[ObsType, dict[str, Any]]:
         (
-            self.__current_images,
-            self.__current_labels,
+            (
+                self.__current_images,
+                self.__current_labels,
+            ),
             self.__current_data_point_idx,
         ) = next(self.__data_loader)
         image_size = np.array(self.__current_images.shape[1:3])
