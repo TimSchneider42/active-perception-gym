@@ -251,3 +251,13 @@ perception environment conversion.
 
 ## Advanced Usage
 For more advanced usage, i.e., defining custom environments or wrappers, refer to the [advanced usage documentation](doc/advanced_usage.md).
+
+
+## License
+
+The project is licensed under the MIT license.
+
+
+## Contributing
+
+If you wish to contribute to this project, you are welcome to create a pull request.

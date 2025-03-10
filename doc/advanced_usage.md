@@ -15,7 +15,7 @@ import gymnasium as gym
 import ap_gym
 
 
-# Generic arguments are 
+# Generic arguments are
 # ObsType: Type of the observation
 # ActType: Type of the action
 # PredType: Type of the prediction
@@ -131,7 +131,7 @@ mse_loss_fn = ap_gym.LambdaLossFn(
 
 ### Custom Classification Environments
 
-Since a common class of tasks in active perception is classification, _ap_gym_ provides a base classes for classification environments: `ap_gym.ActiveClassificationEnv` and `ap_gym.ActiveClassificationVectorEnv`. 
+Since a common class of tasks in active perception is classification, _ap_gym_ provides a base classes for classification environments: `ap_gym.ActiveClassificationEnv` and `ap_gym.ActiveClassificationVectorEnv`.
 Aside from defining prediction and prediction target spaces, and using a cross entropy loss as loss function, `ap_gym.ActiveClassificationVectorEnv` also logs some statistics in the info dictionary.
 
 Here is a brief usage example for a custom vectorized classification environment:
