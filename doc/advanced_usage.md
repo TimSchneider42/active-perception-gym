@@ -219,7 +219,7 @@ class MyRegressionVectorEnv(
 
 The usage of `ap_gym.ActiveRegressionEnv` is analogous.
 
-If you wish to see a full example, check out the [LightDark](doc/light_dark) [implementation](ap_gym/envs/light_dark.py).
+If you wish to see a full example, check out the [LightDark](doc/LightDark.md) [implementation](ap_gym/envs/light_dark.py).
 
 ### Converting Vectorized Environments into Single Environments
 

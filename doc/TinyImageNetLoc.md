@@ -3,7 +3,7 @@
 <p align="center"><img src="img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="200px"/></p>
 
 This environment is part of the image localization environments.
-Refer to the [image localization environments overview](ImageLocalization) for a general description of these environments.
+Refer to the [image localization environments overview](ImageLocalization.md) for a general description of these environments.
 
 |                           |                    |
 |---------------------------|--------------------|
