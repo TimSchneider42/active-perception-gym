@@ -33,13 +33,11 @@ class ImageLocalizationVectorEnv(
         num_envs: int,
         image_perception_config: ImagePerceptionConfig,
         render_mode: Literal["rgb_array"] = "rgb_array",
-        max_episode_steps: int = 16,
         prefetch: bool = True,
     ):
         self.__image_perception_module = ImagePerceptionModule(
             num_envs,
             image_perception_config,
-            max_episode_steps=max_episode_steps,
             prefetch=prefetch,
         )
         if render_mode not in self.metadata["render_modes"]:
@@ -183,7 +181,7 @@ class ImageLocalizationVectorEnv(
 def ImageLocalizationEnv(
     image_perception_config: ImagePerceptionConfig,
     render_mode: Literal["rgb_array"] = "rgb_array",
-    max_episode_steps: int = 16,
+    step_limit: int = 16,
     prefetch: bool = True,
 ):
     return ActivePerceptionVectorToSingleWrapper(
@@ -191,7 +189,7 @@ def ImageLocalizationEnv(
             1,
             image_perception_config,
             render_mode=render_mode,
-            max_episode_steps=max_episode_steps,
+            step_limit=step_limit,
             prefetch=prefetch,
         )
     )
