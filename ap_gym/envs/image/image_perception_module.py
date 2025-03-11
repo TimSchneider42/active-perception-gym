@@ -22,6 +22,7 @@ class ImagePerceptionConfig:
     sensor_size: tuple[int, int] = (5, 5)
     sensor_scale: float = 1.0
     max_step_length: float | Sequence[float] = 0.2
+    step_limit: int = (16,)
     display_visitation: bool = True
     render_unvisited_opacity: float = 0.0
     render_visited_opacity: float = 0.3
@@ -36,14 +37,11 @@ class ImagePerceptionModule:
         self,
         num_envs,
         config: ImagePerceptionConfig,
-        max_episode_steps: int = 16,
         prefetch: bool = True,
     ):
         self.__config = config
         self.__prefetch = prefetch
         self.__num_envs = num_envs
-        if max_episode_steps is None:
-            max_episode_steps = 16
         # Target position of the sensor relative to the previous position of the sensor
         self.__single_inner_action_space = gym.spaces.Box(
             -np.ones(2, dtype=np.float32), np.ones(2, dtype=np.float32)
@@ -66,7 +64,6 @@ class ImagePerceptionModule:
         }
         self.__current_sensor_pos_norm: np.ndarray | None = None
         self.__current_time_step = None
-        self.__max_steps = max_episode_steps
         max_step_length = np.array(self.__config.max_step_length)
         assert max_step_length.shape in {(2,), (1,), ()}
         self.__max_step_length = np.ones(2) * np.array(max_step_length)
@@ -173,7 +170,7 @@ class ImagePerceptionModule:
             base_reward = -np.linalg.norm(action, axis=-1) * 1e-3
             info = {"index": self.__current_data_point_idx}
             self.__current_time_step += 1
-            terminated = self.__current_time_step >= self.__max_steps
+            terminated = self.__current_time_step >= self.__config.step_limit
             obs = self._get_obs()
         terminated_arr = np.full(self.__num_envs, terminated)
         truncated_arr = np.zeros(self.__num_envs, dtype=np.bool_)
@@ -203,7 +200,7 @@ class ImagePerceptionModule:
             "glimpse_pos": self.__current_sensor_pos_norm.astype(np.float32),
             "time_step": np.full(
                 self.__num_envs,
-                (self.__current_time_step / self.__max_steps) * 2 - 1,
+                (self.__current_time_step / self.__config.step_limit) * 2 - 1,
                 np.float32,
             ),
         }

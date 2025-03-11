@@ -4,6 +4,7 @@ from functools import partial
 from typing import Any, Sequence, Callable
 
 import gymnasium as gym
+from gymnasium.envs.registration import WrapperSpec
 
 from ap_gym import (
     BaseActivePerceptionEnv,
@@ -12,7 +13,7 @@ from ap_gym import (
     BaseActivePerceptionVectorEnv,
     ensure_active_perception_vector_env,
 )
-from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze
+from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze, FloorMapDataset
 from .image import (
     HuggingfaceImageClassificationDataset,
     CircleSquareDataset,
@@ -22,23 +23,24 @@ from .image import (
 
 
 def register_image_env(
+    name: str,
     entry_point: str,
     vector_entry_point: str,
-    name: str,
     dataset: ImageClassificationDataset,
-    max_episode_steps: int,
+    step_limit: int,
     kwargs: dict[str, Any] | None = None,
 ):
     if kwargs is None:
         kwargs = {}
-    gym.envs.registration.register(
+    gym.register(
         id=name,
         kwargs=dict(
-            image_perception_config=ImagePerceptionConfig(dataset=dataset, **kwargs)
+            image_perception_config=ImagePerceptionConfig(
+                dataset=dataset, step_limit=step_limit, **kwargs
+            )
         ),
         entry_point=entry_point,
         vector_entry_point=vector_entry_point,
-        max_episode_steps=max_episode_steps,
     )
 
 
@@ -53,6 +55,25 @@ register_image_localization_env = partial(
     entry_point="ap_gym.envs.image_localization:ImageLocalizationEnv",
     vector_entry_point="ap_gym.envs.image_localization:ImageLocalizationVectorEnv",
 )
+
+
+def mk_time_limit(step_limit: int) -> WrapperSpec:
+    return WrapperSpec(
+        "TimeLimit",
+        "ap_gym:TimeLimit",
+        kwargs=dict(max_episode_steps=step_limit, issue_termination=True),
+    )
+
+
+def register_lidar_localization_env(
+    name: str, dataset: FloorMapDataset, static_map: bool = False, step_limit: int = 100
+):
+    gym.register(
+        id=name,
+        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
+        kwargs=dict(dataset=dataset, static_map=static_map),
+        additional_wrappers=(mk_time_limit(step_limit),),
+    )
 
 
 def register_envs():
@@ -70,7 +91,7 @@ def register_envs():
                 dataset=CircleSquareDataset(
                     image_shape=size, show_gradient=show_gradient
                 ),
-                max_episode_steps=16,
+                step_limit=16,
             )
 
     image_env_render_kwargs = dict(
@@ -86,7 +107,7 @@ def register_envs():
             register_image_classification_env(
                 name=f"MNIST{split_name}-v0",
                 dataset=HuggingfaceImageClassificationDataset("mnist", split=split),
-                max_episode_steps=16,
+                step_limit=16,
             )
 
             register_image_classification_env(
@@ -94,7 +115,7 @@ def register_envs():
                 dataset=HuggingfaceImageClassificationDataset(
                     "cifar10", image_feature_name="img", split=split
                 ),
-                max_episode_steps=16,
+                step_limit=16,
                 kwargs=image_env_render_kwargs,
             )
 
@@ -103,7 +124,7 @@ def register_envs():
                 dataset=HuggingfaceImageClassificationDataset(
                     "zh-plus/tiny-imagenet", split=split
                 ),
-                max_episode_steps=16,
+                step_limit=16,
                 kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
             )
 
@@ -112,7 +133,7 @@ def register_envs():
                 dataset=HuggingfaceImageClassificationDataset(
                     "cifar10", image_feature_name="img", split=split
                 ),
-                max_episode_steps=16,
+                step_limit=16,
                 kwargs=image_env_render_kwargs,
             )
 
@@ -121,42 +142,36 @@ def register_envs():
                 dataset=HuggingfaceImageClassificationDataset(
                     "zh-plus/tiny-imagenet", split=split
                 ),
-                max_episode_steps=16,
+                step_limit=16,
                 kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
             )
 
-    gym.envs.registration.register(
+    gym.register(
         id="LightDark-v0",
         entry_point="ap_gym.envs.light_dark:LightDarkEnv",
-        max_episode_steps=16,
+        additional_wrappers=(mk_time_limit(50),),
     )
 
-    gym.envs.registration.register(
-        id="LIDARLocMazeStatic-v0",
-        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
-        max_episode_steps=100,
-        kwargs=dict(dataset=FloorMapDatasetMaze(), static_map=True),
+    register_lidar_localization_env(
+        "LIDARLocMazeStatic-v0",
+        dataset=FloorMapDatasetMaze(),
+        static_map=True,
     )
 
-    gym.envs.registration.register(
-        id="LIDARLocMaze-v0",
-        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
-        max_episode_steps=100,
-        kwargs=dict(dataset=FloorMapDatasetMaze()),
+    register_lidar_localization_env(
+        "LIDARLocMaze-v0",
+        dataset=FloorMapDatasetMaze(),
     )
 
-    gym.envs.registration.register(
-        id="LIDARLocRoomsStatic-v0",
-        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
-        max_episode_steps=100,
-        kwargs=dict(dataset=FloorMapDatasetRooms(), static_map=True),
+    register_lidar_localization_env(
+        "LIDARLocRoomsStatic-v0",
+        dataset=FloorMapDatasetRooms(),
+        static_map=True,
     )
 
-    gym.envs.registration.register(
-        id="LIDARLocRooms-v0",
-        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
-        max_episode_steps=100,
-        kwargs=dict(dataset=FloorMapDatasetRooms()),
+    register_lidar_localization_env(
+        "LIDARLocRooms-v0",
+        dataset=FloorMapDatasetRooms(),
     )
 
 
