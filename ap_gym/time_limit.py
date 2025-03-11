@@ -55,12 +55,13 @@ class TimeLimit(gym.Wrapper, gym.utils.RecordConstructorArgs):
         self._observe_time_steps = observe_time_steps
 
         if self._observe_time_steps:
-            obs_space = copy.copy(self.observation_space)
+            obs_space = self.observation_space
             time_obs_space = gym.spaces.Box(
                 low=-1.0, high=1.0, shape=(), dtype=np.float32
             )
 
             if isinstance(obs_space, gym.spaces.Dict):
+                obs_space = copy.deepcopy(obs_space)
                 obs_space.spaces["time_step"] = time_obs_space
                 self._obs_func = lambda obs: {
                     **obs,
@@ -76,8 +77,12 @@ class TimeLimit(gym.Wrapper, gym.utils.RecordConstructorArgs):
                 obs_space.dtype, np.floating
             ):
                 obs_space = gym.spaces.Box(
-                    low=np.concatenate([obs_space.low, [-1.0]]),
-                    high=np.concatenate([obs_space.high, [1.0]]),
+                    low=np.concatenate(
+                        [obs_space.low, np.array([-1.0], dtype=obs_space.dtype)]
+                    ),
+                    high=np.concatenate(
+                        [obs_space.high, np.array([1.0], dtype=obs_space.dtype)]
+                    ),
                     dtype=obs_space.dtype,
                 )
                 self._obs_func = lambda obs: np.concatenate(
