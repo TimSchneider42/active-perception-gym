@@ -18,7 +18,7 @@ from .image import (
 
 class ImageClassificationVectorEnv(
     ActiveClassificationVectorEnv[
-        dict[Literal["glimpse", "glimpse_pos"], np.ndarray], np.ndarray
+        dict[Literal["glimpse", "glimpse_pos", "time_step"], np.ndarray], np.ndarray
     ],
 ):
     metadata: dict[str, Any] = {"render_modes": ["rgb_array"], "render_fps": 2}
