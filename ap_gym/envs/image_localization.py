@@ -181,7 +181,6 @@ class ImageLocalizationVectorEnv(
 def ImageLocalizationEnv(
     image_perception_config: ImagePerceptionConfig,
     render_mode: Literal["rgb_array"] = "rgb_array",
-    step_limit: int = 16,
     prefetch: bool = True,
 ):
     return ActivePerceptionVectorToSingleWrapper(
@@ -189,7 +188,6 @@ def ImageLocalizationEnv(
             1,
             image_perception_config,
             render_mode=render_mode,
-            step_limit=step_limit,
             prefetch=prefetch,
         )
     )
