@@ -22,9 +22,10 @@ class BufferedIterator(Iterator[InnerIteratorType], Generic[InnerIteratorType]):
         return res
 
     def close(self):
-        self.__termination_signal.set()
-        self.__thread.join()
-        self.__thread = None
+        if self.__thread is not None:
+            self.__termination_signal.set()
+            self.__thread.join()
+            self.__thread = None
 
     def __thread_func(self):
         try:
