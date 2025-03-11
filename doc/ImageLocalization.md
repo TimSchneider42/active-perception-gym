@@ -4,10 +4,10 @@ In image classification environments, the agent has to localize a given part of 
 around.
 The glimpse is never large enough to see the entire image at once, so the agent has to move around to gather
 information.
-Unlike the [Image Classification Environments](ImageClassification), this task is a regression task where the agent has
+Unlike the [Image Classification Environments](ImageClassification.md), this task is a regression task where the agent has
 to predict the coordinates of the target glimpse it is provided.
 
-Consider the following example from the [TinyImageNetLoc](TinyImageNetLoc) environment:
+Consider the following example from the [TinyImageNetLoc](TinyImageNetLoc.md) environment:
 <p align="center"><img src="img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="200px"/></p>
 Marked in blue is the agent's current glimpse.
 The transparent purple box represents the target glimpse the agent has to predict the coordinates of and the opaque purple box is the agent's current prediction.
@@ -98,15 +98,15 @@ The episode ends when the maximum number of steps (`max_episode_steps`, default:
 
 ## Arguments
 
-| Parameter                 | Type                                      | Default     | Description                                                                                                                            |
-|---------------------------|-------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `image_perception_config` | `ap_gym.envs.image.ImagePerceptionConfig` |             | Configuration of the image perception environment. See the [ImagePerceptionConfig documentation](ImagePerceptionConfig) for details. |
-| `render_mode`             | `Literal["rgb_array"]`                    | "rgb_array" | Rendering mode. Just "rgb_array" is supported currently.                                                                               |
-| `max_episode_steps`       | `int`                                     | 16          | Maximum steps per episode.                                                                                                             |
+| Parameter                 | Type                                      | Default     | Description                                                                                                                             |
+|---------------------------|-------------------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| `image_perception_config` | `ap_gym.envs.image.ImagePerceptionConfig` |             | Configuration of the image perception environment. See the [ImagePerceptionConfig documentation](ImagePerceptionConfig.md) for details. |
+| `render_mode`             | `Literal["rgb_array"]`                    | "rgb_array" | Rendering mode. Just "rgb_array" is supported currently.                                                                                |
+| `max_episode_steps`       | `int`                                     | 16          | Maximum steps per episode.                                                                                                              |
 
 ## Overview of Implemented Environments
 
-| Environment ID                        | Image type | # data points | Image size | Glimpse size | Image description                                                                                       |
-|---------------------------------------|------------|---------------|------------|--------------|---------------------------------------------------------------------------------------------------------|
-| [CIFAR10Loc-v0](CIFAR10Loc)           | RGB        | 50,000        | 32x32      | 5            | Natural images from the [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).                 |
-| [TinyImageNetLoc-v0](TinyImageNetLoc) | RGB        | 100,000       | 64x64      | 10           | Natural images from the [Tiny ImageNet dataset](https://huggingface.co/datasets/zh-plus/tiny-imagenet). |
+| Environment ID                           | Image type | # data points | Image size | Glimpse size | Image description                                                                                       |
+|------------------------------------------|------------|---------------|------------|--------------|---------------------------------------------------------------------------------------------------------|
+| [CIFAR10Loc-v0](CIFAR10Loc.md)           | RGB        | 50,000        | 32x32      | 5            | Natural images from the [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).                 |
+| [TinyImageNetLoc-v0](TinyImageNetLoc.md) | RGB        | 100,000       | 64x64      | 10           | Natural images from the [Tiny ImageNet dataset](https://huggingface.co/datasets/zh-plus/tiny-imagenet). |

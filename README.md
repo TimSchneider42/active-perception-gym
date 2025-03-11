@@ -1,4 +1,4 @@
-# Active Perception Gym
+# ap_gym: Active Perception Gym
 
 Extension of [Gymnasium](https://github.com/Farama-Foundation/Gymnasium/) for active perception tasks.
 
@@ -25,7 +25,7 @@ property of the environment.
 Examples of such properties could be the location of an object in case of a search task or the class of an object the
 agent in case of a classification task.
 To gather information, the agent must interact with the environment, e.g. by moving a glimpse around in case of
-the [CircleSquare](doc/CircleSquare) and [MNIST](doc/MNIST) tasks.
+the [CircleSquare](doc/CircleSquare.md) and [MNIST](doc/MNIST.md) tasks.
 
 _ap_gym_ models active perception tasks as episodic processes in a way that is fully compatible to Gymnasium.
 Each task is defined as a Gymnasium environment, in which the agent is additionally provided with a differentiable loss
@@ -140,41 +140,34 @@ spaces if active perception environments are vectorized this way.
 
 ### Environments
 
-TODO: document test environments
-TOOD: document other environments (light dark, cifar10, TinyImageNet)
-
 _ap_gym_ currently comes with a number of image classification environments, which are described in detail in
-the [image classification documentation](doc/ImageClassification).
+the [image classification documentation](doc/ImageClassification.md).
 
 #### Image Classification
 
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
         <td align="center" style="border: none; padding: 10px;">
+            <img src="doc/img/CircleSquare-v0.gif" alt="CircleSquare-v0" width="200px"/><br/>
             <a href="doc/CircleSquare.md">
-                <img src="doc/img/CircleSquare-v0.gif" alt="CircleSquare-v0" width="200px"/>
-                <br/>
                 CircleSquare-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
+            <img src="doc/img/MNIST-v0.gif" alt="MNIST-v0" width="200px"/><br/>
             <a href="doc/MNIST.md">
-                <img src="doc/img/MNIST-v0.gif" alt="MNIST-v0" width="200px"/>
-                <br/>
                 MNIST-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
+            <img src="doc/img/TinyImageNet-v0.gif" alt="TinyImageNet-v0" width="200px"/><br/>
             <a href="doc/TinyImageNet.md">
-                <img src="doc/img/TinyImageNet-v0.gif" alt="TinyImageNet-v0" width="200px"/>
-                <br/>
                 TinyImageNet-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
+            <img src="doc/img/CIFAR10-v0.gif" alt="CIFAR10-v0" width="200px"/><br/>
             <a href="doc/CIFAR10.md">
-                <img src="doc/img/CIFAR10-v0.gif" alt="CIFAR10-v0" width="200px"/>
-                <br/>
                 CIFAR10-v0
             </a>
         </td>
@@ -186,16 +179,20 @@ the [image classification documentation](doc/ImageClassification).
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
         <td align="center" style="border: none; padding: 10px;">
+            <img src="doc/img/LightDark-v0.gif" alt="LightDark-v0" width="200px"/> <br/>
             <a href="doc/LightDark.md">
-                <img src="doc/img/LightDark-v0.gif" alt="LightDark-v0" width="200px"/>
-                <br/>
                 LightDark-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
+            <img src="doc/img/LIDARLocIndoor-v0.gif" alt="LIDARLocIndoor-v0" width="200px"/><br/>
+            <a href="doc/LIDARLocalization.md">
+                LIDARLocIndoor-v0
+            </a>
+        </td>
+        <td align="center" style="border: none; padding: 10px;">
+            <img src="doc/img/LIDARLocMaze-v0.gif" alt="LIDARLocMaze-v0" width="200px"/><br/>
             <a href="doc/LIDARLocMaze.md">
-                <img src="doc/img/LIDARLocMaze-v0.gif" alt="LIDARLocMaze-v0" width="200px"/>
-                <br/>
                 LIDARLocMaze-v0
             </a>
         </td>
@@ -207,16 +204,14 @@ the [image classification documentation](doc/ImageClassification).
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
         <td align="center" style="border: none; padding: 10px;">
+            <img src="doc/img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="200px"/><br/>
             <a href="doc/TinyImageNetLoc.md">
-                <img src="doc/img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="200px"/>
-                <br/>
                 TinyImageNetLoc-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
+            <img src="doc/img/CIFAR10Loc-v0.gif" alt="CIFAR10Loc-v0" width="200px"/><br/>
             <a href="doc/CIFAR10Loc.md">
-                <img src="doc/img/CIFAR10Loc-v0.gif" alt="CIFAR10Loc-v0" width="200px"/>
-                <br/>
                 CIFAR10Loc-v0
             </a>
         </td>
