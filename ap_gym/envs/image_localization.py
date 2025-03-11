@@ -20,7 +20,9 @@ from .style import COLOR_PRED
 
 class ImageLocalizationVectorEnv(
     ActiveRegressionVectorEnv[
-        dict[Literal["glimpse", "glimpse_pos", "target_glimpse"], np.ndarray],
+        dict[
+            Literal["glimpse", "glimpse_pos", "time_step", "target_glimpse"], np.ndarray
+        ],
         np.ndarray,
     ],
 ):

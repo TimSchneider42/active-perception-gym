@@ -28,7 +28,7 @@ class ImagePerceptionConfig:
     prefetch_buffer_size: int = 128
 
 
-ObsType = dict[Literal["glimpse", "glimpse_pos"], np.ndarray]
+ObsType = dict[Literal["glimpse", "glimpse_pos", "time_step"], np.ndarray]
 
 
 class ImagePerceptionModule:
@@ -62,6 +62,7 @@ class ImagePerceptionModule:
                 dtype=np.float32,
             ),
             "glimpse_pos": gym.spaces.Box(-1, 1, (2,), np.float32),
+            "time_step": gym.spaces.Box(-1, 1, (), np.float32),
         }
         self.__current_sensor_pos_norm: np.ndarray | None = None
         self.__current_time_step = None
@@ -200,6 +201,11 @@ class ImagePerceptionModule:
         return {
             "glimpse": self.get_glimpse(self.__current_sensor_pos_norm),
             "glimpse_pos": self.__current_sensor_pos_norm.astype(np.float32),
+            "time_step": np.full(
+                self.__num_envs,
+                (self.__current_time_step / self.__max_steps) * 2 - 1,
+                np.float32,
+            ),
         }
 
     def get_glimpse(self, pos_norm: np.ndarray) -> np.ndarray:
