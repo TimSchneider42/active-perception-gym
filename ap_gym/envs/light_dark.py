@@ -19,7 +19,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
         self.__pos = self.__last_obs = self.__last_pred = None
-        self.__light_pos = np.array([0, -0.8], dtype=np.float32)
+        self.__light_pos = np.array([0, -0.7], dtype=np.float32)
         self.__light_height = 0.2
 
         res = 500
@@ -40,8 +40,8 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__trajectory = deque()
 
     def __compute_brightness(self, pos: np.ndarray) -> np.ndarray:
-        dist_squared = np.sum(
-            (pos - self.__light_pos) ** 2 + self.__light_height**2, axis=-1
+        dist_squared = (
+            np.sum((pos - self.__light_pos) ** 2, axis=-1) + self.__light_height**2
         )
         return self.__light_height**2 / dist_squared
 
