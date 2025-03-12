@@ -8,7 +8,7 @@ In these environments, there are two main variants:
 
 In both cases, the primary challenge is for the agent to accurately localize itself. 
 
-Consider the following example from the [LIDARLocRoomsStatic](TODO.md) environment:
+Consider the following example from the [LIDARLocRoomsStatic](LIDARLocMazeStatic.md) environment:
 
 <p align="center"><img src="img/LIDARLocRoomsStatic-v0.gif" alt="2D LIDAR Localization" width="200px"/></p>
 
