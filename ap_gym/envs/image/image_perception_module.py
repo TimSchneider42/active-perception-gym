@@ -22,11 +22,12 @@ class ImagePerceptionConfig:
     sensor_size: tuple[int, int] = (5, 5)
     sensor_scale: float = 1.0
     max_step_length: float | Sequence[float] = 0.2
-    step_limit: int = (16,)
+    step_limit: int = 16
     display_visitation: bool = True
     render_unvisited_opacity: float = 0.0
     render_visited_opacity: float = 0.3
     prefetch_buffer_size: int = 128
+    prefetch: bool = True
 
 
 ObsType = dict[Literal["glimpse", "glimpse_pos", "time_step"], np.ndarray]
@@ -37,10 +38,8 @@ class ImagePerceptionModule:
         self,
         num_envs,
         config: ImagePerceptionConfig,
-        prefetch: bool = True,
     ):
         self.__config = config
-        self.__prefetch = prefetch
         self.__num_envs = num_envs
         # Target position of the sensor relative to the previous position of the sensor
         self.__single_inner_action_space = gym.spaces.Box(
@@ -85,7 +84,7 @@ class ImagePerceptionModule:
         )
         self.__data_loader = DataLoader(
             iterator,
-            prefetch=self.__prefetch,
+            prefetch=self.__config.prefetch,
             prefetch_buffer_size=self.__config.prefetch_buffer_size,
         )
 
