@@ -42,6 +42,40 @@ regular RL reward (the base reward) and the negative value of the environment's 
 Hence, the agent has to make a prediction in every step, encouraging it to gather information quickly to maximize its
 prediction reward early on.
 
+#### Formal Problem Statement
+Active perception problems are a special case of Partially Observable Markov Decision Processes (POMDPs).
+POMDPs are defined by the tuple $(S, A, T, R, \Omega, O, \gamma)$, where
+- $S$ is the set of (hidden) states,
+- $A$ is the set of actions,
+- $T: S \times A \times S \to [0, 1]$ is the transition function,
+- $R: S \times A \to \mathbb{R}$ is the reward function,
+- $\Omega$ is the set of observations,
+- $O: S \times A \times \Omega \to [0, 1]$ is the observation function, and
+- $\gamma \in [0, 1]$ is the discount factor.
+
+The objective of the agent in a POMDP is to maximize the expected cumulative reward over time by selecting actions based on its belief about the underlying state.
+Since the agent does not have direct access to the true state, it maintains a belief distribution over states, updating it using observations and the observation function.
+The environment evolves according to the transition function, where taking an action leads to a probabilistic transition to a new state, which in turn generates an observation based on the observation function.
+For further details on POMDPs, refer to the [POMDP Wikipedia page](https://en.wikipedia.org/wiki/Partially_observable_Markov_decision_process).
+
+In case of active perception problems, we assume that the hidden state $S$, the action $A$, the reward function $R$, and the transition function $T$ have specific structures.
+First, we assume that the target property the agent is tasked to predict is part of the hidden state.
+Hence, $S$ is defined as $S = S_{\text{base}} \times \overset{\ast}{Y}$, where $S_{\text{base}}$ is the set of base (hidden) states of the environment and $\overset{\ast}{Y}$ is the set of prediction targets.
+E.g., $\overset{\ast}{Y}$ could be the set of classes in a classification task or the set of possible locations in a localization task, while $S_{\text{base}}$ contains all the other hidden state information.
+
+To allow the agent to make predictions, the action space $A$ is defined as $A_{\text{base}} \times Y$, where $A_{\text{base}}$ is the base action space and $Y$ is the prediction space.
+The base action space $A_{\text{base}}$ contains all the actions the agent can take to interact with the environment, while $Y$ is the set of possible predictions the agent can make.
+Crucially, environments are defined in a way that agent's prediction never influences the hidden state of the environment.
+Thus, the transition function $T$ is defined as
+$$T(s, a, s') = T(s, (a_\text{base}, y), s') = T_{\text{base}}(s, a_\text{base}, s').$$
+An example for a base action could be the movement of a glimpse in an image classification task, while the prediction could be the logits of the agent's current class prediction.
+
+Finally, the reward function is defined as
+$$R(s, a) = R((s_{\text{base}}, \overset{\ast}{y}), (a_{\text{base}}, y)) = R_{\text{base}}(s_{\text{base}}, a_{\text{base}}) - \ell(\overset{\ast}{y}, y),$$
+where $R_{\text{base}}$ is the base reward function and $\ell$ is a differentiable loss function.
+An example for a base reward could be an action regularization term, while the loss function $\ell$ could be a cross-entropy loss in a classification task.
+
+
 ### Environment Base Classes
 
 Every task in _ap_gym_ is modeled as a subclass of `ap_gym.ActivePerceptionEnv` or `ap_gym.ActivePerceptionVectorEnv`.
@@ -49,7 +83,7 @@ Every task in _ap_gym_ is modeled as a subclass of `ap_gym.ActivePerceptionEnv` 
 `gymnasium.vector.VectorEnv`, respectively.
 Both subclasses extend their Gymnasium interfaces by four fields:
 
-- `loss_fn`: The loss function of the environment. See [`ap_gym.LossFn`](#ap_gymlossfn).
+- `loss_fn`: The loss function of the environment. See [Loss Functions](#loss-functions).
 - `prediction_space`: A `gymnasium.spaces.Space` defining the set of valid prediction values.
 - `prediction_target_space`: A `gymnasium.spaces.Space` defining the set of valid prediction target values.
 - `inner_action_space`: A `gymnasium.spaces.Space` defining the set of valid inner action values.
@@ -75,7 +109,7 @@ Additionally, the info dictionary returned by the step function contains the bas
 prediction loss) in `info["base_reward"]` and the prediction loss in `info["prediction"]["loss"]`.
 
 To get an understanding of how this class is used, refer to the examples in the _examples_ directory and to
-the [tasks](#tasks) defined by _ap_gym_.
+the [environments](#environments) defined by _ap_gym_.
 
 ### Loss Functions
 
@@ -185,9 +219,9 @@ the [image classification documentation](doc/ImageClassification.md).
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/LIDARLocIndoor-v0.gif" alt="LIDARLocIndoor-v0" width="200px"/><br/>
+            <img src="doc/img/LIDARLocRooms-v0.gif" alt="LIDARLocRooms-v0" width="200px"/><br/>
             <a href="doc/LIDARLocalization.md">
-                LIDARLocIndoor-v0
+                LIDARLocRooms-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
