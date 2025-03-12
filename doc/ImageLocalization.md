@@ -10,8 +10,7 @@ Marked in blue is the agent's current glimpse.
 The transparent purple box represents the target glimpse the agent has to predict the coordinates of and the opaque purple box is the agent's current prediction.
 We further mark the history of glimpses the agent has taken in a color scale ranging from red to green, red meaning that the prediction it took at this step was far from the target and green meaning that the prediction was close to the target.
 
-All image classification environments in _ap_gym_ are instantiations of the
-`ap_gym.envs.image_classification.ImageLocalization` class and share the following properties:
+All image classification environments in _ap_gym_ are instantiations of the `ap_gym.envs.image_classification.ImageLocalizationVectorEnv` class and share the following properties:
 
 ## Properties
 
