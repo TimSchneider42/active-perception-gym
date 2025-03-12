@@ -35,3 +35,10 @@ envs = ap_gym.make_vec("MNIST-v0", num_envs=4)
 ## Version History
 
 - `v0`: Initial release.
+
+## Variants
+
+| Environment ID | Description                                              | Preview                                                              |
+|----------------|----------------------------------------------------------|----------------------------------------------------------------------|
+| MNIST-train-v0 | Alias for MNIST-v0.                                      | <img src="img/MNIST-v0.gif" alt="MNIST-v0" width="200px"/>           |
+| MNIST-test-v0  | Uses the test split of MNIST instead of the train split. | <img src="img/MNIST-test-v0.gif" alt="MNIST-test-v0" width="200px"/> |

@@ -122,7 +122,8 @@ def register_envs():
             register_image_classification_env(
                 name=f"TinyImageNet{split_name}-v0",
                 dataset=HuggingfaceImageClassificationDataset(
-                    "zh-plus/tiny-imagenet", split=split
+                    "zh-plus/tiny-imagenet",
+                    split=split if split == "train" else "valid",
                 ),
                 step_limit=16,
                 kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
@@ -140,7 +141,8 @@ def register_envs():
             register_image_localization_env(
                 name=f"TinyImageNetLoc{split_name}-v0",
                 dataset=HuggingfaceImageClassificationDataset(
-                    "zh-plus/tiny-imagenet", split=split
+                    "zh-plus/tiny-imagenet",
+                    split=split if split == "train" else "valid",
                 ),
                 step_limit=16,
                 kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),

@@ -14,7 +14,6 @@ Refer to the [image classification environments overview](ImageClassification.md
 | **Image size**            | 32x32      |
 | **Glimpse size**          | 5          |
 
-
 ## Description
 
 In the CIFAR10 environment, the agent's objective is to classify natural images into 10 classes.
@@ -35,3 +34,10 @@ envs = ap_gym.make_vec("CIFAR10-v0", num_envs=4)
 ## Version History
 
 - `v0`: Initial release.
+
+## Variants
+
+| Environment ID   | Description                                                | Preview                                                                  |
+|------------------|------------------------------------------------------------|--------------------------------------------------------------------------|
+| CIFAR10-train-v0 | Alias for CIFAR10-v0.                                      | <img src="img/CIFAR10-v0.gif" alt="CIFAR10-v0" width="200px"/>           |
+| CIFAR10-test-v0  | Uses the test split of CIFAR10 instead of the train split. | <img src="img/CIFAR10-test-v0.gif" alt="CIFAR10-test-v0" width="200px"/> |
