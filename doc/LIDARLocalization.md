@@ -1,55 +1,33 @@
-# 2D LIDAR Localization
+# 2D LIDAR Localization Environments
 
-In image classification environments, the agent has to classify an image by moving a small glimpse around the image.
-The glimpse is never large enough to see the entire image at once, so the agent has to move around to gather
-information.
+In the 2D LIDAR localization environments, the agent must navigate the world and use LIDAR sensors to perceive its surroundings. From this sensory data, it is tasked with estimating its own position within the environment. The number of LIDAR beams and their ranges can vary, but they should only give the agent a partial glimpse of its surroundings.
 
-Consider the following example from the [CIFAR10](CIFAR10.md) environment:
-<p align="center"><img src="img/CIFAR10-v0.gif" alt="CIFAR10-v0" width="200px"/></p>
+In these environments, there are two main variants:
+- **Static Environments**: In environments such as `LIDARLocMazeStatic-v0` and `LIDARLocRoomsStatic-v0`, the maze or room layout is fixed.
+- **Map-based Environments**: In `LIDARLocMaze-v0` and `LIDARLocRooms-v0`, the agent is additionally provided with a map of the environment.
 
-Marked in blue is the agent's current glimpse.
-We mark the history of glimpses the agent has taken in a color scale ranging from red to green, red meaning that the
-agent predicted a probability of 0 for the correct class and green meaning that the agent predicted a probability of 1
-for the correct class.
+In both cases, the primary challenge is for the agent to accurately localize itself. 
 
-All image classification environments in _ap_gym_ are instantiations of the
-`ap_gym.envs.image_classification.ImageClassification` class and share the following properties:
+Consider the following example from the [LIDARLocRoomsStatic](TODO.md) environment:
+
+<p align="center"><img src="img/LIDARLocRoomsStatic-v0.gif" alt="2D LIDAR Localization" width="200px"/></p>
+
+In this visualization, the agent moves through the room while using its LIDAR sensors, represented by the green beams extending outward. The white regions indicate areas that the agent has observed so far. To illustrate the agent’s localization confidence, we track its past positions with a color gradient ranging from red to green. A red trail means that the agent's predicted position had a probability close to 0 of being correct, whereas a green trail indicates high confidence, with a probability close to 1.
+
+All 2D LIDAR localization environments in ap_gym are implemented as instances of the `ap_gym.envs.lidar_localization2d.LIDARLocalization2DEnv` class and share the following properties:
 
 ## Properties
 
-<table>
-    <tr>
-        <td><strong>Action Space</strong></td>
-        <td><code>Box(-1.0, 1.0, shape=(2,), dtype=np.float32)</code></td>
-    </tr>
-    <tr>
-        <td><strong>Prediction Space</strong></td>
-        <td><code>Box(-inf, inf, shape=(K,), dtype=np.float32)</code></td>
-    </tr>
-    <tr>
-        <td><strong>Prediction Target Space</strong></td>
-        <td><code>Discrete(K)</code></td>
-    </tr>
-    <tr>
-        <td><strong>Observation Space</strong></td>
-        <td>
-            <code>Dict({</code><br>
-            <code>&nbsp;&nbsp;"glimpse": ImageSpace(width=G, height=G, channels=C, dtype=np.float32),</code><br>
-            <code>&nbsp;&nbsp;"glimpse_pos": Box(-1.0, 1.0, shape=(2,), dtype=np.float32)</code><br>
-            <code>})</code>
-        </td>
-    </tr>
-    <tr>
-        <td><strong>Loss Function</strong></td>
-        <td>
-            <code>ap_gym.CrossEntropyLossFn()</code>
-        </td>
-    </tr>
-</table>
+| Property                  | Value                                             |
+|---------------------------|---------------------------------------------------|
+| **Action Space**          | `Box(-1.0, 1.0, shape=(2,), dtype=np.float32)`    |
+| **Localization Prediction Space** | `Box(-inf, inf, shape=(2,), dtype=np.float32)` |
+| **Prediction Target Space** | `Box(-inf, inf, shape=(2,), dtype=np.float32)`  |
+| **Observation Space**     | `Dict({`<br>`"lidar": Box(0.0, 1.0, shape=(B,), dtype=np.float32),`<br>`"odometry": Box(-1.0, 1.0, shape=(2,), dtype=np.float32),`<br>`["map": ImageSpace(width=M, height=M, channels=1, dtype=np.float32)]`<br>`})` <br><em>(The `"map"` key is only included in the static enviroments.)</em> |
+| **Loss Function**         | `ap_gym.MSELossFn()`                              |
 
 
-where $K \in \mathbb{N}$ is the number of classes in the environment, $G \in \mathbb{N}$ is the glimpse size,
-and $C \in \mathbb{N}$ is the number of image channels (1 for grayscale, 3 for RGB).
+where $B \in \mathbb{N}$ is the number of LIDAR beams, and $M\in \mathbb{N} is the dimension of the provided map when available.
 
 ## Action Space
 
@@ -58,53 +36,62 @@ The action is an `np.ndarray` with shape `(2,)` consisting of continuous values 
 - `action[0]`: Horizontal sensor movement
 - `action[1]`: Vertical sensor movement
 
-**Note**: Actions are normalized and scaled by the environment's `max_step_length`, which is 0.2 (20% of the image) by
-default.
-
 ## Prediction Space
-
-The prediction is a $K$-dimensional `np.ndarray` containing the logits of the agent's prediction w.r.t. the class label.
+The prediction is a 2-dimensional `np.ndarray` representing the agent's predicted coordinates.
 
 ## Prediction Target Space
-
-The prediction target is a scalar integer in the range $[0, K - 1]$, representing the true class.
+The prediction target is a 2-dimensional `np.ndarray` containing the  ground-truth coordinates.
 
 ## Observation Space
 
-The observation is a dictionary with keys `"glimpse"` and `"glimpse_pos"`.
-The glimpse is a $G \times G \times C$ `np.ndarray` representing a glimpse of the image where each pixel is in the
-range $[-1, 1]$.
-The `"glimpse_pos"` is an `np.ndarray` with shape `(2,)` containing the normalized position of the glimpse within the
-image in the range $[-1, 1]$.
+The observation is a dictionary with keys `"lidar"`, `"odometry"`, and `"map"`.
+
+The `"lidar"` is a normalized array (`np.ndarray`) of shape `(B,)` with distances measured by the LIDAR sensor, each in $[-1, 1]$.
+
+The `"odometry"` is a normalized `np.ndarray` with shape `(2,)` representing the agent's relative displacement from its starting position.
+
+The `"map"`(provided only in non-static map environments) is a $M \times M$ `np.ndarray` providing a grayscale image representation of the environment.
+
+representing the target glimpse of the image where each
+pixel is in the range $[-1, 1]$.
+
 
 ## Rewards
 
 The reward at each timestep is a sum of:
 
-- A small action regularization equal to $10^{-3} \cdot{} \lVert action\rVert$.
-- The negative cross-entropy loss between the agent's prediction and the true class.
+- An action penalty equal to the squared magnitude of the action: $\lVert action\rVert^2$.
+- A boundary penalty of $-20$, applied only if the agent attempts to move outside the valid environment area, which also terminates the episode.
+
 
 ## Starting State
 
-The glimpse starts at a uniformly random position within the image.
+The agent begins at a uniformly random, valid location within the environment.
 
 ## Episode End
 
-The episode ends when the maximum number of steps (`max_episode_steps`, default: `16`) is reached.
+Episodes end either upon exceeding a maximum number of timesteps (`max_episode_steps`, default: `16`) or if the agent attempts to leave the environment's valid area.
 
 ## Arguments
 
-| Parameter                 | Type                                      | Default     | Description                                                                                                                             |
-|---------------------------|-------------------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| `image_perception_config` | `ap_gym.envs.image.ImagePerceptionConfig` |             | Configuration of the image perception environment. See the [ImagePerceptionConfig documentation](ImagePerceptionConfig.md) for details. |
-| `render_mode`             | `Literal["rgb_array"]`                    | "rgb_array" | Rendering mode. Just "rgb_array" is supported currently.                                                                                |
-| `max_episode_steps`       | `int`                                     | 16          | Maximum steps per episode.                                                                                                              |
+| Parameter                | Type                                                         | Default     | Description                                                                                                                                              |
+|--------------------------|--------------------------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `dataset`                | `ap_gym.envs.lidar_localization2d.FloorMapDataset`           |             | Dataset used for the environment containing maps.                                                                                                        |
+| `render_mode`            | `Literal["rgb_array"]`                                       | "rgb_array" | Rendering mode. Currently, only "rgb_array" is supported.                                                                                                |
+| `static_map`             | `bool`                                                       | `False`     | Whether the environment uses a single fixed map (`True`) or samples different maps per episode (`False`).                                                |
+| `lidar_beam_count`       | `int`                                                        | 8           | Number of beams emitted by the LIDAR sensor.                                                                                                             |
+| `lidar_range`            | `float`                                                      | 5.0         | Maximum range (distance) for LIDAR sensor readings.                                                                                                      |
+| `static_map_index`       | `int`                                                        | 0           | Index of the map used when `static_map=True`. Ignored otherwise.                                                                                         |
+| `prefetch`               | `bool`                                                       | `True`      | Whether maps should be prefetched asynchronously for efficiency.                                                                                         |
+| `prefetch_buffer_size`   | `int`                                                        | 128         | Buffer size for prefetching maps from the dataset.                                                                                                       |
+| `max_episode_steps`      | `int`                                                        | 16          | Maximum steps per episode.                                                                                                                               |
 
 ## Overview of Implemented Environments
 
-| Environment ID                     | Image type | # classes | # data points | Image size | Glimpse size | Image description                                                                                       |
-|------------------------------------|------------|-----------|---------------|------------|--------------|---------------------------------------------------------------------------------------------------------|
-| [CircleSquare-v0](CircleSquare.md) | Grayscale  | 2         | 1,568         | 28x28      | 5            | An image containing either a circle or square.                                                          |
-| [MNIST-v0](MNIST.md)               | Grayscale  | 10        | 60,000        | 28x28      | 5            | Handwritten digits from the [MNIST dataset](http://yann.lecun.com/exdb/mnist/).                         |
-| [CIFAR10-v0](CIFAR10.md)           | RGB        | 10        | 50,000        | 32x32      | 5            | Natural images from the [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).                 |
-| [TinyImageNet-v0](TinyImageNet.md) | RGB        | 200       | 100,000       | 64x64      | 10           | Natural images from the [Tiny ImageNet dataset](https://huggingface.co/datasets/zh-plus/tiny-imagenet). |
+| Environment ID                         | Map Provided | Environment Type | LIDAR beams | Map size | Description                                                                    |
+|----------------------------------------|--------------|------------------|-------------|----------|--------------------------------------------------------------------------------|
+| [LIDARLocMazeStatic-v0](LIDARLocMazeStatic.md)   | No           | Maze (static)    | 8           | 21x21    | Static maze environment with a fixed layout.                                   |
+| [LIDARLocMaze-v0](LIDARLocMaze.md)               | Yes          | Maze (dynamic)   | 8           | 21x21    | Dynamic maze environment with different maps per episode.                      |
+| [LIDARLocRoomsStatic-v0](LIDARLocRoomsStatic.md) | No           | Rooms (static)   | 8           | 32x32    | Static rooms environment with a fixed layout.                                  |
+| [LIDARLocRooms-v0](LIDARLocRooms.md)             | Yes          | Rooms (dynamic)  | 8           | 32x32    | Dynamic rooms environment with varying layouts, provided as input to the agent.|
+
