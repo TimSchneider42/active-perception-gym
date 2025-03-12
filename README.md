@@ -182,25 +182,25 @@ the [image classification documentation](doc/ImageClassification.md).
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/CircleSquare-v0.gif" alt="CircleSquare-v0" width="200px"/><br/>
+            <img src="doc/img/CircleSquare-v0.gif" alt="CircleSquare-v0" width="150px"/><br/>
             <a href="doc/CircleSquare.md">
                 CircleSquare-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/MNIST-v0.gif" alt="MNIST-v0" width="200px"/><br/>
+            <img src="doc/img/MNIST-v0.gif" alt="MNIST-v0" width="150px"/><br/>
             <a href="doc/MNIST.md">
                 MNIST-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/TinyImageNet-v0.gif" alt="TinyImageNet-v0" width="200px"/><br/>
+            <img src="doc/img/TinyImageNet-v0.gif" alt="TinyImageNet-v0" width="150px"/><br/>
             <a href="doc/TinyImageNet.md">
                 TinyImageNet-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/CIFAR10-v0.gif" alt="CIFAR10-v0" width="200px"/><br/>
+            <img src="doc/img/CIFAR10-v0.gif" alt="CIFAR10-v0" width="150px"/><br/>
             <a href="doc/CIFAR10.md">
                 CIFAR10-v0
             </a>
@@ -213,19 +213,19 @@ the [image classification documentation](doc/ImageClassification.md).
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/LightDark-v0.gif" alt="LightDark-v0" width="200px"/> <br/>
+            <img src="doc/img/LightDark-v0.gif" alt="LightDark-v0" width="150px"/> <br/>
             <a href="doc/LightDark.md">
                 LightDark-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/LIDARLocRooms-v0.gif" alt="LIDARLocRooms-v0" width="200px"/><br/>
+            <img src="doc/img/LIDARLocRooms-v0.gif" alt="LIDARLocRooms-v0" width="150px"/><br/>
             <a href="doc/LIDARLocalization.md">
                 LIDARLocRooms-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/LIDARLocMaze-v0.gif" alt="LIDARLocMaze-v0" width="200px"/><br/>
+            <img src="doc/img/LIDARLocMaze-v0.gif" alt="LIDARLocMaze-v0" width="150px"/><br/>
             <a href="doc/LIDARLocMaze.md">
                 LIDARLocMaze-v0
             </a>
@@ -238,13 +238,13 @@ the [image classification documentation](doc/ImageClassification.md).
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="200px"/><br/>
+            <img src="doc/img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="150px"/><br/>
             <a href="doc/TinyImageNetLoc.md">
                 TinyImageNetLoc-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/CIFAR10Loc-v0.gif" alt="CIFAR10Loc-v0" width="200px"/><br/>
+            <img src="doc/img/CIFAR10Loc-v0.gif" alt="CIFAR10Loc-v0" width="150px"/><br/>
             <a href="doc/CIFAR10Loc.md">
                 CIFAR10Loc-v0
             </a>
