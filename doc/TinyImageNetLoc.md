@@ -22,7 +22,7 @@ It must strategically explore different regions of the image to gather enough in
 
 Compared to the CIFAR10Loc environment, the TinyImageNetLoc dataset contains higher resolution images from more diverse classes.
 Also, the glimpse size is larger to account for the higher image resolution.
-Consequently, this environment introduces additional complexity compared to CIFAR10.
+Consequently, this environment introduces additional complexity compared to CIFAR10Loc.
 
 ## Example Usage
 
@@ -38,3 +38,10 @@ envs = ap_gym.make_vec("TinyImageNetLoc-v0", num_envs=4)
 ## Version History
 
 - `v0`: Initial release.
+
+## Variants
+
+| Environment ID           | Description                                                     | Preview                                                                                  |
+|--------------------------|-----------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| TinyImageNetLoc-train-v0 | Alias for TinyImageNetLoc-v0.                                   | <img src="img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="200px"/>           |
+| TinyImageNetLoc-test-v0  | Uses the test split of TinyImageNet instead of the train split. | <img src="img/TinyImageNetLoc-test-v0.gif" alt="TinyImageNetLoc-test-v0" width="200px"/> |

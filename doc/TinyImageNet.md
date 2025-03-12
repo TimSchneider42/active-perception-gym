@@ -39,3 +39,10 @@ envs = ap_gym.make_vec("TinyImageNet-v0", num_envs=4)
 ## Version History
 
 - `v0`: Initial release.
+
+## Variants
+
+| Environment ID        | Description                                                           | Preview                                                                            |
+|-----------------------|-----------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| TinyImageNet-train-v0 | Alias for TinyImageNet-v0.                                            | <img src="img/TinyImageNet-v0.gif" alt="TinyImageNet-v0" width="200px"/>           |
+| TinyImageNet-test-v0  | Uses the validation split of TinyImageNet instead of the train split. | <img src="img/TinyImageNet-test-v0.gif" alt="TinyImageNet-test-v0" width="200px"/> |

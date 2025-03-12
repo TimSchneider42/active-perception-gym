@@ -34,3 +34,10 @@ envs = ap_gym.make_vec("CIFAR10Loc-v0", num_envs=4)
 ## Version History
 
 - `v0`: Initial release.
+
+## Variants
+
+| Environment ID      | Description                                                | Preview                                                                        |
+|---------------------|------------------------------------------------------------|--------------------------------------------------------------------------------|
+| CIFAR10Loc-train-v0 | Alias for CIFAR10Loc-v0.                                   | <img src="img/CIFAR10Loc-v0.gif" alt="CIFAR10Loc-v0" width="200px"/>           |
+| CIFAR10Loc-test-v0  | Uses the test split of CIFAR10 instead of the train split. | <img src="img/CIFAR10Loc-test-v0.gif" alt="CIFAR10Loc-test-v0" width="200px"/> |
