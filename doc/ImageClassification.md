@@ -9,8 +9,7 @@ Consider the following example from the [CIFAR10](CIFAR10.md) environment:
 Marked in blue is the agent's current glimpse.
 We mark the history of glimpses the agent has taken in a color scale ranging from red to green, red meaning that the agent predicted a probability of 0 for the correct class and green meaning that the agent predicted a probability of 1 for the correct class.
 
-All image classification environments in _ap_gym_ are instantiations of the
-`ap_gym.envs.image_classification.ImageClassification` class and share the following properties:
+All image classification environments in _ap_gym_ are instantiations of the `ap_gym.envs.image_classification.ImageClassificationVectorEnv` class and share the following properties:
 
 ## Properties
 
