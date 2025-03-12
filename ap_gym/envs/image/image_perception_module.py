@@ -22,7 +22,7 @@ class ImagePerceptionConfig:
     sensor_size: tuple[int, int] = (5, 5)
     sensor_scale: float = 1.0
     max_step_length: float | Sequence[float] = 0.2
-    step_limit: int = (16,)
+    step_limit: int = 16
     display_visitation: bool = True
     render_unvisited_opacity: float = 0.0
     render_visited_opacity: float = 0.3
