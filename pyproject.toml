@@ -25,5 +25,5 @@ homepage = "https://git.ias.informatik.tu-darmstadt.de/schneider/active-percepti
 [project.optional-dependencies]
 examples = ["matplotlib"]
 
-[tool.setuptools]
-packages = ["ap_gym"]
+[tool.setuptools.packages.find]
+include = ["ap_gym*"]
