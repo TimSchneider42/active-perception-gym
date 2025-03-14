@@ -7,6 +7,8 @@ import ap_gym
 
 
 def create_env_gif(env_id: str, filename: Path, seed: int = 0, num_eps: int = 10):
+    imageio.plugins.freeimage.download()
+
     env = ap_gym.make(env_id, render_mode="rgb_array")
 
     try:
@@ -41,3 +43,7 @@ def main():
     args = parser.parse_args()
 
     create_env_gif(args.env_id, args.filename, seed=args.seed, num_eps=args.num_eps)
+
+
+if __name__ == "__main__":
+    main()
