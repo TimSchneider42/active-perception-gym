@@ -102,12 +102,18 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         ] = True
 
         # Not 100% exact but good enough for visualization
-        valid = np.linalg.norm(self.__scan_points, axis=-1) <= distances[..., None]
-        observed_pos = np.floor(self.__pos[None, None] + self.__scan_points).astype(
-            np.int_
+        not_occluded = (
+            np.linalg.norm(self.__scan_points, axis=-1) <= distances[..., None]
         )
-        observed_pos = observed_pos[valid]
-        self.__observation_map[observed_pos[..., 1], observed_pos[..., 0]] = True
+        scan_points_world = self.__pos[None, None] + self.__scan_points
+        scan_point_coords = np.floor(scan_points_world).astype(np.int_)
+        in_bounds = np.all(
+            (scan_point_coords >= 0) & (scan_point_coords < self.__map.shape), axis=-1
+        )
+        scan_point_coords = scan_point_coords[not_occluded & in_bounds]
+        self.__observation_map[
+            scan_point_coords[..., 1], scan_point_coords[..., 0]
+        ] = True
 
         odometry = self.__pos - self.__initial_pos
         odometry_max_value = np.array(
