@@ -27,3 +27,6 @@ examples = ["matplotlib"]
 
 [tool.setuptools.packages.find]
 include = ["ap_gym*"]
+
+[project.scripts]
+ap-gym-create-env-gif = "ap_gym.tools.create_env_gif:main"
