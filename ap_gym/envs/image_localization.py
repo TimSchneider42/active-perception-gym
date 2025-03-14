@@ -26,7 +26,11 @@ class ImageLocalizationVectorEnv(
         np.ndarray,
     ],
 ):
-    metadata: dict[str, Any] = {"render_modes": ["rgb_array"], "render_fps": 2}
+    metadata: dict[str, Any] = {
+        "render_modes": ["rgb_array"],
+        "render_fps": 2,
+        "autoreset_mode": gym.vector.AutoresetMode.NEXT_STEP,
+    }
 
     def __init__(
         self,
