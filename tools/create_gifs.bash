@@ -1,7 +1,6 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-export PYTHONPATH="$PYTHONPATH:$SCRIPT_DIR/.."
 
 ENVS=(
   LightDark-v0
@@ -27,10 +26,11 @@ ENVS=(
   LIDARLocRoomsStatic-v0
 )
 
-rm -rf "$SCRIPT_DIR/../doc/img"
-mkdir -p "$SCRIPT_DIR/../doc/img"
+OUTPUT_DIR="$SCRIPT_DIR/../doc/img"
+rm -rf "${OUTPUT_DIR}"
+mkdir -p "${OUTPUT_DIR}"
 for env in "${ENVS[@]}"; do
-  python "$SCRIPT_DIR/create_env_gif.py" "$env" "$SCRIPT_DIR/../doc/img/$env.gif" &
+  ap-gym-create-env-gif "$env" "${OUTPUT_DIR}/$env.gif" &
 done
 
 wait
