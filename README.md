@@ -43,8 +43,10 @@ Hence, the agent has to make a prediction in every step, encouraging it to gathe
 prediction reward early on.
 
 #### Formal Problem Statement
+
 Active perception problems are a special case of Partially Observable Markov Decision Processes (POMDPs).
 POMDPs are defined by the tuple $(S, A, T, R, \Omega, O, \gamma)$, where
+
 - $S$ is the set of (hidden) states,
 - $A$ is the set of actions,
 - $T: S \times A \times S \to [0, 1]$ is the transition function,
@@ -74,7 +76,6 @@ Finally, the reward function is defined as
 $$R(s, a) = R((s_{\text{base}}, \overset{\ast}{y}), (a_{\text{base}}, y)) = R_{\text{base}}(s_{\text{base}}, a_{\text{base}}) - \ell(\overset{\ast}{y}, y),$$
 where $R_{\text{base}}$ is the base reward function and $\ell$ is a differentiable loss function.
 An example for a base reward could be an action regularization term, while the loss function $\ell$ could be a cross-entropy loss in a classification task.
-
 
 ### Environment Base Classes
 
@@ -174,10 +175,15 @@ spaces if active perception environments are vectorized this way.
 
 ### Environments
 
-_ap_gym_ currently comes with a number of image classification environments, which are described in detail in
-the [image classification documentation](doc/ImageClassification.md).
+_ap_gym_ currently comes with three classes of environments: image classification, 2D localization, and image localization.
+Each class contains multiple environments of varying difficulty and complexity.
+To learn more about the environments, refer to their respective documentations linked below.
 
 #### Image Classification
+
+In this class of environments, the agent has to classify images into a set of classes.
+However, it does not have access to the entire image at once but rather has to move a small glimpse around to gather information.
+Find a detailed documentation of the image classification environments [here](doc/ImageClassification.md).
 
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
@@ -210,6 +216,11 @@ the [image classification documentation](doc/ImageClassification.md).
 
 #### 2D Localization
 
+In 2D localization environments, the agent has to localize itself in a 2D environment.
+There are currently two types of 2D localization environments: a light-dark environment and LIDAR-based.
+In the [light-dark environment](doc/LightDark.md), the agent must learn to navigate towards a light source to localize itself.
+In the [LIDAR-based environments](doc/LIDARLocalization.md), the agent must localize itself using LIDAR sensor readings.
+
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
         <td align="center" style="border: none; padding: 10px;">
@@ -234,6 +245,10 @@ the [image classification documentation](doc/ImageClassification.md).
 </table>
 
 #### Image Localization
+
+In image localization environments, the agent must localize a given glimpse in a natural image.
+Similar to the image classification class of tasks, agent must explore the image by moving a glimpse around.
+Find a detailed documentation of the image localization environments [here](doc/ImageLocalization.md).
 
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
