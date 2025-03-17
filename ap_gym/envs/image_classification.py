@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import copy
 from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
+from gymnasium.envs.registration import EnvSpec
 from scipy.special import softmax
 
 from ap_gym import (
@@ -52,6 +54,7 @@ class ImageClassificationVectorEnv(
             self.single_observation_space, self.num_envs
         )
         self.__np_random = None
+        self.__spec: EnvSpec | None = None
 
     def _reset(self, *, options: dict[str, Any | None] = None):
         obs, info = self.__image_perception_module.reset()
@@ -102,6 +105,16 @@ class ImageClassificationVectorEnv(
             np_random.integers(0, 2**32 - 1, endpoint=True)
         )
         self.__np_random = np_random
+
+    @property
+    def spec(self) -> EnvSpec | None:
+        return self.__spec
+
+    @spec.setter
+    def spec(self, spec: EnvSpec):
+        spec = copy.copy(spec)
+        spec.max_episode_steps = self.__image_perception_module.config.step_limit
+        self.__spec = spec
 
 
 def ImageClassificationEnv(
