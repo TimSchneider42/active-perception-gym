@@ -25,14 +25,18 @@ class MyCustomEnv(ap_gym.ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray,
     def __init__(self):
         self.observation_space = ap_gym.ImageSpace(width=5, height=5, channels=1)
         inner_action_space = gym.spaces.Box(-1.0, 1.0, shape=(2,), dtype=np.float32)
-        prediction_space = gym.spaces.Box(-np.inf, np.inf, shape=(10,), dtype=np.float32)
-        self.action_space = ap_gym.ActivePerceptionActionSpace(inner_action_space, prediction_space)
+        prediction_space = gym.spaces.Box(
+            -np.inf, np.inf, shape=(10,), dtype=np.float32
+        )
+        self.action_space = ap_gym.ActivePerceptionActionSpace(
+            inner_action_space, prediction_space
+        )
         self.prediction_target_space = gym.spaces.Discrete(10)
         self.loss_fn = ap_gym.CrossEntropyLossFn()
         self._current_class = None
 
     def _reset(
-            self, *, options: dict[str, Any | None] = None
+        self, *, options: dict[str, Any | None] = None
     ) -> tuple[np.ndarray, dict[str, Any], int]:
         self._current_class = ...  # Randomly choose a class
         obs = ...  # Generate the initial observation
@@ -40,10 +44,11 @@ class MyCustomEnv(ap_gym.ActivePerceptionEnv[np.ndarray, np.ndarray, np.ndarray,
         return obs, info, self._current_class
 
     def _step(
-            self, action: np.ndarray, prediction: np.ndarray
+        self, action: np.ndarray, prediction: np.ndarray
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any], int]:
         obs = ...  # Generate the next observation
-        base_reward = ...  # Compute the base reward (the loss function will be evaluated by ap_gym.ActivePerceptionEnv)
+        base_reward = ...  # Compute the base reward (the loss function will be
+                           # evaluated by ap_gym.ActivePerceptionEnv)
         terminated = ...  # Whether the episode is terminated
         truncated = ...  # Whether the episode is truncated
         info = ...  # Additional information
@@ -68,28 +73,42 @@ import ap_gym
 # PredTargetType: Type of the prediction target
 # ArrayType: Type of the arrays (typically np.ndarray)
 
-class MyCustomVectorEnv(ap_gym.ActivePerceptionVectorEnv[np.ndarray, np.ndarray, np.ndarray, int, np.ndarray]):
+
+class MyCustomVectorEnv(
+    ap_gym.ActivePerceptionVectorEnv[
+        np.ndarray, np.ndarray, np.ndarray, int, np.ndarray
+    ]
+):
     def __init__(self, num_envs: int):
         self.num_envs = num_envs
 
         self.single_observation_space = ap_gym.ImageSpace(width=5, height=5, channels=1)
-        single_inner_action_space = gym.spaces.Box(-1.0, 1.0, shape=(2,), dtype=np.float32)
-        single_prediction_space = gym.spaces.Box(-np.inf, np.inf, shape=(10,), dtype=np.float32)
+        single_inner_action_space = gym.spaces.Box(
+            -1.0, 1.0, shape=(2,), dtype=np.float32
+        )
+        single_prediction_space = gym.spaces.Box(
+            -np.inf, np.inf, shape=(10,), dtype=np.float32
+        )
         self.single_action_space = ap_gym.ActivePerceptionActionSpace(
-            single_inner_action_space,
-            single_prediction_space
+            single_inner_action_space, single_prediction_space
         )
         self.single_prediction_target_space = gym.spaces.Discrete(10)
 
-        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, num_envs)
-        self.action_space = gym.vector.utils.batch_space(self.single_action_space, num_envs)
-        self.prediction_target_space = gym.vector.utils.batch_space(self.single_prediction_target_space, num_envs)
+        self.observation_space = gym.vector.utils.batch_space(
+            self.single_observation_space, num_envs
+        )
+        self.action_space = gym.vector.utils.batch_space(
+            self.single_action_space, num_envs
+        )
+        self.prediction_target_space = gym.vector.utils.batch_space(
+            self.single_prediction_target_space, num_envs
+        )
 
         self.loss_fn = ap_gym.CrossEntropyLossFn()
         self._current_classes = None
 
     def _reset(
-            self, *, options: dict[str, Any | None] = None
+        self, *, options: dict[str, Any | None] = None
     ) -> tuple[np.ndarray, dict[str, Any], int]:
         self._current_class = ...  # Randomly choose classes (now an array)
         obs = ...  # Generate the initial observation
@@ -97,16 +116,16 @@ class MyCustomVectorEnv(ap_gym.ActivePerceptionVectorEnv[np.ndarray, np.ndarray,
         return obs, info, self._current_class
 
     def _step(
-            self, action: np.ndarray, prediction: np.ndarray
+        self, action: np.ndarray, prediction: np.ndarray
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any], int]:
         obs = ...  # Generate the next observation
-        base_reward = ...  # Compute the base reward (the loss function will be evaluated by ap_gym.ActivePerceptionEnv)
+        base_reward = ...  # Compute the base reward (the loss function will be
+                           # evaluated by ap_gym.ActivePerceptionEnv)
         terminated = ...  # Whether the episode is terminated
         truncated = ...  # Whether the episode is truncated
         info = ...  # Additional information
         self._current_class = ...  # The prediction target may change over time
         return obs, base_reward, terminated, truncated, info, self._current_class
-
 ```
 
 ### Custom Loss Functions
@@ -122,11 +141,16 @@ import jax.numpy as jnp
 import ap_gym
 
 mse_loss_fn = ap_gym.LambdaLossFn(
-    lambda prediction, target, batch_shape: np.mean((prediction - target) ** 2),  # Numpy implementation
-    lambda prediction, target, batch_shape: torch.mean((prediction - target) ** 2),  # PyTorch implementation
-    lambda prediction, target, batch_shape: jnp.mean((prediction - target) ** 2),  # JAX implementation
+    lambda prediction, target, batch_shape: np.mean(
+        (prediction - target) ** 2
+    ),  # Numpy implementation
+    lambda prediction, target, batch_shape: torch.mean(
+        (prediction - target) ** 2
+    ),  # PyTorch implementation
+    lambda prediction, target, batch_shape: jnp.mean(
+        (prediction - target) ** 2
+    ),  # JAX implementation
 )
-
 ```
 
 ### Custom Classification Environments
@@ -152,22 +176,27 @@ class MyClassificationVectorEnv(
     ap_gym.ActiveClassificationVectorEnv[np.ndarray, np.ndarray]
 ):
     def __init__(self, num_envs: int):
-        single_inner_action_space = gym.spaces.Box(-1.0, 1.0, shape=(2,), dtype=np.float32)
+        single_inner_action_space = gym.spaces.Box(
+            -1.0, 1.0, shape=(2,), dtype=np.float32
+        )
         super().__init__(num_envs, 10, single_inner_action_space)  # 10 Classes
 
         self.single_observation_space = ap_gym.ImageSpace(width=5, height=5, channels=1)
-        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, num_envs)
+        self.observation_space = gym.vector.utils.batch_space(
+            self.single_observation_space, num_envs
+        )
 
     def _reset(
-            self, *, options: dict[str, Any | None] = None
-    ) -> tuple[np.ndarray, dict[str, Any], np.ndarray]:
-        ...  # Implement _reset as in the MyCustomVectorEnv example
+        self, *, options: dict[str, Any | None] = None
+    ) -> tuple[
+        np.ndarray, dict[str, Any], np.ndarray
+    ]: ...  # Implement _reset as in the MyCustomVectorEnv example
 
     def _step(
-            self, action: np.ndarray, prediction: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], np.ndarray]:
-        ...  # Implement _step as in the MyCustomVectorEnv example
-
+        self, action: np.ndarray, prediction: np.ndarray
+    ) -> tuple[
+        np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], np.ndarray
+    ]: ...  # Implement _step as in the MyCustomVectorEnv example
 ```
 
 The usage of `ap_gym.ActiveClassificationEnv` is analogous.
@@ -195,26 +224,29 @@ import gymnasium as gym
 # ObsType: Type of the observation
 # ActType: Type of the action
 
-class MyRegressionVectorEnv(
-    ap_gym.ActiveRegressionVectorEnv[np.ndarray, np.ndarray]
-):
+class MyRegressionVectorEnv(ap_gym.ActiveRegressionVectorEnv[np.ndarray, np.ndarray]):
     def __init__(self, num_envs: int):
-        single_inner_action_space = gym.spaces.Box(-1.0, 1.0, shape=(2,), dtype=np.float32)
+        single_inner_action_space = gym.spaces.Box(
+            -1.0, 1.0, shape=(2,), dtype=np.float32
+        )
         super().__init__(num_envs, 2, single_inner_action_space)  # 2D predictions
 
         self.single_observation_space = ap_gym.ImageSpace(width=5, height=5, channels=1)
-        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, num_envs)
+        self.observation_space = gym.vector.utils.batch_space(
+            self.single_observation_space, num_envs
+        )
 
     def _reset(
-            self, *, options: dict[str, Any | None] = None
-    ) -> tuple[np.ndarray, dict[str, Any], np.ndarray]:
-        ...  # Implement _reset as in the MyCustomVectorEnv example
+        self, *, options: dict[str, Any | None] = None
+    ) -> tuple[
+        np.ndarray, dict[str, Any], np.ndarray
+    ]: ...  # Implement _reset as in the MyCustomVectorEnv example
 
     def _step(
-            self, action: np.ndarray, prediction: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], np.ndarray]:
-        ...  # Implement _step as in the MyCustomVectorEnv example
-
+        self, action: np.ndarray, prediction: np.ndarray
+    ) -> tuple[
+        np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], np.ndarray
+    ]: ...  # Implement _step as in the MyCustomVectorEnv example
 ```
 
 The usage of `ap_gym.ActiveRegressionEnv` is analogous.
