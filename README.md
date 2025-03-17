@@ -122,15 +122,18 @@ Note that only the PyTorch and JAX variant provide gradients as Numpy does not s
 The signature of each framework-specific function is
 
 ```python
-def fn(prediction: ArrayType, target: ArrayType, batch_shape: Tuple[int, ...] = ()) -> ArrayType:
-    ...
+def fn(
+    prediction: ArrayType, target: ArrayType, batch_shape: Tuple[int, ...] = ()
+) -> ArrayType: ...
 ```
 
 where ArrayType is one of `np.ndarray`, `torch.Tensor`, or `jax.Array`.
 `batch_shape` is used to specify the batch dimensions in case of a batched evaluation of the loss function, e.g.:
 
 ```python
-loss = ap_gym.CrossEntropyLossFn()(np.zeros((3, 7, 10)), np.zeros((3, 7), dtype=np.int_), (3, 7))
+loss = ap_gym.CrossEntropyLossFn()(
+    np.zeros((3, 7, 10)), np.zeros((3, 7), dtype=np.int_), (3, 7)
+)
 ```
 
 ### Representation of Image Observations
@@ -164,7 +167,9 @@ To address this issue, `ap_gym.ensure_active_perception_env` and `ap_gym.ensure_
 used:
 
 ```python
-ap_gym.ActivePerceptionRestoreWrapper(gymnasium.wrappers.TimeLimit(ap_gym.make("CircleSquare-v0"), 8)).loss_fn
+ap_gym.ActivePerceptionRestoreWrapper(
+  gymnasium.wrappers.TimeLimit(ap_gym.make("CircleSquare-v0"), 8)
+).loss_fn
 ```
 
 `ap_gym.ActivePerceptionRestoreWrapper` and `ap_gym.ActivePerceptionVectorRestoreWrapper` recursively traverse wrappers
@@ -287,7 +292,9 @@ If you want to support arbitrary Gymnasium and _ap_gym_ environments, use the `a
 ```python
 ap_env_1 = ap_gym.ensure_active_perception_env(gymnasium.make("CartPole-v1"))
 ap_env_2 = ap_gym.ensure_active_perception_env(ap_gym.make("CircleSquare-v0"))
-ap_env_3 = ap_gym.ensure_active_perception_env(gymnasium.wrappers.TimeLimit(ap_gym.make("CircleSquare-v0"), 8))
+ap_env_3 = ap_gym.ensure_active_perception_env(
+  gymnasium.wrappers.TimeLimit(ap_gym.make("CircleSquare-v0"), 8)
+)
 ```
 
 These functions automatically detect whether to do nothing, apply a restoration wrapper, or perform pseudo active
