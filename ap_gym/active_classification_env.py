@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections import deque, defaultdict
 from typing import Generic, Any
 
 import gymnasium as gym
 import numpy as np
+import scipy
 
 from .active_perception_env import (
     ActivePerceptionEnv,
@@ -17,6 +19,7 @@ from .active_perception_vector_env import (
 )
 from .loss_fn import CrossEntropyLossFn
 from .types import ObsType, ActType
+from .util import update_info_metrics, update_info_metrics_vec
 
 
 class ActiveClassificationEnv(
@@ -31,47 +34,45 @@ class ActiveClassificationEnv(
         )
         self.prediction_target_space = gym.spaces.Discrete(num_classes)
         self.loss_fn = CrossEntropyLossFn()
-        self.__current_correct_sum = None
         self.__current_step = None
-        self.__first_correct = None
-        self.__last_incorrect = None
+        self.__metrics: dict[str, deque[float] | np.ndarray] | None = None
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any]]:
-        self.__current_correct_sum = 0
         self.__current_step = 0
-        self.__first_correct = None
-        self.__last_incorrect = 0
+        self.__metrics = defaultdict(deque)
         return super().reset(seed=seed, options=options)
 
     def step(
         self, action: FullActType[ActType, PredType]
     ) -> tuple[ObsType, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super().step(action)
-        is_correct = info["prediction"]["target"] == action["prediction"].argmax(
-            axis=-1
+        self.__metrics["correct_label_prob"].append(
+            float(
+                scipy.special.softmax(action["prediction"])[
+                    info["prediction"]["target"]
+                ]
+            )
         )
-        self.__current_correct_sum += is_correct
         self.__current_step += 1
-        if not is_correct:
-            self.__last_incorrect = self.__current_step
-        elif self.__first_correct is None:
-            self.__first_correct = self.__current_step
-        if "stats" not in info:
-            info["stats"] = {}
         done = terminated or truncated
         if done:
-            info["stats"].update(
-                {
-                    "avg_accuracy": self.__current_correct_sum
-                    / max(self.__current_step, 1),
-                    "final_accuracy": float(is_correct),
-                }
+            num_classes = self.prediction_target_space.n
+            correct_label_prob = np.array(
+                self.__metrics["correct_label_prob"], dtype=np.float32
             )
-            if self.__first_correct is not None:
-                info["stats"]["first_correct"] = self.__first_correct
-            info["stats"]["last_incorrect"] = self.__last_incorrect
+            is_correct = correct_label_prob > 1 / num_classes
+            self.__metrics["accuracy"] = is_correct.astype(np.float32)
+            info = update_info_metrics(info, self.__metrics)
+            first_correct_candidates = np.where(is_correct)[0]
+            if len(first_correct_candidates) > 0:
+                info["stats"]["scalar"]["first_correct"] = first_correct_candidates[0]
+            last_incorrect_candidates = np.where(~is_correct)[-1]
+            if len(last_incorrect_candidates) > 0:
+                info["stats"]["scalar"]["last_incorrect"] = last_incorrect_candidates[
+                    -1
+                ]
         return obs, reward, terminated, truncated, info
 
 
@@ -97,58 +98,66 @@ class ActiveClassificationVectorEnv(
         self.single_prediction_target_space = gym.spaces.Discrete(num_classes)
         self.prediction_target_space = gym.spaces.MultiDiscrete((num_envs, num_classes))
         self.loss_fn = CrossEntropyLossFn()
-        self.__current_correct_sum = None
         self.__current_step = None
         self.__prev_done = None
-        self.__first_correct = None
-        self.__last_incorrect = None
+        self.__metrics: dict[str, tuple[deque[float] | np.ndarray, ...]] | None = None
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any]]:
-        self.__current_correct_sum = np.zeros(self.num_envs, dtype=np.float32)
         self.__current_step = np.zeros(self.num_envs, dtype=np.int32)
         self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
-        self.__first_correct = np.full(self.num_envs, -1, dtype=np.int32)
-        self.__last_incorrect = np.zeros(self.num_envs, dtype=np.int32)
+        self.__metrics = defaultdict(
+            lambda: tuple(deque() for _ in range(self.num_envs))
+        )
         return super().reset(seed=seed, options=options)
 
     def step(
         self, action: FullActType[ActType, PredType]
     ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super().step(action)
-        is_correct = info["prediction"]["target"] == action["prediction"].argmax(
-            axis=-1
-        )
-        self.__current_correct_sum += is_correct
-        self.__current_correct_sum[self.__prev_done] = 0
-        self.__current_step[self.__prev_done] = 0
-        self.__current_step[~self.__prev_done] += 1
-        self.__first_correct[self.__prev_done] = -1
-        self.__last_incorrect[self.__prev_done] = 0
-        set_first_correct = (
-            ~self.__prev_done & is_correct & (self.__first_correct == -1)
-        )
-        self.__first_correct[set_first_correct] = self.__current_step[set_first_correct]
-        self.__last_incorrect[~is_correct] = self.__current_step[~is_correct]
-        if "stats" not in info:
-            info["stats"] = {}
-        done = terminated | truncated
-        if np.any(done):
-            avg_accuracy = self.__current_correct_sum / np.maximum(
-                self.__current_step, 1
-            )
-            info["stats"].update(
+        for i in range(self.num_envs):
+            if self.__prev_done[i]:
+                self.__metrics["correct_label_prob"][i].clear()
+            else:
+                self.__metrics["correct_label_prob"][i].append(
+                    scipy.special.softmax(action["prediction"][i])[
+                        info["prediction"]["target"][i]
+                    ]
+                )
+
+        if np.any(terminated):
+            num_classes = self.single_prediction_target_space.n
+            correct_label_prob = [
+                np.array(e, dtype=np.float32)
+                for e in self.__metrics["correct_label_prob"]
+            ]
+            is_correct = [e > 1 / num_classes for e in correct_label_prob]
+            self.__metrics["accuracy"] = tuple(e.astype(np.float32) for e in is_correct)
+
+            info = update_info_metrics_vec(info, self.__metrics, terminated)
+
+            del self.__metrics["accuracy"]
+            first_correct = np.full(self.num_envs, -1, dtype=np.int32)
+            first_correct_valid = np.zeros(self.num_envs, dtype=np.bool_)
+            last_incorrect = np.full(self.num_envs, -1, dtype=np.int32)
+            last_incorrect_valid = np.zeros(self.num_envs, dtype=np.bool_)
+            for i in range(self.num_envs):
+                first_correct_candidates = np.where(is_correct[i])[0]
+                if len(first_correct_candidates) > 0:
+                    first_correct[i] = first_correct_candidates[0]
+                    first_correct_valid[i] = True
+                last_incorrect_candidates = np.where(~is_correct[i])[0]
+                if len(last_incorrect_candidates) > 0:
+                    last_incorrect[i] = last_incorrect_candidates[-1]
+                    last_incorrect_valid[i] = True
+            info["stats"]["scalar"].update(
                 {
-                    "avg_accuracy": avg_accuracy,
-                    "_avg_accuracy": done,
-                    "final_accuracy": is_correct.astype(np.float32),
-                    "_final_accuracy": done,
-                    "first_correct": self.__first_correct,
-                    "_first_correct": done & (self.__first_correct != -1),
-                    "last_incorrect": self.__last_incorrect,
-                    "_last_incorrect": done,
+                    "first_correct": first_correct,
+                    "_first_correct": first_correct_valid,
+                    "last_incorrect": last_incorrect,
+                    "_last_incorrect": last_incorrect_valid,
                 }
             )
-        self.__prev_done = done
+        self.__prev_done = terminated | truncated
         return obs, reward, terminated, truncated, info

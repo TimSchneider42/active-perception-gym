@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections import deque, defaultdict
 from typing import Generic, Any
 
 import gymnasium as gym
@@ -17,6 +18,7 @@ from .active_perception_vector_env import (
 )
 from .loss_fn import MSELossFn
 from .types import ObsType, ActType
+from .util import update_info_metrics, update_info_metrics_vec
 
 
 class ActiveRegressionEnv(
@@ -33,16 +35,14 @@ class ActiveRegressionEnv(
             low=-np.inf, high=np.inf, shape=(target_dim,)
         )
         self.loss_fn = MSELossFn()
-        self.__cumulative_dist = None
         self.__current_step = None
-        self.__mse_sum = None
+        self.__metrics: dict[str, deque[float]] | None = None
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any]]:
-        self.__cumulative_dist = 0.0
+        self.__metrics = defaultdict(deque)
         self.__current_step = 0
-        self.__mse_sum = 0.0
         return super().reset(seed=seed, options=options)
 
     def step(
@@ -57,19 +57,12 @@ class ActiveRegressionEnv(
         euclidean_dist = np.linalg.norm(target - prediction)
         mse = np.mean((target - prediction) ** 2)
 
-        self.__cumulative_dist += euclidean_dist
-        self.__mse_sum += mse
+        self.__metrics["euclidean_distance"].append(euclidean_dist)
+        self.__metrics["mse"].append(mse)
         self.__current_step += 1
 
-        done = terminated or truncated
-        if done:
-            final_dist = euclidean_dist  # Final distance is only stored locally
-            info["stats"] = {
-                "avg_euclidean_distance": self.__cumulative_dist
-                / max(self.__current_step, 1),
-                "final_euclidean_distance": final_dist,
-                "mse": self.__mse_sum / max(self.__current_step, 1),
-            }
+        if terminated:
+            info = update_info_metrics(info, self.__metrics)
 
         return obs, reward, terminated, truncated, info
 
@@ -99,18 +92,18 @@ class ActiveRegressionVectorEnv(
             low=-np.inf, high=np.inf, shape=(num_envs, target_dim)
         )
         self.loss_fn = MSELossFn()
-        self.__cumulative_dist = None
         self.__current_step = None
         self.__prev_done = None
-        self.__mse_sum = None
+        self.__metrics: dict[str, tuple[deque[float], ...]] | None = None
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any]]:
-        self.__cumulative_dist = np.zeros(self.num_envs, dtype=np.float32)
         self.__current_step = np.zeros(self.num_envs, dtype=np.int32)
         self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
-        self.__mse_sum = np.zeros(self.num_envs, dtype=np.float32)
+        self.__metrics = defaultdict(
+            lambda: tuple(deque() for _ in range(self.num_envs))
+        )
         return super().reset(seed=seed, options=options)
 
     def step(
@@ -125,28 +118,18 @@ class ActiveRegressionVectorEnv(
         euclidean_dist = np.linalg.norm(target - prediction, axis=-1)
         mse = np.mean((target - prediction) ** 2, axis=-1)
 
-        self.__cumulative_dist += euclidean_dist
-        self.__mse_sum += mse
+        for i in range(self.num_envs):
+            if self.__prev_done[i]:
+                self.__metrics["euclidean_distance"][i].clear()
+                self.__metrics["mse"][i].clear()
+            else:
+                self.__metrics["euclidean_distance"][i].append(euclidean_dist[i])
+                self.__metrics["mse"][i].append(mse[i])
 
         self.__current_step[~self.__prev_done] += 1
-        self.__cumulative_dist[self.__prev_done] = 0
-        self.__mse_sum[self.__prev_done] = 0
         self.__current_step[self.__prev_done] = 0
 
-        done = terminated | truncated
-        if np.any(done):
-            final_dist = euclidean_dist  # Local variable for final Euclidean distance
-            avg_euclidean_distance = self.__cumulative_dist / np.maximum(
-                self.__current_step, 1
-            )
-            info["stats"] = {
-                "avg_euclidean_distance": avg_euclidean_distance,
-                "_avg_euclidean_distance": done,
-                "final_euclidean_distance": final_dist,
-                "_final_euclidean_distance": done,
-                "mse": self.__mse_sum / np.maximum(self.__current_step, 1),
-                "_mse": done,
-            }
-
-        self.__prev_done = done
+        if np.any(terminated):
+            info = update_info_metrics_vec(info, self.__metrics, terminated)
+        self.__prev_done = terminated | truncated
         return obs, reward, terminated, truncated, info
