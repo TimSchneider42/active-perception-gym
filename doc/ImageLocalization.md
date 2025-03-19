@@ -74,12 +74,12 @@ The prediction target is a 2-dimensional `np.ndarray` containing the true coordi
 
 The observation is a dictionary with the following keys:
 
-| Key                | Type         | Description                                                                                                                                 |
-|--------------------|--------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| `"glimpse"`        | `np.ndarray` | $G \times G \times C$ numpy array of type `float32` representing a glimpse of the image where each pixel is in the range $[-1, 1]$          |
-| `"glimpse_pos"`    | `np.ndarray` | 2D numpy array of type `float32` containing the normalized position of the glimpse within the image in the range $[-1, 1]$                  |
-| `"target_glimpse"` | `np.ndarray` | $G \times G \times C$ numpy array of type `float32` representing the target glimpse of the image where each pixel is in the range $[-1, 1]$ |
-| `"time_step"`      | `float`      | The current time step between 0 and `image_perception_config.step_limit` normalized to the range $[-1, 1]$.                                 |
+| Key                | Type         | Description                                                                                                                                  |
+|--------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| `"glimpse"`        | `np.ndarray` | $G \times G \times C$ numpy array of type `float32` representing a glimpse of the image where each pixel is in the range $[-1, 1]$.          |
+| `"glimpse_pos"`    | `np.ndarray` | 2D numpy array of type `float32` containing the normalized position of the glimpse within the image in the range $[-1, 1]$.                  |
+| `"target_glimpse"` | `np.ndarray` | $G \times G \times C$ numpy array of type `float32` representing the target glimpse of the image where each pixel is in the range $[-1, 1]$. |
+| `"time_step"`      | `float`      | The current time step between 0 and `image_perception_config.step_limit` normalized to the range $[-1, 1]$.                                  |
 
 ## Rewards
 
