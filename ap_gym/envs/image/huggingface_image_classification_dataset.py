@@ -14,6 +14,7 @@ class HuggingfaceImageClassificationDataset(ImageClassificationDataset):
     def __init__(
         self,
         dataset_name: str,
+        channels: int = 3,
         split: str = "train",
         image_feature_name: str = "image",
         label_feature_name: str = "label",
@@ -23,6 +24,7 @@ class HuggingfaceImageClassificationDataset(ImageClassificationDataset):
         self.__train_split = self.__data = None
         self.__image_feature_name = image_feature_name
         self.__label_feature_name = label_feature_name
+        self.__channels = channels
 
     def load(self):
         dataset = load_dataset(
@@ -37,6 +39,9 @@ class HuggingfaceImageClassificationDataset(ImageClassificationDataset):
 
     def _get_num_classes(self) -> int:
         return self.__train_split.features[self.__label_feature_name].num_classes
+
+    def _get_num_channels(self) -> int:
+        return self.__channels
 
     def _get_length(self) -> int:
         return len(self.__data)

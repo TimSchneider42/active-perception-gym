@@ -16,6 +16,10 @@ class ImageClassificationDataset(
     def _get_num_classes(self) -> int:
         pass
 
+    @abstractmethod
+    def _get_num_channels(self) -> int:
+        pass
+
     def __has_overridden(self, method_name: str) -> bool:
         """Checks if the method is overridden in a subclass"""
         super_method = getattr(ImageClassificationDataset, method_name)
@@ -66,8 +70,17 @@ class ImageClassificationDataset(
             imgs = imgs.astype(np.float32)
         if len(imgs.shape) == 3:
             imgs = imgs[..., None]
-        if imgs.shape[-1] == 1:
+        target_channels = self._get_num_channels()
+        if target_channels not in [1, 3]:
+            raise ValueError(
+                f"Target channels must be either 1 or 3 but is {target_channels}."
+            )
+        if imgs.shape[-1] == 1 and target_channels == 3:
             imgs = np.repeat(imgs, 3, axis=-1)
+        if imgs.shape[-1] != target_channels:
+            raise ValueError(
+                f"Invalid image format. Expected {target_channels} channels but got {imgs.shape[-1]}"
+            )
         return imgs
 
     def _process_img_batch(
