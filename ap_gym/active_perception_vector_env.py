@@ -216,7 +216,7 @@ class PseudoActivePerceptionVectorWrapper(
 
     def step(
         self, action: FullActType[ActType, None]
-    ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], tuple[()]]:
+    ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
         obs, reward, terminated, truncated, info = self.env.step(action["action"])
         info.update(
             {
@@ -227,7 +227,7 @@ class PseudoActivePerceptionVectorWrapper(
                 },
             }
         )
-        return obs, reward, terminated, truncated, info, ()
+        return obs, reward, terminated, truncated, info
 
 
 def find_loss_and_pred_space_vec(
