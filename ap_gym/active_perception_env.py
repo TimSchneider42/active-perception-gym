@@ -252,7 +252,7 @@ class PseudoActivePerceptionWrapper(
 
     def step(
         self, action: FullActType[ActType, None]
-    ) -> tuple[ObsType, float, bool, bool, dict[str, Any], tuple[()]]:
+    ) -> tuple[ObsType, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = self.env.step(action["action"])
         info.update(
             {
@@ -263,7 +263,7 @@ class PseudoActivePerceptionWrapper(
                 },
             }
         )
-        return obs, float(reward), terminated, truncated, info, ()
+        return obs, float(reward), terminated, truncated, info
 
 
 def ensure_active_perception_env(env: gym.Env) -> BaseActivePerceptionEnv:
