@@ -106,7 +106,9 @@ def register_envs():
         for split_name in split_names:
             register_image_classification_env(
                 name=f"MNIST{split_name}-v0",
-                dataset=HuggingfaceImageClassificationDataset("mnist", split=split),
+                dataset=HuggingfaceImageClassificationDataset(
+                    "mnist", channels=1, split=split
+                ),
                 step_limit=16,
             )
 

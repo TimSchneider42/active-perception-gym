@@ -22,6 +22,9 @@ class CircleSquareDataset(ImageClassificationDataset):
     def _get_num_classes(self) -> int:
         return 2
 
+    def _get_num_channels(self) -> int:
+        return 1
+
     def _get_data_point(self, idx: int) -> tuple[np.ndarray, int]:
         label = int(idx >= np.prod(self.__image_shape))
         idx -= np.prod(self.__image_shape) * label
