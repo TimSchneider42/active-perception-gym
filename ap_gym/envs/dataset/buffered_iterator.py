@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import weakref
 from queue import Queue, Full
 from threading import Thread, Event
@@ -11,8 +13,14 @@ class BufferedIterator(Iterator[InnerIteratorType], Generic[InnerIteratorType]):
         self.__iterator = iterator
         self.__buffer = Queue(maxsize=buffer_size)
         self.__termination_signal = Event()
-        self.__thread = Thread(target=self.__thread_func, daemon=True)
-        weakref.finalize(self, self.close)
+        self.__thread = Thread(
+            target=self.__thread_func,
+            args=(self.__iterator, self.__buffer, self.__termination_signal),
+            daemon=True,
+        )
+        weakref.finalize(
+            self, self._thread_shutdown, self.__thread, self.__termination_signal
+        )
         self.__thread.start()
 
     def __next__(self) -> InnerIteratorType:
@@ -22,21 +30,32 @@ class BufferedIterator(Iterator[InnerIteratorType], Generic[InnerIteratorType]):
         return res
 
     def close(self):
-        if self.__thread is not None:
-            self.__termination_signal.set()
-            self.__thread.join()
-            self.__thread = None
+        self._thread_shutdown(self.__thread, self.__termination_signal)
+        self.__thread = None
+        # Thread safety is not an issue here, since the thread is already terminated
+        self.__buffer.queue.clear()
 
-    def __thread_func(self):
+    @staticmethod
+    def _thread_shutdown(thread: Thread | None, termination_signal: Event):
+        if thread is not None:
+            termination_signal.set()
+            thread.join()
+
+    @staticmethod
+    def __thread_func(
+        iterator: Iterator[InnerIteratorType],
+        buffer: Queue[InnerIteratorType],
+        termination_signal: Event,
+    ):
         try:
-            for item in self.__iterator:
-                while not self.__termination_signal.is_set():
+            for item in iterator:
+                while not termination_signal.is_set():
                     try:
-                        self.__buffer.put(item, timeout=0.05)
+                        buffer.put(item, timeout=0.05)
                         break
                     except Full:
                         continue
                 else:
                     break
         except Exception as e:
-            self.__buffer.put(e)
+            buffer.put(e)
