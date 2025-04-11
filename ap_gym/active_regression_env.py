@@ -88,8 +88,11 @@ class ActiveRegressionVectorEnv(
         self.action_space = gym.vector.utils.batch_space(
             self.single_action_space, num_envs
         )
-        self.prediction_target_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(num_envs, target_dim)
+        self.single_prediction_target_space = gym.spaces.Box(
+            low=-np.inf, high=np.inf, shape=(target_dim,)
+        )
+        self.prediction_target_space = gym.vector.utils.batch_space(
+            self.single_prediction_target_space, num_envs
         )
         self.loss_fn = MSELossFn()
         self.__current_step = None
