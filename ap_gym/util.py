@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Mapping, Any, Sequence
 
 import numpy as np
@@ -25,7 +27,10 @@ def update_info_metrics(
                     **{f"final_{n}": float(v[-1]) for n, v in metrics.items()},
                 },
                 "vector": {
-                    n: np.asarray(v, dtype=np.float32) for n, v in metrics.items()
+                    # Need to use a list and not a numpy array here as otherwise SyncVectorEnv will try to stack the
+                    # arrays, which throws an error if the arrays are of different lengths
+                    n: list(v)
+                    for n, v in metrics.items()
                 },
             }
         },
@@ -65,12 +70,13 @@ def update_info_metrics_vec(
                 "_scalar": terminated,
                 "vector": {
                     **{
-                        n: tuple(
-                            np.asarray(e, dtype=np.float32)
-                            if t
-                            else np.array((), dtype=np.float32)
-                            for e, t in zip(v, terminated)
-                        )
+                        # The None trick is to ensure that numpy does not try to stack the lists if they happen to have
+                        # the same length.
+                        n: np.array(
+                            [(list(e) if t else []) for e, t in zip(v, terminated)]
+                            + [None],
+                            dtype=object,
+                        )[:-1]
                         for n, v in metrics.items()
                     },
                     **{f"_{n}": terminated for n in metrics.keys()},
