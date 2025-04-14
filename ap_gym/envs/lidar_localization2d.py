@@ -218,7 +218,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
         normalized_pos = self.__pos / map_size * 2 - 1
 
-        prediction_quality = np.linalg.norm(
+        prediction_quality = 1 - np.linalg.norm(
             prediction - normalized_pos, axis=-1
         ) / np.sqrt(4)
         self.__trajectory.append((self.__pos, np.clip(prediction_quality, 0, 1)))

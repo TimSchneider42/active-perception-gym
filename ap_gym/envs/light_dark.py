@@ -76,9 +76,9 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             base_reward -= 20
             terminated = True
         self.__pos = np.clip(self.__pos, -1, 1)
-        prediction_quality = np.linalg.norm(prediction - self.__pos, axis=-1) / np.sqrt(
-            4
-        )
+        prediction_quality = 1 - np.linalg.norm(
+            prediction - self.__pos, axis=-1
+        ) / np.sqrt(4)
         self.__trajectory.append((self.__pos, prediction_quality))
         return self.__get_obs(), base_reward, terminated, False, {}, self.__pos
 
