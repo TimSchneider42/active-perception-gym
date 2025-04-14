@@ -18,6 +18,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         )
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
+        self.__render_mode = render_mode
         self.__pos = self.__last_obs = self.__last_pred = None
         self.__light_pos = np.array([0, -0.7], dtype=np.float32)
         self.__light_height = 0.2
@@ -163,3 +164,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         )
 
         return np.array(img)
+
+    @property
+    def render_mode(self) -> Literal["rgb_array"]:
+        return self.__render_mode
