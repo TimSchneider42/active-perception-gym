@@ -41,6 +41,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         )
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
+        self.__render_mode = render_mode
 
         self.__static_map = static_map
         self.__dataset = dataset
@@ -388,3 +389,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 self.__prefetch_buffer_size,
             )
         self.__np_random = np_random
+
+    @property
+    def render_mode(self) -> Literal["rgb_array"]:
+        return self.__render_mode
