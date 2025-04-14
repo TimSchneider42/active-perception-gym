@@ -68,7 +68,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         self.__last_pred = prediction
-        base_reward = 1e-3 * np.sum(action**2, axis=-1)
+        base_reward = -1e-3 * np.sum(action**2, axis=-1)
         action_clipped = np.clip(action, -1, 1)
         self.__pos += action_clipped * 0.15
         terminated = False
