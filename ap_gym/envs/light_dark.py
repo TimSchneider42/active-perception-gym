@@ -68,12 +68,13 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         self.__last_pred = prediction
-        base_reward = -1e-3 * np.sum(action**2, axis=-1)
+
+        # The 1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of bounds
+        base_reward = 1 - 1e-3 * np.sum(action**2, axis=-1)
         action_clipped = np.clip(action, -1, 1)
         self.__pos += action_clipped * 0.15
         terminated = False
         if np.any(np.abs(self.__pos) >= 1):
-            base_reward -= 20
             terminated = True
         self.__pos = np.clip(self.__pos, -1, 1)
         prediction_quality = 1 - np.linalg.norm(
