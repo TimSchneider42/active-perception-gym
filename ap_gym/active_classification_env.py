@@ -34,13 +34,11 @@ class ActiveClassificationEnv(
         )
         self.prediction_target_space = gym.spaces.Discrete(num_classes)
         self.loss_fn = CrossEntropyLossFn()
-        self.__current_step = None
         self.__metrics: dict[str, deque[float] | np.ndarray] | None = None
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any]]:
-        self.__current_step = 0
         self.__metrics = defaultdict(deque)
         return super().reset(seed=seed, options=options)
 
@@ -55,7 +53,6 @@ class ActiveClassificationEnv(
                 ]
             )
         )
-        self.__current_step += 1
         done = terminated or truncated
         if done:
             num_classes = self.prediction_target_space.n
@@ -98,14 +95,12 @@ class ActiveClassificationVectorEnv(
         self.single_prediction_target_space = gym.spaces.Discrete(num_classes)
         self.prediction_target_space = gym.spaces.MultiDiscrete((num_envs, num_classes))
         self.loss_fn = CrossEntropyLossFn()
-        self.__current_step = None
         self.__prev_done = None
         self.__metrics: dict[str, tuple[deque[float] | np.ndarray, ...]] | None = None
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any]]:
-        self.__current_step = np.zeros(self.num_envs, dtype=np.int32)
         self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
         self.__metrics = defaultdict(
             lambda: tuple(deque() for _ in range(self.num_envs))

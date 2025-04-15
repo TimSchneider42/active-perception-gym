@@ -35,14 +35,12 @@ class ActiveRegressionEnv(
             low=-np.inf, high=np.inf, shape=(target_dim,)
         )
         self.loss_fn = MSELossFn()
-        self.__current_step = None
         self.__metrics: dict[str, deque[float]] | None = None
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any]]:
         self.__metrics = defaultdict(deque)
-        self.__current_step = 0
         return super().reset(seed=seed, options=options)
 
     def step(
@@ -59,7 +57,6 @@ class ActiveRegressionEnv(
 
         self.__metrics["euclidean_distance"].append(euclidean_dist)
         self.__metrics["mse"].append(mse)
-        self.__current_step += 1
 
         if terminated:
             info = update_info_metrics(info, self.__metrics)
@@ -95,14 +92,12 @@ class ActiveRegressionVectorEnv(
             self.single_prediction_target_space, num_envs
         )
         self.loss_fn = MSELossFn()
-        self.__current_step = None
         self.__prev_done = None
         self.__metrics: dict[str, tuple[deque[float], ...]] | None = None
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any | None] = None
     ) -> tuple[ObsType, dict[str, Any]]:
-        self.__current_step = np.zeros(self.num_envs, dtype=np.int32)
         self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
         self.__metrics = defaultdict(
             lambda: tuple(deque() for _ in range(self.num_envs))
@@ -128,9 +123,6 @@ class ActiveRegressionVectorEnv(
             else:
                 self.__metrics["euclidean_distance"][i].append(euclidean_dist[i])
                 self.__metrics["mse"][i].append(mse[i])
-
-        self.__current_step[~self.__prev_done] += 1
-        self.__current_step[self.__prev_done] = 0
 
         if np.any(terminated):
             info = update_info_metrics_vec(info, self.__metrics, terminated)
