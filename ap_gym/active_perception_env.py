@@ -160,10 +160,8 @@ class ActivePerceptionWrapper(
 ):
     env: BaseActivePerceptionEnv[ObsType, ActType, PredType, PredTargetType]
 
-    def __init__(
-        self, env: BaseActivePerceptionEnv[ObsType, ActType, PredType, PredTargetType]
-    ):
-        assert isinstance(env, BaseActivePerceptionEnv)
+    def __init__(self, env: gym.Env[ObsType, FullActType[ActType, PredType]]):
+        env = ensure_active_perception_env(env)
         self._action_space: ActivePerceptionActionSpace[ActType, PredType] | None
         self._prediction_target_space: (
             gym.spaces.Space[WrapperPredTargetType] | None
