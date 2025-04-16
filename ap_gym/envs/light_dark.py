@@ -19,7 +19,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
         self.__render_mode = render_mode
-        self.__pos = self.__last_obs = self.__last_pred = None
+        self.__pos = self.__last_obs = self.__last_pos = self.__last_pred = None
         self.__light_pos = np.array([0, -0.7], dtype=np.float32)
         self.__light_height = 0.2
 
@@ -64,10 +64,12 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         ).astype(np.float32)
         self.__trajectory.clear()
         self.__trajectory.append((self.__pos, None))
+        self.__last_pred = self.__last_pos = None
         return self.__get_obs(), {}, self.__pos
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         self.__last_pred = prediction
+        self.__last_pos = self.__pos.copy()
 
         # The 1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of bounds
         base_reward = 0.1 - 1e-3 * np.sum(action**2, axis=-1)
@@ -77,9 +79,10 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         if np.any(np.abs(self.__pos) >= 1):
             terminated = True
         self.__pos = np.clip(self.__pos, -1, 1)
-        prediction_quality = 1 - np.linalg.norm(
-            prediction - self.__pos, axis=-1
-        ) / np.sqrt(4)
+
+        prediction_quality = np.maximum(
+            1 - np.linalg.norm(prediction - self.__pos) / 0.25, 0
+        )
         self.__trajectory.append((self.__pos, prediction_quality))
         return self.__get_obs(), base_reward, terminated, False, {}, self.__pos
 
@@ -137,10 +140,11 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
         if self.__last_pred is not None:
             last_pred = (self.__last_pred + 1) / 2 * np.array(img.size[::-1])
+            last_pos = (self.__last_pos + 1) / 2 * np.array(img.size[::-1])
 
             draw.line(
                 (
-                    tuple(pos),
+                    tuple(last_pos),
                     tuple(last_pred),
                 ),
                 fill=COLOR_PRED + (80,),
@@ -152,6 +156,15 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                     tuple(last_pred + dot_radius),
                 ],
                 fill=COLOR_PRED + (100,),
+                outline=None,
+            )
+
+            draw.ellipse(
+                [
+                    tuple(last_pos - dot_radius),
+                    tuple(last_pos + dot_radius),
+                ],
+                fill=COLOR_AGENT + (100,),
                 outline=None,
             )
 
