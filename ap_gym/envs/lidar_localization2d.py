@@ -52,6 +52,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__map_shapely = None
         self.__map_obs = None
         self.__pos = None
+        self.__last_pos = None
         self.__last_pred = None
         self.__initial_pos = None
         self.__trajectory = deque()
@@ -167,6 +168,8 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__trajectory.clear()
         self.__trajectory.append((self.__pos, None))
 
+        self.__last_pred = self.__last_pos = None
+
         return self.__get_obs(), {"map_idx": self.__map_idx}, self.__pos
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
@@ -174,6 +177,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             [self.__map.shape[1], self.__map.shape[0]], dtype=np.float32
         )
         self.__last_pred = (prediction + 1) / 2 * map_size
+        self.__last_pos = self.__pos.copy()
 
         # The 1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of bounds
         base_reward = 0.1 - 1e-3 * np.sum(action**2, axis=-1)
@@ -218,10 +222,8 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
         normalized_pos = self.__pos / map_size * 2 - 1
 
-        prediction_quality = 1 - np.linalg.norm(
-            prediction - normalized_pos, axis=-1
-        ) / np.sqrt(4)
-        self.__trajectory.append((self.__pos, np.clip(prediction_quality, 0, 1)))
+        prediction_quality = 1 - np.linalg.norm(prediction - normalized_pos) / 0.25
+        self.__trajectory.append((self.__pos, np.minimum(prediction_quality, 1)))
 
         return (
             self.__get_obs(),
@@ -297,8 +299,8 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         if self.__last_pred is not None:
             draw.line(
                 (
-                    self.__pos[0] * scale,
-                    self.__pos[1] * scale,
+                    self.__last_pos[0] * scale,
+                    self.__last_pos[1] * scale,
                     self.__last_pred[0] * scale,
                     self.__last_pred[1] * scale,
                 ),
@@ -313,6 +315,16 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                     (self.__last_pred[1] + agent_radius) * scale,
                 ),
                 fill=COLOR_PRED,
+            )
+
+            draw.ellipse(
+                (
+                    (self.__last_pos[0] - agent_radius) * scale,
+                    (self.__last_pos[1] - agent_radius) * scale,
+                    (self.__last_pos[0] + agent_radius) * scale,
+                    (self.__last_pos[1] + agent_radius) * scale,
+                ),
+                fill=COLOR_AGENT + (100,),
             )
 
         draw.ellipse(
