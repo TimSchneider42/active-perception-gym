@@ -176,7 +176,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__last_pred = (prediction + 1) / 2 * map_size
 
         # The 1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of bounds
-        base_reward = 1 - 1e-3 * np.sum(action**2, axis=-1)
+        base_reward = 0.1 - 1e-3 * np.sum(action**2, axis=-1)
         action_clipped = np.clip(action, -1, 1)
         target_pos = self.__pos + action_clipped
         direction = target_pos - self.__pos
