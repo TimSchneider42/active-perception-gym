@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import partial
+from functools import partial, reduce
 from typing import Any, Sequence, Callable
 
 import gymnasium as gym
@@ -12,6 +12,10 @@ from ap_gym import (
     ensure_active_perception_env,
     BaseActivePerceptionVectorEnv,
     ensure_active_perception_vector_env,
+    ActiveRegressionLogWrapper,
+    ActiveRegressionVectorLogWrapper,
+    ActiveClassificationLogWrapper,
+    ActiveClassificationVectorLogWrapper,
 )
 from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze, FloorMapDataset
 from .image import (
@@ -20,15 +24,23 @@ from .image import (
     ImageClassificationDataset,
     ImagePerceptionConfig,
 )
+from .image_classification import ImageClassificationEnv, ImageClassificationVectorEnv
+from .image_localization import ImageLocalizationEnv, ImageLocalizationVectorEnv
+
+ACTIVE_REGRESSION_LOGGER_WRAPPER_SPEC = WrapperSpec(
+    "ActiveRegressionLogWrapper", "ap_gym:ActiveRegressionLogWrapper", kwargs={}
+)
 
 
 def register_image_env(
     name: str,
-    entry_point: str,
-    vector_entry_point: str,
+    entry_point: Callable[[...], gym.Env],
+    vector_entry_point: Callable[[...], gym.vector.VectorEnv],
     dataset: ImageClassificationDataset,
     step_limit: int,
     kwargs: dict[str, Any] | None = None,
+    single_wrappers: tuple[Callable[[gym.Env], gym.Env]] = (),
+    vector_wrappers: tuple[Callable[[gym.vector.VectorEnv], gym.vector.VectorEnv]] = (),
 ):
     if kwargs is None:
         kwargs = {}
@@ -39,21 +51,33 @@ def register_image_env(
                 dataset=dataset, step_limit=step_limit, **kwargs
             )
         ),
-        entry_point=entry_point,
-        vector_entry_point=vector_entry_point,
+        entry_point=lambda *args, **kwargs: reduce(
+            lambda env, wrapper_fn: wrapper_fn(env),
+            single_wrappers,
+            entry_point(*args, **kwargs),
+        ),
+        vector_entry_point=lambda *args, **kwargs: reduce(
+            lambda env, wrapper_fn: wrapper_fn(env),
+            vector_wrappers,
+            vector_entry_point(*args, **kwargs),
+        ),
     )
 
 
 register_image_classification_env = partial(
     register_image_env,
-    entry_point="ap_gym.envs.image_classification:ImageClassificationEnv",
-    vector_entry_point="ap_gym.envs.image_classification:ImageClassificationVectorEnv",
+    entry_point=ImageClassificationEnv,
+    vector_entry_point=ImageClassificationVectorEnv,
+    single_wrappers=(ActiveClassificationLogWrapper,),
+    vector_wrappers=(ActiveClassificationVectorLogWrapper,),
 )
 
 register_image_localization_env = partial(
     register_image_env,
-    entry_point="ap_gym.envs.image_localization:ImageLocalizationEnv",
-    vector_entry_point="ap_gym.envs.image_localization:ImageLocalizationVectorEnv",
+    entry_point=ImageLocalizationEnv,
+    vector_entry_point=ImageLocalizationVectorEnv,
+    single_wrappers=(ActiveRegressionLogWrapper,),
+    vector_wrappers=(ActiveRegressionVectorLogWrapper,),
 )
 
 
@@ -72,7 +96,10 @@ def register_lidar_localization_env(
         id=name,
         entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
         kwargs=dict(dataset=dataset, static_map=static_map),
-        additional_wrappers=(mk_time_limit(step_limit),),
+        additional_wrappers=(
+            mk_time_limit(step_limit),
+            ACTIVE_REGRESSION_LOGGER_WRAPPER_SPEC,
+        ),
     )
 
 
@@ -153,7 +180,10 @@ def register_envs():
     gym.register(
         id="LightDark-v0",
         entry_point="ap_gym.envs.light_dark:LightDarkEnv",
-        additional_wrappers=(mk_time_limit(50),),
+        additional_wrappers=(
+            mk_time_limit(50),
+            ACTIVE_REGRESSION_LOGGER_WRAPPER_SPEC,
+        ),
     )
 
     register_lidar_localization_env(

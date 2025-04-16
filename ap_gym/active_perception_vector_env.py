@@ -155,11 +155,9 @@ class ActivePerceptionVectorWrapper(
 
     def __init__(
         self,
-        env: BaseActivePerceptionVectorEnv[
-            ObsType, ActType, PredType, PredTargetType, ArrayType
-        ],
+        env: gym.vector.VectorEnv[ObsType, FullActType[ActType, PredType], ArrayType],
     ):
-        assert isinstance(env, BaseActivePerceptionVectorEnv)
+        env = ensure_active_perception_vector_env(env)
         self._action_space: ActivePerceptionActionSpace[ActType, PredType] | None
         self._single_action_space: ActivePerceptionActionSpace[ActType, PredType] | None
         self._prediction_target_space: gym.Space[WrapperPredTargetType] | None = None

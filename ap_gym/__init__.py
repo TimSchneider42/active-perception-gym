@@ -1,6 +1,8 @@
 from .active_classification_env import (
     ActiveClassificationEnv,
     ActiveClassificationVectorEnv,
+    ActiveClassificationLogWrapper,
+    ActiveClassificationVectorLogWrapper,
 )
 from .active_perception_env import (
     ActivePerceptionEnv,
@@ -20,7 +22,12 @@ from .active_perception_vector_env import (
     PseudoActivePerceptionVectorWrapper,
     ensure_active_perception_vector_env,
 )
-from .active_regression_env import ActiveRegressionEnv, ActiveRegressionVectorEnv
+from .active_regression_env import (
+    ActiveRegressionEnv,
+    ActiveRegressionVectorEnv,
+    ActiveRegressionLogWrapper,
+    ActiveRegressionVectorLogWrapper,
+)
 from .image_space import ImageSpace
 from .loss_fn import LossFn, LambdaLossFn, ZeroLossFn, CrossEntropyLossFn, MSELossFn
 from .time_limit import TimeLimit

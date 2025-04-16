@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from collections import deque, defaultdict
-from typing import Generic, Any
+from typing import Generic, Any, SupportsFloat
 
 import gymnasium as gym
 import numpy as np
@@ -11,9 +11,11 @@ import scipy
 from .active_perception_env import (
     ActivePerceptionEnv,
     ActivePerceptionActionSpace,
+    ActivePerceptionWrapper,
 )
 from .active_perception_vector_env import (
     ActivePerceptionVectorEnv,
+    ActivePerceptionVectorWrapper,
     FullActType,
     PredType,
 )
@@ -34,6 +36,41 @@ class ActiveClassificationEnv(
         )
         self.prediction_target_space = gym.spaces.Discrete(num_classes)
         self.loss_fn = CrossEntropyLossFn()
+
+
+class ActiveClassificationVectorEnv(
+    ActivePerceptionVectorEnv[ObsType, ActType, np.ndarray, np.ndarray, np.ndarray],
+    Generic[ObsType, ActType],
+    ABC,
+):
+    def __init__(
+        self,
+        num_envs: int,
+        num_classes: int,
+        single_inner_action_space: gym.Space[ActType],
+    ):
+        self.num_envs = num_envs
+        single_prediction_space = gym.spaces.Box(-np.inf, np.inf, shape=(num_classes,))
+        self.single_action_space = ActivePerceptionActionSpace(
+            single_inner_action_space, single_prediction_space
+        )
+        self.action_space = gym.vector.utils.batch_space(
+            self.single_action_space, num_envs
+        )
+        self.single_prediction_target_space = gym.spaces.Discrete(num_classes)
+        self.prediction_target_space = gym.spaces.MultiDiscrete((num_envs, num_classes))
+        self.loss_fn = CrossEntropyLossFn()
+
+
+class ActiveClassificationLogWrapper(
+    ActivePerceptionWrapper[
+        ObsType, ActType, np.ndarray, int, ObsType, ActType, np.ndarray, int
+    ],
+    Generic[ObsType, ActType],
+    ABC,
+):
+    def __init__(self, env: ActivePerceptionEnv[ObsType, ActType, np.ndarray, int]):
+        super().__init__(env)
         self.__metrics: dict[str, deque[float] | np.ndarray] | None = None
 
     def reset(
@@ -44,7 +81,7 @@ class ActiveClassificationEnv(
 
     def step(
         self, action: FullActType[ActType, PredType]
-    ) -> tuple[ObsType, float, bool, bool, dict[str, Any]]:
+    ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super().step(action)
         self.__metrics["correct_label_prob"].append(
             float(
@@ -73,28 +110,27 @@ class ActiveClassificationEnv(
         return obs, reward, terminated, truncated, info
 
 
-class ActiveClassificationVectorEnv(
-    ActivePerceptionVectorEnv[ObsType, ActType, np.ndarray, np.ndarray, np.ndarray],
+class ActiveClassificationVectorLogWrapper(
+    ActivePerceptionVectorWrapper[
+        ObsType,
+        ActType,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        ObsType,
+        ActType,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ],
     Generic[ObsType, ActType],
     ABC,
 ):
     def __init__(
         self,
-        num_envs: int,
-        num_classes: int,
-        single_inner_action_space: gym.Space[ActType],
+        env: ActivePerceptionVectorEnv[ObsType, ActType, np.ndarray, np.ndarray],
     ):
-        self.num_envs = num_envs
-        single_prediction_space = gym.spaces.Box(-np.inf, np.inf, shape=(num_classes,))
-        self.single_action_space = ActivePerceptionActionSpace(
-            single_inner_action_space, single_prediction_space
-        )
-        self.action_space = gym.vector.utils.batch_space(
-            self.single_action_space, num_envs
-        )
-        self.single_prediction_target_space = gym.spaces.Discrete(num_classes)
-        self.prediction_target_space = gym.spaces.MultiDiscrete((num_envs, num_classes))
-        self.loss_fn = CrossEntropyLossFn()
+        super().__init__(env)
         self.__prev_done = None
         self.__metrics: dict[str, tuple[deque[float] | np.ndarray, ...]] | None = None
 
