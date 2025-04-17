@@ -110,7 +110,7 @@ class ActiveRegressionLogWrapper(
         self.__metrics["euclidean_distance"].append(euclidean_dist)
         self.__metrics["mse"].append(mse)
 
-        if terminated:
+        if terminated or truncated:
             info = update_info_metrics(info, self.__metrics)
 
         return obs, reward, terminated, truncated, info
@@ -180,7 +180,7 @@ class ActiveRegressionVectorLogWrapper(
                 self.__metrics["euclidean_distance"][i].append(euclidean_dist[i])
                 self.__metrics["mse"][i].append(mse[i])
 
-        if np.any(terminated):
-            info = update_info_metrics_vec(info, self.__metrics, terminated)
         self.__prev_done = terminated | truncated
+        if np.any(terminated):
+            info = update_info_metrics_vec(info, self.__metrics, self.__prev_done)
         return obs, reward, terminated, truncated, info

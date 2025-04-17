@@ -157,7 +157,8 @@ class ActiveClassificationVectorLogWrapper(
                     ]
                 )
 
-        if np.any(terminated):
+        self.__prev_done = terminated | truncated
+        if np.any(self.__prev_done):
             num_classes = self.single_prediction_target_space.n
             correct_label_prob = [
                 np.array(e, dtype=np.float32)
@@ -166,7 +167,7 @@ class ActiveClassificationVectorLogWrapper(
             is_correct = [e > 1 / num_classes for e in correct_label_prob]
             self.__metrics["accuracy"] = tuple(e.astype(np.float32) for e in is_correct)
 
-            info = update_info_metrics_vec(info, self.__metrics, terminated)
+            info = update_info_metrics_vec(info, self.__metrics, self.__prev_done)
 
             del self.__metrics["accuracy"]
             first_correct = np.full(self.num_envs, -1, dtype=np.int32)
@@ -190,5 +191,4 @@ class ActiveClassificationVectorLogWrapper(
                     "_last_incorrect": last_incorrect_valid,
                 }
             )
-        self.__prev_done = terminated | truncated
         return obs, reward, terminated, truncated, info
