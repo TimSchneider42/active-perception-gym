@@ -40,7 +40,7 @@ def update_info_metrics(
 def update_info_metrics_vec(
     info: dict[str, Any],
     metrics: dict[str, Sequence[Sequence[float] | np.ndarray]],
-    terminated: np.ndarray,
+    done: np.ndarray,
 ) -> dict[str, Any]:
     return update_dict_recursive(
         info,
@@ -49,39 +49,35 @@ def update_info_metrics_vec(
                 "scalar": {
                     **{
                         f"final_{n}": np.array(
-                            [e[-1] if t else np.nan for t, e in zip(terminated, v)],
+                            [e[-1] if t else np.nan for t, e in zip(done, v)],
                             dtype=np.float32,
                         )
                         for n, v in metrics.items()
                     },
-                    **{f"_final_{n}": terminated for n in metrics.keys()},
+                    **{f"_final_{n}": done for n in metrics.keys()},
                     **{
                         f"avg_{n}": np.array(
-                            [
-                                np.mean(e) if t else np.nan
-                                for t, e in zip(terminated, v)
-                            ],
+                            [np.mean(e) if t else np.nan for t, e in zip(done, v)],
                             dtype=np.float32,
                         )
                         for n, v in metrics.items()
                     },
-                    **{f"_avg_{n}": terminated for n in metrics.keys()},
+                    **{f"_avg_{n}": done for n in metrics.keys()},
                 },
-                "_scalar": terminated,
+                "_scalar": done,
                 "vector": {
                     **{
                         # The None trick is to ensure that numpy does not try to stack the lists if they happen to have
                         # the same length.
                         n: np.array(
-                            [(list(e) if t else []) for e, t in zip(v, terminated)]
-                            + [None],
+                            [(list(e) if t else []) for e, t in zip(v, done)] + [None],
                             dtype=object,
                         )[:-1]
                         for n, v in metrics.items()
                     },
-                    **{f"_{n}": terminated for n in metrics.keys()},
+                    **{f"_{n}": done for n in metrics.keys()},
                 },
-                "_vector": terminated,
+                "_vector": done,
             }
         },
     )
