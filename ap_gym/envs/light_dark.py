@@ -81,7 +81,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__pos = np.clip(self.__pos, -1, 1)
 
         prediction_quality = np.maximum(
-            1 - np.linalg.norm(prediction - self.__pos) / 0.25, 0
+            1 - np.linalg.norm(prediction - self.__pos) / 0.5, 0
         )
         self.__trajectory.append((self.__pos, prediction_quality))
         return self.__get_obs(), base_reward, terminated, False, {}, self.__pos
