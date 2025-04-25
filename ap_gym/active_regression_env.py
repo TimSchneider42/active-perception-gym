@@ -96,7 +96,7 @@ class ActiveRegressionLogWrapper(
         return super().reset(seed=seed, options=options)
 
     def step(
-        self, action: FullActType[ActType, PredType]
+        self, action: FullActType[ActType, np.ndarray]
     ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super().step(action)
 
@@ -161,7 +161,7 @@ class ActiveRegressionVectorLogWrapper(
         return super().reset(seed=seed, options=options)
 
     def step(
-        self, action: FullActType[ActType, PredType]
+        self, action: FullActType[ActType, np.ndarray]
     ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super().step(action)
 
@@ -181,6 +181,6 @@ class ActiveRegressionVectorLogWrapper(
                 self.__metrics["mse"][i].append(mse[i])
 
         self.__prev_done = terminated | truncated
-        if np.any(terminated):
+        if np.any(self.__prev_done):
             info = update_info_metrics_vec(info, self.__metrics, self.__prev_done)
         return obs, reward, terminated, truncated, info
