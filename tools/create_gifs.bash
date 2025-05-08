@@ -30,7 +30,7 @@ OUTPUT_DIR="$SCRIPT_DIR/../doc/img"
 rm -rf "${OUTPUT_DIR}"
 mkdir -p "${OUTPUT_DIR}"
 for env in "${ENVS[@]}"; do
-  ap-gym-create-env-gif "$env" "${OUTPUT_DIR}/$env.gif" &
+  ap-gym-create-env-vid "$env" "${OUTPUT_DIR}/$env.gif" &
 done
 
 wait

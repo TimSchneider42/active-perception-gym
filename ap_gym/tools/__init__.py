@@ -1,1 +1,1 @@
-from .create_env_gif import create_env_gif
+from .create_env_vid import create_env_vid

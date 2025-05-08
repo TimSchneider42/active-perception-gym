@@ -6,7 +6,7 @@ import imageio
 import ap_gym
 
 
-def create_env_gif(env_id: str, filename: Path, seed: int = 0, num_eps: int = 10):
+def create_env_vid(env_id: str, filename: Path, seed: int = 0, num_eps: int = 10):
     imageio.plugins.freeimage.download()
 
     env = ap_gym.make(env_id, render_mode="rgb_array")
@@ -25,8 +25,9 @@ def create_env_gif(env_id: str, filename: Path, seed: int = 0, num_eps: int = 10
                 done = terminated or truncated
                 imgs[-1].append(env.render())
         imgs_flat = [img for ep_imgs in imgs for img in ep_imgs]
+        format = "GIF-FI" if filename.suffix == ".gif" else None
         imageio.mimsave(
-            filename, imgs_flat, fps=env.metadata["render_fps"], format="GIF-FI"
+            filename, imgs_flat, fps=env.metadata["render_fps"], format=format
         )
     finally:
         env.close()
@@ -42,7 +43,7 @@ def main():
     )
     args = parser.parse_args()
 
-    create_env_gif(args.env_id, args.filename, seed=args.seed, num_eps=args.num_eps)
+    create_env_vid(args.env_id, args.filename, seed=args.seed, num_eps=args.num_eps)
 
 
 if __name__ == "__main__":
