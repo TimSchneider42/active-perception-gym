@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ap_gym"
-version = "0.3.0"
+version = "0.3.1"
 description = "Active Perception Gym: extension of Gymnasium for active perception tasks."
 authors = [
     { name = "Tim Schneider", email = "tim@robot-learning.de" }
@@ -29,4 +29,4 @@ examples = ["matplotlib"]
 include = ["ap_gym*"]
 
 [project.scripts]
-ap-gym-create-env-gif = "ap_gym.tools.create_env_gif:main"
+ap-gym-create-env-vid = "ap_gym.tools.create_env_vid:main"
