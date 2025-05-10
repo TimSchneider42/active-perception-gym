@@ -81,7 +81,7 @@ register_image_localization_env = partial(
 )
 
 
-def mk_time_limit(step_limit: int, issue_termination=False) -> WrapperSpec:
+def mk_time_limit(step_limit: int, issue_termination=True) -> WrapperSpec:
     return WrapperSpec(
         "TimeLimit",
         "ap_gym:TimeLimit",
