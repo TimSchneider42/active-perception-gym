@@ -185,29 +185,30 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         target_pos = self.__pos + action_clipped
         direction = target_pos - self.__pos
         total_dist = np.linalg.norm(direction)
-        direction /= total_dist
-        dist_to_wall, _ = self.__lidar_scan(self.__pos, target_pos[None])
-        dist_to_wall = dist_to_wall[0]
-        self.__pos += direction * dist_to_wall
+        if total_dist > 0:
+            direction /= total_dist
+            dist_to_wall, _ = self.__lidar_scan(self.__pos, target_pos[None])
+            dist_to_wall = dist_to_wall[0]
+            self.__pos += direction * dist_to_wall
 
-        # Make agent slide along wall
-        remaining_dist = total_dist - dist_to_wall
-        if remaining_dist > 0:
-            remaining_vec = direction * remaining_dist
-            direction_candidates = np.eye(2, dtype=np.float32) * remaining_vec
-            target_pos_candidates = self.__pos + direction_candidates
-            dist_to_wall_candidates, _ = self.__lidar_scan(
-                self.__pos, target_pos_candidates
-            )
-            if dist_to_wall_candidates[0] > 0:
-                idx = 0
-            else:
-                idx = 1
-            self.__pos += (
-                direction_candidates[idx]
-                / np.linalg.norm(direction_candidates[idx])
-                * dist_to_wall_candidates[idx]
-            )
+            # Make agent slide along wall
+            remaining_dist = total_dist - dist_to_wall
+            if remaining_dist > 0:
+                remaining_vec = direction * remaining_dist
+                direction_candidates = np.eye(2, dtype=np.float32) * remaining_vec
+                target_pos_candidates = self.__pos + direction_candidates
+                dist_to_wall_candidates, _ = self.__lidar_scan(
+                    self.__pos, target_pos_candidates
+                )
+                if dist_to_wall_candidates[0] > 0:
+                    idx = 0
+                else:
+                    idx = 1
+                self.__pos += (
+                    direction_candidates[idx]
+                    / np.linalg.norm(direction_candidates[idx])
+                    * dist_to_wall_candidates[idx]
+                )
 
         terminated = False
         pos_min = np.zeros(2, dtype=np.float32)
