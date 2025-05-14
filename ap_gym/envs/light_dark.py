@@ -79,8 +79,12 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         # The 0.1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of
         # bounds
         base_reward = 0.1 - 1e-3 * np.sum(action**2, axis=-1)
-        action_clipped = np.clip(action, -1, 1)
-        self.__pos += action_clipped * 0.15
+
+        magnitude = np.linalg.norm(action)
+        if magnitude > 1:
+            action = action / magnitude
+
+        self.__pos += action * 0.15
         terminated = False
         if np.any(np.abs(self.__pos) >= 1):
             terminated = True
