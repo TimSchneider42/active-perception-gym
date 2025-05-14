@@ -152,6 +152,8 @@ class ImagePerceptionModule:
     def step(
         self, action: np.ndarray, prediction_quality: np.ndarray
     ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
+        if np.any(np.isnan(prediction_quality)):
+            raise ValueError("NaN values detected in prediction.")
         self.__update_visitation_overlay(prediction_quality=prediction_quality)
         if np.any(self.__prev_done):
             if not np.all(self.__prev_done):

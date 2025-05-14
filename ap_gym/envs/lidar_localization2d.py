@@ -173,6 +173,11 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         return self.__get_obs(), {"map_idx": self.__map_idx}, self.__pos
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
+        if np.any(np.isnan(action)):
+            raise ValueError("NaN values detected in action.")
+        if np.any(np.isnan(prediction)):
+            raise ValueError("NaN values detected in prediction.")
+
         map_size = np.array(
             [self.__map.shape[1], self.__map.shape[0]], dtype=np.float32
         )
