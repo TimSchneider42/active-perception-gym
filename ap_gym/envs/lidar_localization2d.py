@@ -113,9 +113,9 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             (scan_point_coords >= 0) & (scan_point_coords < self.__map.shape), axis=-1
         )
         scan_point_coords = scan_point_coords[not_occluded & in_bounds]
-        self.__observation_map[
-            scan_point_coords[..., 1], scan_point_coords[..., 0]
-        ] = True
+        self.__observation_map[scan_point_coords[..., 1], scan_point_coords[..., 0]] = (
+            True
+        )
 
         odometry = self.__pos - self.__initial_pos
         odometry_max_value = np.array(

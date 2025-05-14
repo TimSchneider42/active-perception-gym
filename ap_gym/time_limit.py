@@ -1,4 +1,5 @@
 """Variant of the TimeLimit wrapper with more flexibility."""
+
 from __future__ import annotations
 
 import copy

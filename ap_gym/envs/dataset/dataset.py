@@ -28,12 +28,10 @@ class Dataset(ABC, Generic[DataPointType, DataPointBatchType]):
         pass
 
     @overload
-    def __getitem__(self, item: SupportsInt) -> DataPointType:
-        ...
+    def __getitem__(self, item: SupportsInt) -> DataPointType: ...
 
     @overload
-    def __getitem__(self, item: Sequence[SupportsInt]) -> DataPointBatchType:
-        ...
+    def __getitem__(self, item: Sequence[SupportsInt]) -> DataPointBatchType: ...
 
     def __getitem__(self, item: int | Sequence[int] | np.ndarray):
         if isinstance(item, Sequence) or isinstance(item, np.ndarray):
