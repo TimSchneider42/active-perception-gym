@@ -126,7 +126,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             odometry_max_value - odometry_min_value
         ) * 2 - 1
         obs = {
-            "lidar": distances / self.__lidar_range,
+            "lidar": np.clip(distances / self.__lidar_range, -1, 1),
             "odometry": odometry_norm,
         }
         if not self.__static_map:
