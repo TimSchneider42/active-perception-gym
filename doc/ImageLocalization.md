@@ -63,12 +63,12 @@ The sensor movement is scaled by the environment's `image_perception_config.max_
 
 ## Prediction Space
 
-The prediction is a 2-dimensional `np.ndarray` containing the coordinates of the agent's prediction w.r.t. the target
+The prediction is a 2-element `np.ndarray` containing the coordinates of the agent's prediction w.r.t. the target
 glimpse.
 
 ## Prediction Target Space
 
-The prediction target is a 2-dimensional `np.ndarray` containing the true coordinates of the target glimpse.
+The prediction target is a 2-element `np.ndarray` containing the true coordinates of the target glimpse.
 
 ## Observation Space
 
@@ -77,7 +77,7 @@ The observation is a dictionary with the following keys:
 | Key                | Type         | Description                                                                                                                                  |
 |--------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------|
 | `"glimpse"`        | `np.ndarray` | $G \times G \times C$ numpy array of type `float32` representing a glimpse of the image where each pixel is in the range $[-1, 1]$.          |
-| `"glimpse_pos"`    | `np.ndarray` | 2D numpy array of type `float32` containing the normalized position of the glimpse within the image in the range $[-1, 1]$.                  |
+| `"glimpse_pos"`    | `np.ndarray` | 2-element `float32` numpy vector containing the normalized position of the glimpse within the image in the range $[-1, 1]$.                  |
 | `"target_glimpse"` | `np.ndarray` | $G \times G \times C$ numpy array of type `float32` representing the target glimpse of the image where each pixel is in the range $[-1, 1]$. |
 | `"time_step"`      | `float`      | The current time step between 0 and `image_perception_config.step_limit` normalized to the range $[-1, 1]$.                                  |
 

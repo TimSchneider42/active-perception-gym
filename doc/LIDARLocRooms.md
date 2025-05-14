@@ -7,21 +7,19 @@ Refer to the [LIDAR Localization environments overview](LIDARLocalization.md) fo
 
 ## Environment Details
 
-|                           |               |
-|---------------------------|-----------------|
-| **Environment ID**        | LIDARLocMaze-v0 |
-| **Map type**              | Grayscale       |
-| **Map size**              | 32x32           |
-| **LIDAR beams**           | 8               |
-| **LIDAR range**           | 5.0             |
+|                    |                  |
+|--------------------|------------------|
+| **Environment ID** | LIDARLocRooms-v0 |
+| **Map size**       | 32x32            |
+| **Map type**       | Rooms            |
+| **Static/dynamic** | dynamic          |
 
 ## Description
 
-In the LIDARLocRooms environment, the agent's objective is to localize itself inside a room.
-Unlike static environments, the room's floorplan changes each episode. To account for this variability, the agent is provided with a map of the current room as input. Here, the agent has limited perception, relying only on:
-- *Odometry*, which provides relative movement information.
-- *LIDAR readings* from 8 beams with a maximum range of 5.0 units.
-- *Map*, a full grayscale representation of the current environment to assist in localization.
+In the LIDARLocRooms environment, the agent faces a map with wide open areas.
+Hence, often it might not receive any information from its LIDAR sensors if it is in the middle of a large room.
+The agent must, thus, navigate around the map to gather information and localize itself.
+In this variant, the room layout changes every episode, meaning that the agent has to learn to process the map it is provided as additional input.
 
 ## Version History
 
