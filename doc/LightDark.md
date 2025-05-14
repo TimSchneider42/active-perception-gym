@@ -9,11 +9,12 @@ This environment is useful for testing active regression models, where the agent
 
 The visualization shown above has to be interpreted as follows:
 
-- **Blue Dot**: Agent's true position.
-- **Green Transparent Circle**: Observation uncertainty (higher in dark regions).
-- **Red Dot**: Agent's last prediction.
-- **White Background**: Bright regions with low uncertainty.
-- **Dark Background**: Dark regions with high uncertainty.
+- **Blue dot**: Agent's current position.
+- **Green transparent circle**: Observation uncertainty (higher in dark regions).
+- **Purple dot**: Agent's last prediction.
+- **Light blue dot**: Agent's previous position (this is what the agent's prediction tries to approximate).
+- **White background**: Bright regions with low uncertainty.
+- **Dark background**: Dark regions with high uncertainty.
 
 ## Properties
 

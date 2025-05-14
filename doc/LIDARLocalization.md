@@ -71,7 +71,7 @@ Examples of each combination are shown here:
 </table>
 
 In this visualization, the agent moves through the room while using its LIDAR sensors, represented by the green beams extending outward.
-The grayed out regions indicate areas that the agent has not yet observed.
+The grayed out regions indicate areas that the agent has not yet observed and a purple dot shows the agent's last prediction.
 To illustrate the agent’s localization accuracy, we visualize its past predictions with a color gradient ranging from red to green along its trajectory.
 A red trail means that the agent's predicted position is far from the true position, whereas a green trail indicates a good estimate.
 All 2D LIDAR localization environments in ap_gym are implemented as instances of the `ap_gym.envs.lidar_localization2d.LIDARLocalization2DEnv` class and share the following properties:
