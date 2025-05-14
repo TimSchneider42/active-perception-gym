@@ -202,22 +202,24 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
             # Make agent slide along wall
             remaining_dist = total_dist - dist_to_wall
-            if remaining_dist > 0:
+            if remaining_dist > 1e-5:
                 remaining_vec = direction * remaining_dist
-                direction_candidates = np.eye(2, dtype=np.float32) * remaining_vec
-                target_pos_candidates = self.__pos + direction_candidates
-                dist_to_wall_candidates, _ = self.__lidar_scan(
-                    self.__pos, target_pos_candidates
-                )
-                if dist_to_wall_candidates[0] > 0:
-                    idx = 0
-                else:
-                    idx = 1
-                self.__pos += (
-                    direction_candidates[idx]
-                    / np.linalg.norm(direction_candidates[idx])
-                    * dist_to_wall_candidates[idx]
-                )
+                remaining_vec = remaining_vec[remaining_vec > 1e-5]
+                if len(remaining_vec) > 0:
+                    direction_candidates = np.eye(2, dtype=np.float32) * remaining_vec
+                    target_pos_candidates = self.__pos + direction_candidates
+                    dist_to_wall_candidates, _ = self.__lidar_scan(
+                        self.__pos, target_pos_candidates
+                    )
+                    if dist_to_wall_candidates[0] > 0 or len(direction_candidates) == 1:
+                        idx = 0
+                    else:
+                        idx = 1
+                    self.__pos += (
+                        direction_candidates[idx]
+                        / np.linalg.norm(direction_candidates[idx])
+                        * dist_to_wall_candidates[idx]
+                    )
 
         terminated = False
         pos_min = np.zeros(2, dtype=np.float32)
