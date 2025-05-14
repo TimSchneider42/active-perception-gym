@@ -68,10 +68,16 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         return self.__get_obs(), {}, self.__pos
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
+        if np.any(np.isnan(action)):
+            raise ValueError("NaN values detected in action.")
+        if np.any(np.isnan(prediction)):
+            raise ValueError("NaN values detected in prediction.")
+
         self.__last_pred = prediction
         self.__last_pos = self.__pos.copy()
 
-        # The 1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of bounds
+        # The 0.1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of
+        # bounds
         base_reward = 0.1 - 1e-3 * np.sum(action**2, axis=-1)
         action_clipped = np.clip(action, -1, 1)
         self.__pos += action_clipped * 0.15
