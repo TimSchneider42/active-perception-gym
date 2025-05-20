@@ -87,12 +87,12 @@ Both estimates get wrapped in a dictionary with the following keys:
 The reward at each timestep is the sum of
 
 - A small action regularization equal to $10^{-3} \cdot{} \lVert action\rVert$.
-- A boundary penalty of -20, that is applied if the agent moves outside the valid region (`[-1,1]`).
+- A constant reward of $0.1$ to ensure that the reward stays positive and the agent does not learn to terminate the episode on purpose.
 - The negative mean squared error between the agent's prediction and its true position.
 
 ## Starting State
 
-The agent's initial position is uniformly randomly sampled from the range `[-1, -1]` to `[1, 1]`.
+The agent's initial position is uniformly randomly sampled from the range $[-1, 1]^2$.
 
 ## Episode End
 
