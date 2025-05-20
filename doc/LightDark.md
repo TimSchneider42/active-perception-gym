@@ -57,7 +57,7 @@ The action is an `np.ndarray` with shape `(2,)` consisting of continuous values 
 - `action[1]`: Vertical movement.
 
 Actions are first projected into the unit circle and then scaled by `0.15` per step.
-If the agent moves outside the valid region (`[-1,1]`), a large penalty is applied.
+If the agent moves outside the valid region ($[-1, 1]^2$), the episode is terminated.
 
 ## Prediction Space
 
@@ -69,7 +69,7 @@ The target is a 2-element `np.ndarray` containing the true position of the agent
 
 ## Observation Space
 
-The observation consists of the episode time as float and a 2-element `np.ndarray` in the range `[-2, 2]`.
+The observation consists of the episode time as float and a 2-element `np.ndarray` in the range $[-2, 2]$.
 The latter represents a noisy estimate of the agent’s true position, where the noise level depends on the brightness of the environment.
 
 - **Brighter areas** → **Low noise** (good observation quality).
