@@ -92,7 +92,7 @@ The reward at each timestep is the sum of
 
 ## Starting State
 
-The agent'sinitial position is uniformly randomly sampled from the range `[-1, -1]` to `[1, 1]`.
+The agent's initial position is uniformly randomly sampled from the range `[-1, -1]` to `[1, 1]`.
 
 ## Episode End
 
