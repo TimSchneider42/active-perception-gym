@@ -724,4 +724,4 @@ if __name__ == "__main__":
                 sections[env_name],
                 aggregated_bases[base_name][base_title],
             )
-        write_file(args.output_dir / f"{base_name}.md", render_sections(sections))
+        write_file(args.output_dir / f"{env_name}.md", render_sections(sections))
