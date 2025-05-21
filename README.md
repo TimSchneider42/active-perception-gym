@@ -188,7 +188,7 @@ To learn more about the environments, refer to their respective documentations l
 
 In this class of environments, the agent has to classify images into a set of classes.
 However, it does not have access to the entire image at once but rather has to move a small glimpse around to gather information.
-Find a detailed documentation of the image classification environments [here](doc/ImageClassification.md).
+Find a detailed documentation of the image classification environments [here](doc/ImageClassificationVectorEnv.md).
 
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
@@ -224,7 +224,7 @@ Find a detailed documentation of the image classification environments [here](do
 In 2D localization environments, the agent has to localize itself in a 2D environment.
 There are currently two types of 2D localization environments: a light-dark environment and LIDAR-based.
 In the [light-dark environment](doc/LightDark.md), the agent must learn to navigate towards a light source to localize itself.
-In the [LIDAR-based environments](doc/LIDARLocalization.md), the agent must localize itself using LIDAR sensor readings.
+In the [LIDAR-based environments](doc/LIDARLocalization2DEnv.md), the agent must localize itself using LIDAR sensor readings.
 
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
@@ -236,7 +236,7 @@ In the [LIDAR-based environments](doc/LIDARLocalization.md), the agent must loca
         </td>
         <td align="center" style="border: none; padding: 10px;">
             <img src="doc/img/LIDARLocRooms-v0.gif" alt="LIDARLocRooms-v0" width="150px"/><br/>
-            <a href="doc/LIDARLocalization.md">
+            <a href="doc/LIDARLocalization2DEnv.md">
                 LIDARLocRooms-v0
             </a>
         </td>
@@ -253,7 +253,7 @@ In the [LIDAR-based environments](doc/LIDARLocalization.md), the agent must loca
 
 In image localization environments, the agent must localize a given glimpse in a natural image.
 Similar to the image classification class of tasks, agent must explore the image by moving a glimpse around.
-Find a detailed documentation of the image localization environments [here](doc/ImageLocalization.md).
+Find a detailed documentation of the image localization environments [here](doc/ImageLocalizationVectorEnv.md).
 
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">

@@ -626,6 +626,13 @@ def dict_diff_recursive(dict_a: SectionType, dict_b: SectionType) -> SectionType
         return dict_a
 
 
+def write_file(path: Path, content: str) -> None:
+    while content.endswith("\n\n"):
+        content = content[:-1]
+    with path.open("w") as f:
+        f.write(content)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -707,8 +714,7 @@ if __name__ == "__main__":
         aggregated_bases[base_name] = aggregated
 
     for base_name, rendered in aggregated_bases.items():
-        with (args.output_dir / f"{base_name}.md").open("w") as f:
-            f.write(render_sections(rendered))
+        write_file(args.output_dir / f"{base_name}.md", render_sections(rendered))
 
     for env_name, (base_name, rendered) in envs.items():
         sections = rendered.sections
@@ -718,5 +724,4 @@ if __name__ == "__main__":
                 sections[env_name],
                 aggregated_bases[base_name][base_title],
             )
-        with (args.output_dir / f"{env_name}.md").open("w") as f:
-            f.write(render_sections(rendered.sections))
+        write_file(args.output_dir / f"{base_name}.md", render_sections(sections))
