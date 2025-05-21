@@ -4,8 +4,11 @@ from functools import partial, reduce
 from typing import Any, Sequence, Callable
 
 import gymnasium as gym
+import yaml
+from docutils.nodes import description
 from gymnasium.envs.registration import WrapperSpec
 
+import ap_gym
 from ap_gym import (
     BaseActivePerceptionEnv,
     ActivePerceptionWrapper,
@@ -16,6 +19,7 @@ from ap_gym import (
     ActiveRegressionVectorLogWrapper,
     ActiveClassificationLogWrapper,
     ActiveClassificationVectorLogWrapper,
+    idoc,
 )
 from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze, FloorMapDataset
 from .image import (
@@ -41,9 +45,18 @@ def register_image_env(
     kwargs: dict[str, Any] | None = None,
     single_wrappers: tuple[Callable[[gym.Env], gym.Env]] = (),
     vector_wrappers: tuple[Callable[[gym.vector.VectorEnv], gym.vector.VectorEnv]] = (),
+    idoc_fn: Callable[[gym.Env], dict[str, str]] | None = None,
 ):
     if kwargs is None:
         kwargs = {}
+    if idoc_fn is not None:
+
+        def _entry_point(*args, **kwargs):
+            env = entry_point(*args, **kwargs)
+            return idoc(env, f"#!AP_GYM_ENV\n{yaml.safe_dump(idoc_fn(env), sort_keys=False)}")
+
+    else:
+        _entry_point = entry_point
     gym.register(
         id=name,
         kwargs=dict(
@@ -54,7 +67,7 @@ def register_image_env(
         entry_point=lambda *args, **kwargs: reduce(
             lambda env, wrapper_fn: wrapper_fn(env),
             single_wrappers,
-            entry_point(*args, **kwargs),
+            _entry_point(*args, **kwargs),
         ),
         vector_entry_point=lambda *args, **kwargs: reduce(
             lambda env, wrapper_fn: wrapper_fn(env),
@@ -72,6 +85,43 @@ register_image_classification_env = partial(
     vector_wrappers=(ActiveClassificationVectorLogWrapper,),
 )
 
+
+def register_img_envs(
+    fn: Callable,
+    name: str,
+    datasets: Callable[[str], ImageClassificationDataset],
+    step_limit: int,
+    kwargs: dict[str, Any] | None = None,
+    idoc_fn: Callable[[gym.Env], dict[str, str]] | None = None,
+):
+    for split in ["train", "test"]:
+        split_names = [f"-{split}"]
+        if split == "train":
+            split_names.append("")
+        for split_name in split_names:
+            if split_name == "":
+                _idoc_fn = idoc_fn
+            elif split_name == "train":
+                _idoc_fn = lambda env: {
+                    **(idoc_fn(env) if idoc_fn is not None else {}),
+                    **{"description": f"Alias for {name}-v0."},
+                }
+            else:
+                _idoc_fn = lambda env, _split=split: {
+                    **(idoc_fn(env) if idoc_fn is not None else {}),
+                    **{
+                        "description": f"Uses the {_split} split of {name} instead of the train split."
+                    },
+                }
+            fn(
+                name=f"{name}{split_name}-v0",
+                dataset=datasets(split),
+                step_limit=step_limit,
+                kwargs=kwargs,
+                idoc_fn=_idoc_fn,
+            )
+
+
 register_image_localization_env = partial(
     register_image_env,
     entry_point=ImageLocalizationEnv,
@@ -79,6 +129,81 @@ register_image_localization_env = partial(
     single_wrappers=(ActiveRegressionLogWrapper,),
     vector_wrappers=(ActiveRegressionVectorLogWrapper,),
 )
+
+
+def mk_img_idoc_fn(
+    description: str, image_description: str
+):
+    def idoc_fn(env):
+        output = {}
+        if description is not None:
+            output["description"] = description
+        glimpse = env.observation_space["glimpse"]
+        dataset = env.config.dataset
+        sample = dataset[0][0]
+        output["properties"] = {
+            "Image type": ("RGB" if glimpse.shape[-1] == 3 else "Grayscale"),
+            "# data points": str(len(dataset)),
+            "Image size": f"{sample.shape[1]}x{sample.shape[0]}",
+            "Glimpse size": f"{glimpse.shape[1]}x{glimpse.shape[0]}",
+            "Step limit": str(env.config.step_limit),
+            "Image description": image_description
+        }
+        return output
+
+    return idoc_fn
+
+
+def mk_img_class_idoc_fn(
+    description: str, image_description: str
+):
+    _idoc_fn = mk_img_idoc_fn(description, image_description)
+
+    def idoc_fn(env):
+        output = _idoc_fn(env)
+        output["properties"]["# classes"] = str(env.prediction_target_space.n)
+        desc = output["properties"]["Image description"]
+        del output["properties"]["Image description"]
+        output["properties"]["Image description"] = desc  # Move to end
+        return output
+
+    return idoc_fn
+
+
+def register_image_classification_envs(
+    name: str,
+    datasets: Callable[[str], ImageClassificationDataset],
+    step_limit: int,
+    description: str,
+    image_description: str,
+    kwargs: dict[str, Any] | None = None,
+):
+    return register_img_envs(
+        register_image_classification_env,
+        name,
+        datasets,
+        step_limit,
+        kwargs,
+        mk_img_class_idoc_fn(description, image_description),
+    )
+
+
+def register_image_localization_envs(
+    name: str,
+    datasets: Callable[[str], ImageClassificationDataset],
+    step_limit: int,
+    description: str,
+    image_description: str,
+    kwargs: dict[str, Any] | None = None,
+):
+    return register_img_envs(
+        register_image_localization_env,
+        name,
+        datasets,
+        step_limit,
+        kwargs,
+        mk_img_idoc_fn(description, image_description),
+    )
 
 
 def mk_time_limit(step_limit: int, issue_termination=True) -> WrapperSpec:
@@ -103,79 +228,149 @@ def register_lidar_localization_env(
     )
 
 
+def register_circle_square(
+    size: int, show_gradient: bool, suffix: str, description: str
+):
+    register_image_classification_env(
+        name=f"CircleSquare{suffix}-v0",
+        dataset=CircleSquareDataset(
+            image_shape=(size, size), show_gradient=show_gradient
+        ),
+        step_limit=16,
+        idoc_fn=mk_img_class_idoc_fn(
+            description, "An image containing either a circle or square."
+        ),
+    )
+
+
 def register_envs():
-    SIZES = {
-        "": (28, 28),
-        **{f"-s{s}": (s, s) for s in [15, 20, 28]},
-    }
-
-    SHOW_GRADIENT = {"": True, "-nograd": False}
-
-    for size_suffix, size in SIZES.items():
-        for sg_suffix, show_gradient in SHOW_GRADIENT.items():
-            register_image_classification_env(
-                name=f"CircleSquare{size_suffix}{sg_suffix}-v0",
-                dataset=CircleSquareDataset(
-                    image_shape=size, show_gradient=show_gradient
-                ),
-                step_limit=16,
-            )
+    register_circle_square(
+        28,
+        True,
+        "",
+        "In the CircleSquare environment, the agent's objective is to determine whether a given image contains a "
+        "circle or a square. The agent has limited visibility, represented by a small movable glimpse that captures "
+        "partial views of the image. A visual gradient within the image guides the agent towards the object.",
+    )
+    register_circle_square(
+        28,
+        True,
+        "-s28",
+        "Alias for CircleSquare-v0.",
+    )
+    register_circle_square(
+        20,
+        True,
+        "-s20",
+        "Variant of CircleSquare with a smaller image size of 20 instead of 28.",
+    )
+    register_circle_square(
+        15,
+        True,
+        "-s15",
+        "Variant of CircleSquare with an even smaller image size of 15 instead of 28.",
+    )
+    register_circle_square(
+        28,
+        False,
+        "-nograd",
+        "Variant of CircleSquare with no gradient as visual aid.",
+    )
+    register_circle_square(
+        20,
+        False,
+        "-s20-nograd",
+        "Variant of CircleSquare-nograd with a smaller image size of 20 instead of 28.",
+    )
+    register_circle_square(
+        15,
+        False,
+        "-s15-nograd",
+        "Variant of CircleSquare-nograd with a smaller image size of 15 instead of 28.",
+    )
 
     image_env_render_kwargs = dict(
         render_unvisited_opacity=0.5,
         render_visited_opacity=0.25,
     )
 
-    for split in ["train", "test"]:
-        split_names = [f"-{split}"]
-        if split == "train":
-            split_names.append("")
-        for split_name in split_names:
-            register_image_classification_env(
-                name=f"MNIST{split_name}-v0",
-                dataset=HuggingfaceImageClassificationDataset(
-                    "mnist", channels=1, split=split
-                ),
-                step_limit=16,
-            )
+    register_image_classification_envs(
+        name=f"MNIST",
+        datasets=lambda split: HuggingfaceImageClassificationDataset(
+            "mnist", channels=1, split=split
+        ),
+        step_limit=16,
+        description="In the MNIST environment, the agent's objective is to classify images of handwritten digits "
+        "(0-9). The agent has limited visibility, represented by a small movable glimpse that captures partial views "
+        "of the image. It must strategically explore different regions of the image to gather enough information for "
+        "accurate classification.",
+        image_description="Handwritten digits from the [MNIST dataset](http://yann.lecun.com/exdb/mnist/).",
+    )
 
-            register_image_classification_env(
-                name=f"CIFAR10{split_name}-v0",
-                dataset=HuggingfaceImageClassificationDataset(
-                    "cifar10", image_feature_name="img", split=split
-                ),
-                step_limit=16,
-                kwargs=image_env_render_kwargs,
-            )
+    register_image_classification_envs(
+        name=f"CIFAR10",
+        datasets=lambda split: HuggingfaceImageClassificationDataset(
+            "cifar10", image_feature_name="img", split=split
+        ),
+        step_limit=16,
+        kwargs=image_env_render_kwargs,
+        description="In the CIFAR10 environment, the agent's objective is to classify natural images into 10 classes. "
+        "The agent has limited visibility, represented by a small movable glimpse that captures partial views of the "
+        "image. It must strategically explore different regions of the image to gather enough information for accurate "
+        "classification.",
+        image_description="Natural images from the [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).",
+    )
 
-            register_image_classification_env(
-                name=f"TinyImageNet{split_name}-v0",
-                dataset=HuggingfaceImageClassificationDataset(
-                    "zh-plus/tiny-imagenet",
-                    split=split if split == "train" else "valid",
-                ),
-                step_limit=16,
-                kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
-            )
+    register_image_classification_envs(
+        name=f"TinyImageNet",
+        datasets=lambda split: HuggingfaceImageClassificationDataset(
+            "zh-plus/tiny-imagenet",
+            split=split if split == "train" else "valid",
+        ),
+        step_limit=16,
+        kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
+        description="In the TinyImageNet environment, the agent's objective is to classify natural images into 200 "
+        "classes. The agent has limited visibility, represented by a small movable glimpse that captures partial views "
+        "of the image. It must strategically explore different regions of the image to gather enough information for "
+        "accurate classification.\n\nCompared to the CIFAR10 environment, the TinyImageNet dataset contains more "
+        "classes and higher resolution images. Also, the glimpse size is larger to account for the higher image "
+        "resolution. Consequently, this environment introduces additional complexity compared to CIFAR10.",
+        image_description="Natural images from the "
+        "[Tiny ImageNet dataset](https://huggingface.co/datasets/zh-plus/tiny-imagenet).",
+    )
 
-            register_image_localization_env(
-                name=f"CIFAR10Loc{split_name}-v0",
-                dataset=HuggingfaceImageClassificationDataset(
-                    "cifar10", image_feature_name="img", split=split
-                ),
-                step_limit=16,
-                kwargs=image_env_render_kwargs,
-            )
+    register_image_localization_envs(
+        name=f"CIFAR10Loc",
+        datasets=lambda split: HuggingfaceImageClassificationDataset(
+            "cifar10", image_feature_name="img", split=split
+        ),
+        step_limit=16,
+        kwargs=image_env_render_kwargs,
+        description="In the CIFAR10Loc environment, the agent's objective is to localize a given glimpse in a natural "
+        "image. The agent has limited visibility, represented by a small movable glimpse that captures partial views "
+        "of the image. It must strategically explore different regions of the image to gather enough information for "
+        "accurate localization.",
+        image_description="Natural images from the [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).",
+    )
 
-            register_image_localization_env(
-                name=f"TinyImageNetLoc{split_name}-v0",
-                dataset=HuggingfaceImageClassificationDataset(
-                    "zh-plus/tiny-imagenet",
-                    split=split if split == "train" else "valid",
-                ),
-                step_limit=16,
-                kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
-            )
+    register_image_localization_envs(
+        name=f"TinyImageNetLoc",
+        datasets=lambda split: HuggingfaceImageClassificationDataset(
+            "zh-plus/tiny-imagenet",
+            split=split if split == "train" else "valid",
+        ),
+        step_limit=16,
+        kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
+        description="In the TinyImageNetLoc environment, the agent's objective is to localize a given glimpse in a "
+        "natural image. The agent has limited visibility, represented by a small movable glimpse that captures partial "
+        "views of the image. It must strategically explore different regions of the image to gather enough information "
+        "for accurate classification.\n\nCompared to the CIFAR10Loc environment, the TinyImageNetLoc dataset contains "
+        "higher resolution images from more diverse classes. Also, the glimpse size is larger to account for the "
+        "higher image resolution. Consequently, this environment introduces additional complexity compared to "
+        "CIFAR10Loc.",
+        image_description="Natural images from the "
+        "[Tiny ImageNet dataset](https://huggingface.co/datasets/zh-plus/tiny-imagenet).",
+    )
 
     gym.register(
         id="LightDark-v0",

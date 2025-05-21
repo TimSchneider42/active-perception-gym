@@ -11,6 +11,7 @@ from scipy.special import softmax
 from ap_gym import (
     ActiveClassificationVectorEnv,
     ActivePerceptionVectorToSingleWrapper,
+    idoc,
 )
 from .image import (
     ImagePerceptionModule,
@@ -23,6 +24,35 @@ class ImageClassificationVectorEnv(
         dict[Literal["glimpse", "glimpse_pos", "time_step"], np.ndarray], np.ndarray
     ],
 ):
+    r"""
+    #!AP_GYM_BASE_ENV
+    title: Image Classification Environments
+    description: |
+        In image classification environments, the agent has to classify an image by moving a small glimpse around the
+        image. The glimpse is never large enough to see the entire image at once, so the agent has to move around to
+        gather information.
+
+        Consider the following example from the [CIFAR10](CIFAR10.md) environment:
+        <p align="center"><img src="img/CIFAR10-v0.gif" alt="CIFAR10-v0" width="200px"/></p>
+
+        Marked in blue is the agent's current glimpse.
+        We mark the history of glimpses the agent has taken in a color scale ranging from red to green, red meaning that
+        the agent predicted a probability of 0 for the correct class and green meaning that the agent predicted a
+        probability of 1 for the correct class.
+    rewards:
+    - 'A small action regularization equal to $10^{-3} \cdot{} \lVert \textit{action}\rVert$.'
+    starting_state: The glimpse starts at a uniformly random position within the image.
+    end_conditions:
+      terminate:
+      - |
+        The episode ends with the terminate flag set when the maximum number of steps
+        (`image_perception_config.step_limit`) is reached.
+    space_variables:
+    - $K \in \mathbb{N}$ is the number of classes in the environment
+    - $G \in \mathbb{N}$ is the glimpse size
+    - $C \in \mathbb{N}$ is the number of image channels (1 for grayscale, 3 for RGB)
+    """
+
     metadata: dict[str, Any] = {
         "render_modes": ["rgb_array"],
         "render_fps": 2,
@@ -35,6 +65,13 @@ class ImageClassificationVectorEnv(
         image_perception_config: ImagePerceptionConfig,
         render_mode: Literal["rgb_array"] = "rgb_array",
     ):
+        """
+
+        :param num_envs:                Number of environments to create.
+        :param image_perception_config: Configuration of the image perception environment. See the
+                                        [ImagePerceptionConfig documentation](ImagePerceptionConfig.md) for details.
+        :param render_mode:             Rendering mode (currently only `"rgb_array"` is supported).
+        """
         self.__image_perception_module = ImagePerceptionModule(
             num_envs,
             image_perception_config,
@@ -55,6 +92,17 @@ class ImageClassificationVectorEnv(
         )
         self.__np_random = None
         self.__spec: EnvSpec | None = None
+        idoc(
+            self.single_prediction_space,
+            {
+                "text": "contains the logits of the agent's prediction w.r.t. the class label.",
+                "var": {0: "K"},
+            },
+        )
+        idoc(
+            self.single_prediction_target_space,
+            {"text": "represents the true class.", "var": "K"},
+        )
 
     def _reset(self, *, options: dict[str, Any | None] = None):
         obs, info = self.__image_perception_module.reset()
@@ -115,6 +163,10 @@ class ImageClassificationVectorEnv(
         spec = copy.copy(spec)
         spec.max_episode_steps = self.__image_perception_module.config.step_limit
         self.__spec = spec
+
+    @property
+    def config(self):
+        return self.__image_perception_module.config
 
 
 def ImageClassificationEnv(

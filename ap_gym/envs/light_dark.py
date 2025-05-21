@@ -15,9 +15,8 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
     title: LightDark
     description: |
         In the LightDark Environment, the agent must estimate its position based on noisy observations, where the noise
-        level depends on the brightness of the surrounding area.
-        The environment simulates an active regression task where the agent can move to areas with better visibility to
-        improve its position estimation.
+        level depends on the brightness of the surrounding area. The environment simulates an active regression task
+        where the agent can move to areas with better visibility to improve its position estimation.
 
         This environment is useful for testing active regression models, where the agent must strategically explore its
         environment to obtain more reliable observations before making predictions.

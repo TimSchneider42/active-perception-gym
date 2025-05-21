@@ -12,6 +12,7 @@ from ap_gym import (
     ActivePerceptionVectorToSingleWrapper,
     ActiveRegressionVectorEnv,
     ImageSpace,
+    idoc,
 )
 from .image import (
     ImagePerceptionModule,
@@ -71,6 +72,14 @@ class ImageLocalizationVectorEnv(
         self.__last_prediction = None
         self.__np_random = None
         self.__spec: EnvSpec | None = None
+        idoc(
+            self.single_prediction_space,
+            "contains the coordinates of the agent's prediction w.r.t. the target glimpse.",
+        )
+        idoc(
+            self.single_prediction_target_space,
+            "contains the true coordinates of the target glimpse.",
+        )
 
     def _reset(self, *, options: dict[str, Any | None] = None):
         self.__last_prediction = None
@@ -191,6 +200,10 @@ class ImageLocalizationVectorEnv(
         spec = copy.copy(spec)
         spec.max_episode_steps = self.__image_perception_module.config.step_limit
         self.__spec = spec
+
+    @property
+    def config(self):
+        return self.__image_perception_module.config
 
 
 def ImageLocalizationEnv(

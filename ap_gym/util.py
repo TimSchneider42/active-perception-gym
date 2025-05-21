@@ -86,6 +86,12 @@ def update_info_metrics_vec(
 T = TypeVar("T")
 
 
-def idoc(obj: T, doc: str) -> T:
+def idoc(obj: T, doc: Any) -> T:
     obj.__idoc__ = doc
     return obj
+
+
+def project_sphere(x: np.ndarray, radius: float = 1.0) -> np.ndarray:
+    magnitude = np.linalg.norm(x, axis=-1, keepdims=True)
+    direction = x / np.maximum(magnitude, radius)
+    return np.where(magnitude > radius, direction * radius, x)

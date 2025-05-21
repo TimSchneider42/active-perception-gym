@@ -10,9 +10,10 @@ from PIL import Image, ImageDraw
 from PIL.Image import Resampling
 from scipy.interpolate import RegularGridInterpolator
 
-from ap_gym import ImageSpace
+from ap_gym import ImageSpace, idoc
 from ap_gym.envs.dataset import BufferedIterator, DataLoader, DatasetBatchIterator
 from ap_gym.envs.style import COLOR_AGENT, quality_color
+from ap_gym.util import project_sphere
 from .image_classification_dataset import ImageClassificationDataset
 
 
@@ -42,8 +43,11 @@ class ImagePerceptionModule:
         self.__config = config
         self.__num_envs = num_envs
         # Target position of the sensor relative to the previous position of the sensor
-        self.__single_inner_action_space = gym.spaces.Box(
-            -np.ones(2, dtype=np.float32), np.ones(2, dtype=np.float32)
+        self.__single_inner_action_space = idoc(
+            gym.spaces.Box(-np.ones(2, dtype=np.float32), np.ones(2, dtype=np.float32)),
+            "describes the relative movement of the glimpse sensor. The value is first projected into the unit circle "
+            f"and then scaled by `image_perception_config.max_step_length`, which is {config.max_step_length:0.2f} "
+            f"({config.max_step_length * 100:.0f}% of the image) by default.",
         )
         self.__current_data_point_idx: int | None = None
         self.__current_images: np.ndarray | None = None
@@ -52,14 +56,26 @@ class ImagePerceptionModule:
         self.__config.dataset.load()
         *self.__image_size, self.__channels = self.__config.dataset[0][0].shape
         self.__observation_space_dict = {
-            "glimpse": ImageSpace(
-                self.__config.sensor_size[1],
-                self.__config.sensor_size[0],
-                self.__channels,
-                dtype=np.float32,
+            "glimpse": idoc(
+                ImageSpace(
+                    self.__config.sensor_size[1],
+                    self.__config.sensor_size[0],
+                    self.__channels,
+                    dtype=np.float32,
+                ),
+                {
+                    "text": "represents a glimpse of the image.",
+                    "var": {0: "G", 1: "G", 2: "C"},
+                },
             ),
-            "glimpse_pos": gym.spaces.Box(-1, 1, (2,), np.float32),
-            "time_step": gym.spaces.Box(-1, 1, (), np.float32),
+            "glimpse_pos": idoc(
+                gym.spaces.Box(-1, 1, (2,), np.float32),
+                "contains the normalized position of the glimpse within the image.",
+            ),
+            "time_step": idoc(
+                gym.spaces.Box(-1, 1, (), np.float32),
+                f"represents the normalized current time step between 0 and `image_perception_config.step_limit`.",
+            ),
         }
         self.__current_sensor_pos_norm: np.ndarray | None = None
         self.__current_time_step = None
