@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
@@ -34,3 +35,11 @@ for env in "${ENVS[@]}"; do
 done
 
 wait
+
+cd "$OUTPUT_DIR"
+ln -s CircleSquare-v0.gif CircleSquare-s28-v0.gif
+ln -s MNIST-v0.gif MNIST-train-v0.gif
+ln -s CIFAR10-v0.gif CIFAR10-train-v0.gif
+ln -s TinyImageNet-v0.gif TinyImageNet-train-v0.gif
+ln -s CIFAR10Loc-v0.gif CIFAR10Loc-train-v0.gif
+ln -s TinyImageNetLoc-v0.gif TinyImageNetLoc-train-v0.gif
