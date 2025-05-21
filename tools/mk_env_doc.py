@@ -644,6 +644,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "-i", "--include", nargs="+", type=str, help="Specific environment to include."
     )
+    parser.add_argument(
+        "-s",
+        "--single-file",
+        action="store_true",
+        help="Create a single file per base environment.",
+    )
     args = parser.parse_args()
 
     exclude_list = PURE_GYM_ENVS
@@ -725,9 +731,7 @@ if __name__ == "__main__":
 
         aggregated_bases[base_name] = aggregated
 
-    for base_name, rendered in aggregated_bases.items():
-        write_file(args.output_dir / f"{base_name}.md", render_sections(rendered))
-
+    reduced_envs = {}
     for env_name, (base_name, rendered) in envs.items():
         sections = rendered.sections
         if base_name is not None:
@@ -736,4 +740,46 @@ if __name__ == "__main__":
                 sections[env_name],
                 aggregated_bases[base_name][base_title],
             )
-        write_file(args.output_dir / f"{env_name}.md", render_sections(sections))
+        reduced_envs[env_name] = (base_name, sections)
+
+    if args.single_file:
+        for base_name, base_rendered in aggregated_bases.items():
+            base_title = list(base_rendered.keys())[0]
+            envs = [(k, r) for k, (b, r) in reduced_envs.items() if b == base_name]
+            single_dict = {}
+            for _, e in envs:
+                single_dict.update(e)
+            overview = base_rendered[base_title].pop(
+                "Overview of Implemented Environments"
+            )
+            base_rendered[base_title]["Implemented Environments"] = {
+                None: overview,
+                **single_dict,
+            }
+            env_names = [k for k, _ in envs]
+            string_rendered = render_sections(base_rendered)
+
+            # Patch links now broken
+            for env_name in env_names:
+                string_rendered = string_rendered.replace(f"{env_name}.md#", f"#")
+                string_rendered = string_rendered.replace(
+                    f"{env_name}.md", f"#{env_name.lower().replace(' ', '-')})"
+                )
+            string_rendered = string_rendered.replace(f"{base_name}.md#", f"#")
+            string_rendered = string_rendered.replace(
+                f"{base_name}.md", f"#{base_title.lower().replace(' ', '-')})"
+            )
+
+            write_file(args.output_dir / f"{base_name}.md", string_rendered)
+
+        for env_name, (base_name, sections) in reduced_envs.items():
+            if base_name is None:
+                write_file(
+                    args.output_dir / f"{env_name}.md", render_sections(sections)
+                )
+    else:
+        for base_name, rendered in aggregated_bases.items():
+            write_file(args.output_dir / f"{base_name}.md", render_sections(rendered))
+
+        for env_name, (base_name, sections) in reduced_envs.items():
+            write_file(args.output_dir / f"{env_name}.md", render_sections(sections))
