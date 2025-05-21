@@ -39,14 +39,15 @@ class ImageClassificationVectorEnv(
         We mark the history of glimpses the agent has taken in a color scale ranging from red to green, red meaning that
         the agent predicted a probability of 0 for the correct class and green meaning that the agent predicted a
         probability of 1 for the correct class.
+
+        All image classification environments in _ap_gym_ are instantiations of the
+        `ap_gym.envs.image_classification.ImageClassificationVectorEnv` class and share the following properties:
     rewards:
     - 'A small action regularization equal to $10^{-3} \cdot{} \lVert \textit{action}\rVert$.'
     starting_state: The glimpse starts at a uniformly random position within the image.
     end_conditions:
       terminate:
-      - |
-        The episode ends with the terminate flag set when the maximum number of steps
-        (`image_perception_config.step_limit`) is reached.
+      - the maximum number of steps (`image_perception_config.step_limit`) is reached.
     space_variables:
     - $K \in \mathbb{N}$ is the number of classes in the environment
     - $G \in \mathbb{N}$ is the glimpse size
@@ -72,6 +73,7 @@ class ImageClassificationVectorEnv(
                                         [ImagePerceptionConfig documentation](ImagePerceptionConfig.md) for details.
         :param render_mode:             Rendering mode (currently only `"rgb_array"` is supported).
         """
+
         self.__image_perception_module = ImagePerceptionModule(
             num_envs,
             image_perception_config,

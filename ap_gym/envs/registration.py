@@ -5,10 +5,8 @@ from typing import Any, Sequence, Callable
 
 import gymnasium as gym
 import yaml
-from docutils.nodes import description
 from gymnasium.envs.registration import WrapperSpec
 
-import ap_gym
 from ap_gym import (
     BaseActivePerceptionEnv,
     ActivePerceptionWrapper,
@@ -21,6 +19,7 @@ from ap_gym import (
     ActiveClassificationVectorLogWrapper,
     idoc,
 )
+from ap_gym.envs.lidar_localization2d import LIDARLocalization2DEnv
 from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze, FloorMapDataset
 from .image import (
     HuggingfaceImageClassificationDataset,
@@ -53,7 +52,7 @@ def register_image_env(
 
         def _entry_point(*args, **kwargs):
             env = entry_point(*args, **kwargs)
-            return idoc(env, f"#!AP_GYM_ENV\n{yaml.safe_dump(idoc_fn(env), sort_keys=False)}")
+            return idoc(env, idoc_fn(env))
 
     else:
         _entry_point = entry_point
@@ -131,9 +130,7 @@ register_image_localization_env = partial(
 )
 
 
-def mk_img_idoc_fn(
-    description: str, image_description: str
-):
+def mk_img_idoc_fn(description: str, image_description: str):
     def idoc_fn(env):
         output = {}
         if description is not None:
@@ -147,16 +144,14 @@ def mk_img_idoc_fn(
             "Image size": f"{sample.shape[1]}x{sample.shape[0]}",
             "Glimpse size": f"{glimpse.shape[1]}x{glimpse.shape[0]}",
             "Step limit": str(env.config.step_limit),
-            "Image description": image_description
+            "Image description": image_description,
         }
         return output
 
     return idoc_fn
 
 
-def mk_img_class_idoc_fn(
-    description: str, image_description: str
-):
+def mk_img_class_idoc_fn(description: str, image_description: str):
     _idoc_fn = mk_img_idoc_fn(description, image_description)
 
     def idoc_fn(env):
@@ -215,11 +210,37 @@ def mk_time_limit(step_limit: int, issue_termination=True) -> WrapperSpec:
 
 
 def register_lidar_localization_env(
-    name: str, dataset: FloorMapDataset, static_map: bool = False, step_limit: int = 100
+    name: str,
+    dataset: FloorMapDataset,
+    description: str,
+    map_type: str,
+    static_map: bool = False,
+    step_limit: int = 100,
 ):
+    def mk_env(*args, **kwargs):
+        env = LIDARLocalization2DEnv(*args, **kwargs)
+        if static_map:
+            short_desc = f"{map_type.capitalize()} with static map."
+        else:
+            short_desc = (
+                f"Dynamic {map_type} environment with different maps per episode."
+            )
+        return idoc(
+            env,
+            {
+                "description": description,
+                "properties": {
+                    "Map type": map_type.capitalize(),
+                    "Static/dynamic": "Static" if static_map else "Dynamic",
+                    "Map size": f"{env.dataset.map_width}x{env.dataset.map_height}",
+                    "Map description": short_desc,
+                },
+            },
+        )
+
     gym.register(
         id=name,
-        entry_point="ap_gym.envs.lidar_localization2d:LIDARLocalization2DEnv",
+        entry_point=mk_env,
         kwargs=dict(dataset=dataset, static_map=static_map),
         additional_wrappers=(
             mk_time_limit(step_limit),
@@ -384,23 +405,44 @@ def register_envs():
     register_lidar_localization_env(
         "LIDARLocMazeStatic-v0",
         dataset=FloorMapDatasetMaze(),
+        description="In the LIDARLocMazeStatic environment, the agent faces a map with narrow corridors. Hence, it "
+        "will always receive information from its LIDAR sensors, but many regions of the maze look alike. The agent "
+        "must navigate around the map to gather information and localize itself. In this variant, the map stays "
+        "sconstant, meaning that the agent can memorize the layout of the maze over the course of the training.",
+        map_type="maze",
         static_map=True,
     )
 
     register_lidar_localization_env(
         "LIDARLocMaze-v0",
         dataset=FloorMapDatasetMaze(),
+        description="In the LIDARLocMaze environment, the agent faces a map with narrow corridors. Hence, it will "
+        "always receive information from its LIDAR sensors, but many regions of the maze look alike. The agent must "
+        "navigate around the map to gather information and localize itself. In this variant, the maze layout changes "
+        "every episode, meaning that the agent has to learn to process the map it is provided as additional input.",
+        map_type="maze",
     )
 
     register_lidar_localization_env(
         "LIDARLocRoomsStatic-v0",
         dataset=FloorMapDatasetRooms(),
+        description="In the LIDARLocRooms environment, the agent faces a map with wide open areas. Hence, often it "
+        "might not receive any information from its LIDAR sensors if it is in the middle of a large room. The agent "
+        "must, thus, navigate around the map to gather information and localize itself. In this variant, the map stays "
+        "constant, meaning that the agent can memorize the layout of the rooms over the course of the training.",
+        map_type="rooms",
         static_map=True,
     )
 
     register_lidar_localization_env(
         "LIDARLocRooms-v0",
         dataset=FloorMapDatasetRooms(),
+        description="In the LIDARLocRooms environment, the agent faces a map with wide open areas. Hence, often it "
+        "might not receive any information from its LIDAR sensors if it is in the middle of a large room. The agent "
+        "must, thus, navigate around the map to gather information and localize itself. In this variant, the room "
+        "layout changes every episode, meaning that the agent has to learn to process the map it is provided as "
+        "additional input.",
+        map_type="rooms",
     )
 
 

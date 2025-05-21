@@ -26,7 +26,7 @@ class TimeLimit(gym.Wrapper, gym.utils.RecordConstructorArgs):
     #!AP_GYM_WRAPPER
     end_conditions:
       terminate:
-      - The maximum number of steps (`max_episode_steps`) is reached.
+      - the maximum number of steps (`max_episode_steps`) is reached.
     """
 
     def __init__(

@@ -3,18 +3,23 @@ from __future__ import annotations
 import argparse
 import copy
 import inspect
+from collections import defaultdict
 from dataclasses import dataclass
+from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import gymnasium as gym
 import numpy as np
 import yaml
-from black.trans import defaultdict
 from docstring_parser import parse
+from gymnasium.envs.registration import parse_env_id
 
-if TYPE_CHECKING:
-    import ap_gym
+PURE_GYM_ENVS = set(gym.registry)
+
+import ap_gym
+
+AP_GYM_ENVS = [e for e in gym.registry if e not in PURE_GYM_ENVS]
 
 
 def render_md_table(headers: list[str], rows: list[list[str]]) -> str:
@@ -46,7 +51,9 @@ def render_md_table(headers: list[str], rows: list[list[str]]) -> str:
     )
 
 
-def render_shape_latex(shape: tuple[int, ...], var_spec: dict[int, str] | None = None) -> str:
+def render_shape_latex(
+    shape: tuple[int, ...], var_spec: dict[int, str] | None = None
+) -> str:
     if var_spec is None:
         var_spec = {}
     return r" \times ".join(str(var_spec.get(i, s)) for i, s in enumerate(shape))
@@ -98,7 +105,7 @@ def render_bounds(space: gym.spaces.Box, var_spec: dict[int, str] | None = None)
 
 
 def render_box(space: gym.spaces.Box) -> str:
-    text, var_spec = get_space_idoc(space)
+    text, var_spec = get_text_var_idoc(space)
     if text is not None:
         doc = f" that {text}"
     else:
@@ -121,14 +128,29 @@ def determine_space_type(space: gym.spaces.Space) -> str:
         return str(type(sample))
 
 
+def get_extra_text_entries(
+    space: gym.spaces.Space,
+) -> tuple[str, dict[str, gym.spaces.Space]]:
+    idoc = get_idoc(space)
+    extra_text = ""
+    extra_entries = {}
+    if isinstance(idoc, dict):
+        extra_text = idoc.get("extra_text", "")
+        extra_entries = idoc.get("extra_entries", {})
+    if extra_text != "":
+        extra_text = f"\n{extra_text}"
+    return extra_text, extra_entries
+
+
 def render_dict(space: gym.spaces.Dict) -> str:
+    extra_text, extra_entries = get_extra_text_entries(space)
     entries = [
         (k, f"`{determine_space_type(v)}`", render_space(v))
-        for k, v in space.spaces.items()
+        for k, v in chain(space.spaces.items(), extra_entries.items())
     ]
     entries.sort(key=lambda x: x[0])
     table = render_md_table(["Key", "Type", "Description"], entries)
-    return f"dictionary with the following keys:\n\n{table}"
+    return f"dictionary with the following keys:\n\n{table}{extra_text}"
 
 
 def render_integer_set(max_val: int | str) -> str:
@@ -139,7 +161,7 @@ def render_integer_set(max_val: int | str) -> str:
 
 
 def render_discrete(space: gym.spaces.Discrete) -> str:
-    text, limit = get_space_idoc(space)
+    text, limit = get_text_var_idoc(space)
     if text is not None:
         doc = f" that {text}"
     else:
@@ -148,7 +170,19 @@ def render_discrete(space: gym.spaces.Discrete) -> str:
         limit = space.n - 1
     return f"scalar integer in {render_integer_set(limit)}{doc}"
 
-def get_space_idoc(space: gym.spaces.Space) -> tuple[str | None, Any]:
+
+def get_idoc(obj: Any) -> Any | None:
+    if hasattr(obj, "__idoc__"):
+        return obj.__idoc__
+    return None
+
+
+class ReprString(str):
+    def __repr__(self):
+        return str(self)
+
+
+def get_text_var_idoc(space: gym.spaces.Space) -> tuple[str | None, Any]:
     var_spec = text = None
     if hasattr(space, "__idoc__"):
         idoc = space.__idoc__
@@ -158,7 +192,6 @@ def get_space_idoc(space: gym.spaces.Space) -> tuple[str | None, Any]:
         else:
             text = idoc
     return text, var_spec
-
 
 
 def render_space(space: gym.spaces.Space) -> str:
@@ -173,9 +206,10 @@ def render_space(space: gym.spaces.Space) -> str:
 
 
 def _render_dict_compact(space: gym.spaces.Dict, indentation: int = 0) -> str:
+    extra_text, extra_entries = get_extra_text_entries(space)
     entries = [
         (k, _render_space_compact(v, indentation=indentation + 2))
-        for k, v in space.spaces.items()
+        for k, v in chain(space.spaces.items(), extra_entries.items())
     ]
     entries.sort(key=lambda x: x[0])
     l = max(len(k) for k, v in entries)
@@ -183,9 +217,7 @@ def _render_dict_compact(space: gym.spaces.Dict, indentation: int = 0) -> str:
         f'{"&nbsp;" * (indentation + 2)}"{k}"{" " * (l - len(k))}: {v}'
         for k, v in entries
     )
-    return (
-        f"Dict({{</code><br/><code>{inner}</code><br/><code>{'&nbsp;' * indentation}}})"
-    )
+    return f"Dict({{</code><br/><code>{inner}</code><br/><code>{'&nbsp;' * indentation}}}){extra_text}"
 
 
 def _render_space_compact(space: gym.spaces.Space, indentation: int = 0) -> str:
@@ -193,15 +225,20 @@ def _render_space_compact(space: gym.spaces.Space, indentation: int = 0) -> str:
         return _render_dict_compact(space, indentation=indentation)
     else:
         if isinstance(space, gym.spaces.Box):
-            _, var_spec = get_space_idoc(space)
+            _, var_spec = get_text_var_idoc(space)
             if var_spec is None:
                 var_spec = {}
+            var_spec = {
+                i: ReprString(v) for i, v in var_spec.items()
+            }  # To ensure that we get no quotes
             space = copy.copy(space)
             space._shape = tuple(var_spec.get(i, e) for i, e in enumerate(space.shape))
         elif isinstance(space, gym.spaces.Discrete):
-            _, limit = get_space_idoc(space)
+            _, limit = get_text_var_idoc(space)
             if limit is None:
                 limit = space.n - 1
+            else:
+                limit = ReprString(limit)  # To ensure that we get no quotes
             space = copy.copy(space)
             space.n = limit
         return str(space)
@@ -232,8 +269,7 @@ def is_wrapper(env: Any) -> bool:
 def has_idoc(env: Any) -> bool:
     if not hasattr(env, "__idoc__") or env.__idoc__ is None:
         return False
-    lines = inspect.cleandoc(env.__idoc__).splitlines()
-    return any(is_marker_line(l, "ap_gym_env") for l in lines)
+    return isinstance(env.__idoc__, dict)
 
 
 SectionType = "dict[str | None, str | SectionType]"
@@ -256,16 +292,12 @@ def doc_extract_yaml(doc: str) -> str:
     marker_lines = [
         i
         for i, l in enumerate(lines)
-        if is_marker_line(l, "ap_gym_base_env")
-        or is_marker_line(l, "ap_gym_wrapper")
-        or is_marker_line(l, "ap_gym_env")
+        if is_marker_line(l, "ap_gym_base_env") or is_marker_line(l, "ap_gym_wrapper")
     ]
     return "\n".join(lines[marker_lines[0] + 1 :])
 
 
 def get_loss_fn_text(loss_fn: ap_gym.LossFn) -> str:
-    import ap_gym
-
     if isinstance(loss_fn, ap_gym.CrossEntropyLossFn):
         return "cross entropy"
     elif isinstance(loss_fn, ap_gym.MSELossFn):
@@ -304,14 +336,12 @@ class RenderOutput:
 
 
 def unwrap(env: gym.Env) -> tuple[gym.Env, list[gym.Wrapper], dict, dict | None]:
-    import ap_gym
-
     base_env = env
     wrappers = []
-    found_idoc = None
+    concrete_doc_parsed = None
     while not is_base_env(base_env):
-        if has_idoc(base_env) and found_idoc is None:
-            found_idoc = base_env.__idoc__
+        if has_idoc(base_env) and concrete_doc_parsed is None:
+            concrete_doc_parsed = base_env.__idoc__
         if isinstance(base_env, gym.Wrapper) or isinstance(
             base_env, gym.vector.VectorWrapper
         ):
@@ -324,14 +354,10 @@ def unwrap(env: gym.Env) -> tuple[gym.Env, list[gym.Wrapper], dict, dict | None]
             raise ValueError(
                 f"Could not unwrap environment {base_env} further and environment is not a base environment."
             )
+    if has_idoc(base_env) and concrete_doc_parsed is None:
+        concrete_doc_parsed = base_env.__idoc__
     base_doc = inspect.cleandoc(base_env.__doc__)
     doc_parsed = yaml.safe_load(doc_extract_yaml(base_doc))
-
-    if found_idoc is not None:
-        concrete_doc = inspect.cleandoc(found_idoc)
-        concrete_doc_parsed = yaml.safe_load(doc_extract_yaml(concrete_doc))
-    else:
-        concrete_doc_parsed = None
 
     return base_env, wrappers, doc_parsed, concrete_doc_parsed
 
@@ -342,8 +368,6 @@ def render_env(
     base_title: str | None = None,
     base_name: str | None = None,
 ) -> RenderOutput:
-    import ap_gym
-
     base_env, wrappers, doc_parsed, concrete_doc_parsed = unwrap(env)
 
     if concrete:
@@ -351,9 +375,9 @@ def render_env(
 
     all_versions = sorted(
         {
-            int(e.split("-")[-1][1:])
+            parse_env_id(e)[2]
             for e in gym.registry
-            if "-".join(e.split("-")[:-1]) == env.spec.name
+            if parse_env_id(e)[1] == env.spec.name
         }
     )
     version_info = {0: "Initial version"}
@@ -369,8 +393,7 @@ def render_env(
     example_usage = inspect.cleandoc(
         f"""
         ```python
-        import ap_gym
-        
+
         env = ap_gym.make("{env.spec.id}")
 
         # Or for the vectorized version with 4 environments:
@@ -413,13 +436,24 @@ def render_env(
         ("truncate", truncate_conditions),
     ]:
         if len(conditions) > 0:
-            l = "\n".join([f"{i + 1}. {c}" for i, c in enumerate(conditions)])
             if len(episode_end) > 0:
                 episode_end += "\n\n"
-            episode_end += (
-                f"The episode ends with the {name} flag set if one of the following conditions is met:\n "
-                f"{l}"
-            )
+            if len(conditions) > 1:
+                l = "\n".join(
+                    [
+                        f"{i + 1}. {c[0].capitalize()}{c[1:]}"
+                        for i, c in enumerate(conditions)
+                    ]
+                )
+                episode_end += (
+                    f"The episode ends with the {name} flag set if one of the following conditions is met:\n "
+                    f"{l}"
+                )
+            else:
+                episode_end += (
+                    f"The episode ends with the {name} flag set if {conditions[0]}"
+                )
+
     if len(episode_end) == 0:
         episode_end = "The episode ends when the environment is reset."
 
@@ -447,22 +481,25 @@ def render_env(
         ("Prediction Target Space", env.prediction_target_space),
         ("Observation Space", env.observation_space),
     ]
-    properties = render_md_table(
-        ["", ""],
-        [[f"**{n}**", render_space_compact(s)] for n, s in spaces_raw]
+    properties = render_html_table(
+        [[f"<strong>{n}</strong>", render_space_compact(s)] for n, s in spaces_raw]
         + [
             [
-                "**Loss Function**",
-                f"`{get_loss_fn_name(env.loss_fn)}()`",
+                "<strong>Loss Function</strong>",
+                f"<code>{get_loss_fn_name(env.loss_fn)}()</code>",
             ]
         ],
     )
 
     space_vars = doc_parsed.get("space_variables", [])
     if len(space_vars) > 0:
-        properties += "\n\n where"
+        properties += "\n\n where "
         if len(space_vars) > 1:
-            properties += ", ".join(space_vars[:-1]) + ", and "
+            properties += ", ".join(space_vars[:-1])
+            if len(space_vars) > 2:
+                properties += ", and "
+            else:
+                properties += " and "
         properties += space_vars[-1] + "."
 
     introduction = f'<p align="center"><img src="img/{env.spec.id}.gif" alt="{env.spec.id}" width="200px"/></p>'
@@ -495,16 +532,14 @@ def render_env(
 
     variant_full_names = [n for n in gym.registry if n.startswith(f"{env_name}-")]
     # Ensure every key is present only once while preserving order
-    variant_names = list(dict.fromkeys(["-".join(n.split("-")[:-1]) for n in variant_full_names]))
+    variant_names = list(
+        dict.fromkeys(["-".join(n.split("-")[:-1]) for n in variant_full_names])
+    )
     variant_names.remove(env.spec.name)
     variant_entries = []
     for n in variant_names:
         all_versions = sorted(
-            {
-                int(e.split("-")[-1][1:])
-                for e in gym.registry
-                if "-".join(e.split("-")[:-1]) == n
-            }
+            {parse_env_id(e)[2] for e in gym.registry if parse_env_id(e)[1] == n}
         )
         latest_version = max(all_versions)
         full_name = f"{n}-v{latest_version}"
@@ -538,14 +573,8 @@ def render_env(
 
 
 def render_env_with_base(env_name: str) -> dict[str, RenderOutput]:
-    import ap_gym
-
     all_versions = sorted(
-        {
-            int(e.split("-")[-1][1:])
-            for e in gym.registry
-            if "-".join(e.split("-")[:-1]) == env_name
-        }
+        {parse_env_id(e)[2] for e in gym.registry if parse_env_id(e)[1] == env_name}
     )
     latest_version = max(all_versions)
     full_env_name = f"{env_name}-v{latest_version}"
@@ -610,16 +639,26 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    exclude_list = set(gym.registry)
+    exclude_list = PURE_GYM_ENVS
+
+    if "ap_gym" not in args.modules:
+        exclude_list = exclude_list.union(AP_GYM_ENVS)
 
     for module in args.modules:
-        __import__(module)
+        if module != "ap_gym":
+            __import__(module)
 
     if args.include is not None:
         env_names = set(args.include)
     else:
         env_names_with_versions = set(gym.registry) - exclude_list
-        env_names = set("-".join(e.split("-")[:-1]) for e in env_names_with_versions)
+        env_names = set(parse_env_id(e)[1] for e in env_names_with_versions)
+
+    variants = []
+    for env_name in env_names:
+        if any(env_name.startswith(f"{e}-") for e in env_names):
+            variants.append(env_name)
+    env_names -= set(variants)
 
     args.output_dir.mkdir(exist_ok=True)
 
@@ -639,7 +678,6 @@ if __name__ == "__main__":
     aggregated_bases = {}
 
     for base_name, rendered_lst in bases.items():
-        # TODO: add existing envs
         aggregated = dict_cut_recursive([r.sections for r in rendered_lst])
         base_title = list(aggregated.keys())[0]
         if "Example Usage" in aggregated[base_title]:
