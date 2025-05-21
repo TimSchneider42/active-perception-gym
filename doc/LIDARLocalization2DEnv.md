@@ -1,7 +1,5 @@
 # 2D LIDAR Localization Environments
 
-## Description
-
 In the 2D LIDAR localization environments, the agent is placed in a random location in a 2D map and must predict
 its own position. As shown in the visualization below, the map is represented by a 2D bitmap, where passable
 pixels are white and obstacles are black. The size of the map varies between 21x21 pixels and 32x32 pixels,

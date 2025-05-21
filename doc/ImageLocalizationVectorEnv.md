@@ -1,7 +1,5 @@
 # Image Localization Environments
 
-## Description
-
 In image localization environments, the agent has to localize a given part of the image by moving a small
 glimpse around. The glimpse is never large enough to see the entire image at once, so the agent has to move
 around to gather information. Unlike the [Image Classification Environments](ImageClassificationVectorEnv.md),

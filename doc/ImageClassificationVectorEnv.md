@@ -1,7 +1,5 @@
 # Image Classification Environments
 
-## Description
-
 In image classification environments, the agent has to classify an image by moving a small glimpse around the
 image. The glimpse is never large enough to see the entire image at once, so the agent has to move around to
 gather information.

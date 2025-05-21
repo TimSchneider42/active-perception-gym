@@ -691,6 +691,18 @@ if __name__ == "__main__":
             del aggregated[base_title]["Example Usage"]
         if "Version History" in aggregated[base_title]:
             del aggregated[base_title]["Version History"]
+        if (
+            None not in aggregated[base_title]
+            and "Description" in aggregated[base_title]
+        ):
+            aggregated[base_title] = {
+                None: aggregated[base_title]["Description"],
+                **{
+                    k: v
+                    for k, v in aggregated[base_title].items()
+                    if k != "Description"
+                },
+            }
 
         concrete_envs = [
             (env_name, rendered.full_env_name, rendered.properties)
