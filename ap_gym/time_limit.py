@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 import gymnasium as gym
 import numpy as np
 
+from ap_gym import idoc
+
 if TYPE_CHECKING:
     from gymnasium.envs.registration import EnvSpec
 
@@ -20,6 +22,11 @@ class TimeLimit(gym.Wrapper, gym.utils.RecordConstructorArgs):
        >>> import ap_gym
        >>> env = gym.make("CartPole-v1")
        >>> env = ap_gym.TimeLimit(env, max_episode_steps=200, issue_termination=True)
+
+    #!AP_GYM_WRAPPER
+    end_conditions:
+      terminate:
+      - The maximum number of steps (`max_episode_steps`) is reached.
     """
 
     def __init__(
@@ -57,8 +64,10 @@ class TimeLimit(gym.Wrapper, gym.utils.RecordConstructorArgs):
 
         if self._observe_time_steps:
             obs_space = self.observation_space
-            time_obs_space = gym.spaces.Box(
-                low=-1.0, high=1.0, shape=(), dtype=np.float32
+            time_obs_space = idoc(
+                gym.spaces.Box(low=-1.0, high=1.0, shape=(), dtype=np.float32),
+                f"represents the normalized current time step between 0 and `max_episode_steps` (default "
+                f"{max_episode_steps}).",
             )
 
             if isinstance(obs_space, gym.spaces.Dict):

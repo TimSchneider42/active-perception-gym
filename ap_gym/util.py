@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Mapping, Any, Sequence
+from typing import Mapping, Any, Sequence, TypeVar
 
 import numpy as np
 
@@ -81,3 +81,11 @@ def update_info_metrics_vec(
             }
         },
     )
+
+
+T = TypeVar("T")
+
+
+def idoc(obj: T, doc: str) -> T:
+    obj.__idoc__ = doc
+    return obj

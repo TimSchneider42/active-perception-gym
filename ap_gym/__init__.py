@@ -1,3 +1,4 @@
+from .util import idoc
 from .active_classification_env import (
     ActiveClassificationEnv,
     ActiveClassificationVectorEnv,

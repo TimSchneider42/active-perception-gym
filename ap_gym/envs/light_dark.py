@@ -5,17 +5,59 @@ import gymnasium as gym
 import numpy as np
 from PIL import Image, ImageDraw
 
-from ap_gym import ActiveRegressionEnv
+from ap_gym import ActiveRegressionEnv, idoc
 from .style import COLOR_PRED, COLOR_AGENT, COLOR_OBS_PRIMARY, quality_color
 
 
 class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
+    r"""
+    #!AP_GYM_BASE_ENV
+    title: LightDark
+    description: |
+        In the LightDark Environment, the agent must estimate its position based on noisy observations, where the noise
+        level depends on the brightness of the surrounding area.
+        The environment simulates an active regression task where the agent can move to areas with better visibility to
+        improve its position estimation.
+
+        This environment is useful for testing active regression models, where the agent must strategically explore its
+        environment to obtain more reliable observations before making predictions.
+
+        The visualization shown above has to be interpreted as follows:
+
+        - **Blue dot**: Agent's current position.
+        - **Green transparent circle**: Observation uncertainty (higher in dark regions).
+        - **Purple dot**: Agent's last prediction.
+        - **Light blue dot**: Agent's previous position (this is what the agent's prediction tries to approximate).
+        - **White background**: Bright regions with low uncertainty.
+        - **Dark background**: Dark regions with high uncertainty.
+    rewards:
+    - 'A small action regularization equal to $10^{-3} \cdot{} \lVert \textit{action}\rVert$.'
+    - 'A constant reward of $0.1$ to ensure that the reward stays positive and the agent does not learn to terminate the
+    episode on purpose.'
+    starting_state: 'The agent''s initial position is uniformly randomly sampled from the range $[-1, 1]^2$.'
+    end_conditions:
+      terminate:
+      - The agent moves out of bounds.
+    """
+
     metadata = {"render_modes": ["rgb_array"], "render_fps": 4}
 
     def __init__(self, render_mode: Literal["rgb_array"] = "rgb_array"):
+        """
+
+        :param render_mode: Rendering mode (currently only `"rgb_array"` is supported).
+        """
         super().__init__(
-            2, gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
+            2,
+            idoc(
+                gym.spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32),
+                "describes the agent's relative movement. The value is first projected into the unit circle and then "
+                "scaled by 0.15. If the agent moves outside the valid region ($[-1, 1]^2$), the episode is terminated.",
+            ),
         )
+        idoc(self.prediction_target_space, "represents the true position of the agent.")
+        idoc(self.prediction_space, "represents the predicted position of the agent.")
+
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")
         self.__render_mode = render_mode
@@ -34,8 +76,15 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             (res, res, 3),
         )
 
-        self.observation_space = gym.spaces.Box(
-            low=-2, high=2, shape=(2,), dtype=np.float32
+        self.observation_space = gym.spaces.Dict(
+            {
+                "noisy_position": idoc(
+                    gym.spaces.Box(low=-2, high=2, shape=(2,), dtype=np.float32),
+                    "contains a noisy estimate of the agent's position. The level of noise depends on the "
+                    "brightness of the area the agent is in. A brighter area results in a lower noise level, while a "
+                    "darker area results in a higher noise level.",
+                )
+            }
         )
 
         self.__trajectory = deque()
