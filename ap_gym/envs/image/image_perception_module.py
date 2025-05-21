@@ -178,10 +178,9 @@ class ImagePerceptionModule:
             terminated = False
             base_reward = np.zeros(self.__num_envs)
         else:
-            action_clipped = np.clip(action, -1, 1)
-            if np.any(np.isnan(action_clipped)):
+            if np.any(np.isnan(action)):
                 raise ValueError("NaN values detected in action.")
-            step = self.__max_step_length * action_clipped
+            step = self.__max_step_length * project_sphere(action)
             new_sensor_pos_norm = self.__current_sensor_pos_norm + step
             self.__current_sensor_pos_norm = np.clip(new_sensor_pos_norm, -1, 1)
             base_reward = -np.linalg.norm(action, axis=-1) * 1e-3
