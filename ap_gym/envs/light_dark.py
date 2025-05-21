@@ -99,7 +99,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             np.float32
         ) * self.__get_std_dev(self.__pos)
         self.__last_obs = np.clip(self.__last_obs, -2, 2)
-        return self.__last_obs
+        return {"noisy_position": self.__last_obs}
 
     def __get_std_dev(self, pos: np.ndarray):
         return (1 - self.__compute_brightness(pos)) * 0.3
