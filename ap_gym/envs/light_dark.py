@@ -25,6 +25,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
         - **Blue dot**: Agent's current position.
         - **Green transparent circle**: Observation uncertainty (higher in dark regions).
+        - **Green dot**: Noisy observed position.
         - **Purple dot**: Agent's last prediction.
         - **Light blue dot**: Agent's previous position (this is what the agent's prediction tries to approximate).
         - **White background**: Bright regions with low uncertainty.
