@@ -218,7 +218,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             gym.spaces.Dict(observation_dict),
             {
                 "extra_entries": fake_entries,
-                "extra_text": 'The `"map"` key is only included in the static environments.',
+                "extra_text": 'The `"map"` key is only included in the non-static environments.',
             },
         )
 
