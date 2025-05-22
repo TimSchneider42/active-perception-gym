@@ -35,8 +35,8 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
     episode on purpose.'
     starting_state: 'The agent''s initial position is uniformly randomly sampled from the range $[-1, 1]^2$.'
     end_conditions:
-      terminate:
-      - The agent moves out of bounds.
+        terminate:
+        - The agent moves out of bounds.
     """
 
     metadata = {"render_modes": ["rgb_array"], "render_fps": 4}

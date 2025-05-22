@@ -53,8 +53,8 @@ class ImageLocalizationVectorEnv(
     - 'A small action regularization equal to $10^{-3} \cdot{} \lVert \textit{action}\rVert$.'
     starting_state: The glimpse starts at a uniformly random position within the image.
     end_conditions:
-      terminate:
-      - the maximum number of steps (`image_perception_config.step_limit`) is reached.
+        terminate:
+        - the maximum number of steps (`image_perception_config.step_limit`) is reached.
     space_variables:
     - $G \in \mathbb{N}$ is the glimpse size
     - $C \in \mathbb{N}$ is the number of image channels (1 for grayscale, 3 for RGB)
