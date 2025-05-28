@@ -46,7 +46,7 @@ All image classification environments in _ap_gym_ are instantiations of the
 
 ## Action Space
 
-The action is a `np.ndarray[float32]` $\in [-1, 1]^{2}$ that describes the relative movement of the glimpse sensor. The value is first projected into the unit circle and then scaled by `image_perception_config.max_step_length`, which is 0.20 (20% of the image) by default.
+The action is a `np.ndarray[float32]` $\in [-1, 1]^{2}$ that describes the relative movement of the glimpse sensor. The value is first projected into the unit circle and then scaled by `image_perception_config.max_step_length`, which is 0.2 (10% of the image) by default.
 
 ## Prediction Space
 

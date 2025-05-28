@@ -47,7 +47,7 @@ class ImagePerceptionModule:
             gym.spaces.Box(-np.ones(2, dtype=np.float32), np.ones(2, dtype=np.float32)),
             "describes the relative movement of the glimpse sensor. The value is first projected into the unit circle "
             f"and then scaled by `image_perception_config.max_step_length`, which is {config.max_step_length:0.2f} "
-            f"({config.max_step_length * 100:.0f}% of the image) by default.",
+            f"({config.max_step_length / 2 * 100:.0f}% of the image) by default.",
         )
         self.__current_data_point_idx: int | None = None
         self.__current_images: np.ndarray | None = None
