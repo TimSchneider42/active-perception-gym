@@ -26,9 +26,17 @@ def create_env_vid(env_id: str, filename: Path, seed: int = 0, num_eps: int = 10
                 imgs[-1].append(env.render())
         imgs_flat = [img for ep_imgs in imgs for img in ep_imgs]
         format = "GIF-FI" if filename.suffix == ".gif" else None
-        imageio.mimsave(
-            filename, imgs_flat, fps=env.metadata["render_fps"], format=format
-        )
+        if "%i" in filename.name:
+            num_digits = len(str(len(imgs_flat) - 1))
+            for i, img in enumerate(imgs_flat):
+                single_filename = filename.with_name(
+                    filename.name.replace("%i", f"{i:0{num_digits}d}")
+                )
+                imageio.imwrite(single_filename, img, format=format)
+        else:
+            imageio.mimsave(
+                filename, imgs_flat, fps=env.metadata["render_fps"], format=format
+            )
     finally:
         env.close()
 
