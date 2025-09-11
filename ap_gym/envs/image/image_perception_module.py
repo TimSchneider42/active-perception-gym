@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Sequence, Dict, Any
+from typing import Literal, Sequence, Any
 
 import PIL.Image
 import gymnasium as gym
@@ -360,7 +360,7 @@ class ImagePerceptionModule:
         return pos, size
 
     @property
-    def observation_space_dict(self) -> Dict[str, gym.spaces.Space]:
+    def observation_space_dict(self) -> dict[str, gym.spaces.Space]:
         return self.__observation_space_dict
 
     @property

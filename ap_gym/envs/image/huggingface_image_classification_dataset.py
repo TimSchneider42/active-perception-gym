@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Tuple, Union, SupportsInt
+from typing import SupportsInt
 
 import PIL.Image
 import aiohttp
@@ -48,7 +48,7 @@ class HuggingfaceImageClassificationDataset(ImageClassificationDataset):
 
     def _get_data_point(
         self, idx: int
-    ) -> Tuple[Union[np.ndarray, PIL.Image], SupportsInt]:
+    ) -> tuple[np.ndarray | PIL.Image.Image, SupportsInt]:
         data_point = self.__data[idx]
         return (
             data_point[self.__image_feature_name],

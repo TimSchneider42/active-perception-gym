@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Generic, Callable
+from typing import Any, Generic, Callable
 
 import numpy as np
 import scipy
@@ -84,19 +84,19 @@ class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTarge
         return self._jax(prediction, target, batch_shape)
 
 
-class ZeroLossFn(LossFn[Tuple, Tuple]):
+class ZeroLossFn(LossFn[tuple, tuple]):
     def numpy(
-        self, prediction: Tuple, target: Tuple, batch_shape: tuple[int, ...] = ()
+        self, prediction: tuple, target: tuple, batch_shape: tuple[int, ...] = ()
     ) -> float:
         return np.zeros(batch_shape, dtype=np.float32)
 
     def torch(
-        self, prediction: Tuple, target: Tuple, batch_shape: tuple[int, ...] = ()
+        self, prediction: tuple, target: tuple, batch_shape: tuple[int, ...] = ()
     ) -> "torch.Tensor":
         return torch.zeros(batch_shape)
 
     def jax(
-        self, prediction: Tuple, target: Tuple, batch_shape: tuple[int, ...] = ()
+        self, prediction: tuple, target: tuple, batch_shape: tuple[int, ...] = ()
     ) -> "jax.Array":
         return jnp.zeros(batch_shape)
 

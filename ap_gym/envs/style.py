@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 
 COLOR_AGENT = (0, 85, 255)
