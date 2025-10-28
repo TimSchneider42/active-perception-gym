@@ -56,6 +56,8 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 "describes the agent's relative movement. The value is first projected into the unit circle and then "
                 "scaled by 0.15. If the agent moves outside the valid region ($[-1, 1]^2$), the episode is terminated.",
             ),
+            prediction_low=-1,
+            prediction_high=1,
         )
         idoc(self.prediction_target_space, "represents the true position of the agent.")
         idoc(self.prediction_space, "represents the predicted position of the agent.")

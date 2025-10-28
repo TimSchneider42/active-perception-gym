@@ -148,6 +148,8 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
                 "describes the agent's relative movement in pixels. The value is projected into the unit circle before "
                 "being added to the position",
             ),
+            prediction_low=-1,
+            prediction_high=1,
         )
         if render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"Invalid render mode: {render_mode}")

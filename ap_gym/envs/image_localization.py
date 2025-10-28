@@ -91,6 +91,8 @@ class ImageLocalizationVectorEnv(
             num_envs,
             2,
             self.__image_perception_module.single_inner_action_space,
+            prediction_low=-1,
+            prediction_high=1,
         )
         self.single_observation_space = gym.spaces.Dict(
             {

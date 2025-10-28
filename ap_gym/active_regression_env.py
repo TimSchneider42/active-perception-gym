@@ -28,13 +28,21 @@ class ActiveRegressionEnv(
     Generic[ObsType, ActType],
     ABC,
 ):
-    def __init__(self, target_dim: int, inner_action_space: gym.Space[ActType]):
-        prediction_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(target_dim,))
+    def __init__(
+        self,
+        target_dim: int,
+        inner_action_space: gym.Space[ActType],
+        prediction_low: float = -np.inf,
+        prediction_high: float = np.inf,
+    ):
+        prediction_space = gym.spaces.Box(
+            low=prediction_low, high=prediction_high, shape=(target_dim,)
+        )
         self.action_space = ActivePerceptionActionSpace(
             inner_action_space, prediction_space
         )
         self.prediction_target_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(target_dim,)
+            low=prediction_low, high=prediction_high, shape=(target_dim,)
         )
         self.loss_fn = MSELossFn()
 
@@ -49,10 +57,12 @@ class ActiveRegressionVectorEnv(
         num_envs: int,
         target_dim: int,
         single_inner_action_space: gym.Space[ActType],
+        prediction_low: float = -np.inf,
+        prediction_high: float = np.inf,
     ):
         self.num_envs = num_envs
         single_prediction_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(target_dim,)
+            low=prediction_low, high=prediction_high, shape=(target_dim,)
         )
         self.single_action_space = ActivePerceptionActionSpace(
             single_inner_action_space, single_prediction_space
@@ -61,7 +71,7 @@ class ActiveRegressionVectorEnv(
             self.single_action_space, num_envs
         )
         self.single_prediction_target_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(target_dim,)
+            low=prediction_low, high=prediction_high, shape=(target_dim,)
         )
         self.prediction_target_space = gym.vector.utils.batch_space(
             self.single_prediction_target_space, num_envs
