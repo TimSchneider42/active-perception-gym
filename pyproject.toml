@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ap_gym"
-version = "0.3.0"
+version = "0.4.0"
 description = "Active Perception Gym: extension of Gymnasium for active perception tasks."
 authors = [
     { name = "Tim Schneider", email = "tim@robot-learning.de" }
