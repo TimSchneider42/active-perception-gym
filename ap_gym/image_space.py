@@ -31,6 +31,8 @@ class ImageSpace(gym.spaces.Box):
             box.shape[:-3],
             box.dtype,
             box.np_random,
+            box.low,
+            box.high,
         )
 
     @property
@@ -48,6 +50,11 @@ class ImageSpace(gym.spaces.Box):
     @property
     def batch_shape(self):
         return self.shape[:-3]
+
+    def __repr__(self) -> str:
+        return (
+            f"ImageSpace({self.low_repr}, {self.high_repr}, {self.shape}, {self.dtype})"
+        )
 
 
 @gym.vector.utils.batch_space.register(ImageSpace)
