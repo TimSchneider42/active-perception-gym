@@ -19,6 +19,7 @@ from .active_perception_vector_env import (
     FullActType,
     PredType,
 )
+from .logit_space import LogitSpace
 from .loss_fn import CrossEntropyLossFn
 from .types import ObsType, ActType
 from .util import update_info_metrics, update_info_metrics_vec
@@ -30,7 +31,7 @@ class ActiveClassificationEnv(
     ABC,
 ):
     def __init__(self, num_classes: int, inner_action_space: gym.Space[ActType]):
-        prediction_space = gym.spaces.Box(-np.inf, np.inf, shape=(num_classes,))
+        prediction_space = LogitSpace(-np.inf, np.inf, shape=(num_classes,))
         self.action_space = ActivePerceptionActionSpace(
             inner_action_space, prediction_space
         )
@@ -50,7 +51,7 @@ class ActiveClassificationVectorEnv(
         single_inner_action_space: gym.Space[ActType],
     ):
         self.num_envs = num_envs
-        single_prediction_space = gym.spaces.Box(-np.inf, np.inf, shape=(num_classes,))
+        single_prediction_space = LogitSpace(-np.inf, np.inf, shape=(num_classes,))
         self.single_action_space = ActivePerceptionActionSpace(
             single_inner_action_space, single_prediction_space
         )

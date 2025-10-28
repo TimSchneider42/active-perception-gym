@@ -36,6 +36,7 @@ from .vector_to_single_wrapper import (
     VectorToSingleWrapper,
     ActivePerceptionVectorToSingleWrapper,
 )
+from .logit_space import LogitSpace
 
 from .envs.registration import make, make_vec, register_envs
 
