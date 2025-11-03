@@ -361,6 +361,20 @@ def register_envs():
     )
 
     register_image_localization_envs(
+        name=f"MNISTLoc",
+        datasets=lambda split: HuggingfaceImageClassificationDataset(
+            "mnist", channels=1, split=split
+        ),
+        step_limit=16,
+        kwargs=image_env_render_kwargs,
+        description="In the MNISTLoc environment, the agent's objective is to localize a given glimpse in an MNIST "
+        "image. The agent has limited visibility, represented by a small movable glimpse that captures partial views "
+        "of the image. It must strategically explore different regions of the image to gather enough information for "
+        "accurate localization.",
+        image_description="Handwritten digits from the [MNIST dataset](http://yann.lecun.com/exdb/mnist/).",
+    )
+
+    register_image_localization_envs(
         name=f"CIFAR10Loc",
         datasets=lambda split: HuggingfaceImageClassificationDataset(
             "cifar10", image_feature_name="img", split=split
