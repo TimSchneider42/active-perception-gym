@@ -29,6 +29,8 @@ class ImagePerceptionConfig:
     render_visited_opacity: float = 0.3
     prefetch_buffer_size: int = 128
     prefetch: bool = True
+    unique_sampling_max_grid_cell_size_rel = 0.2
+    unique_sampling_top_k: int = 10
 
 
 ObsType = dict[Literal["glimpse", "glimpse_pos", "time_step"], np.ndarray]
@@ -221,6 +223,47 @@ class ImagePerceptionModule:
             ),
         }
 
+    def sample_unique_glimpse_positions(self) -> np.ndarray:
+        sensor_size_norm = self.normalize_coords(self.effective_sensor_size)
+        max_grid_cell_size_norm = (
+            sensor_size_norm * self.__config.unique_sampling_max_grid_cell_size_rel
+        )
+        grid_cell_count = np.ceil(2 / max_grid_cell_size_norm)
+        sampling_positions = np.stack(
+            np.meshgrid(
+                np.linspace(-1, 1, int(grid_cell_count[0])),
+                np.linspace(-1, 1, int(grid_cell_count[1])),
+                indexing="ij",
+            ),
+            axis=-1,
+        )
+        sampling_positions_flat = sampling_positions.reshape(-1, 2)
+        glimpses = self.get_glimpse(sampling_positions_flat[None])
+        diff = np.mean(
+            (glimpses[:, None] - glimpses[:, :, None]) ** 2, axis=(-3, -2, -1)
+        )
+        uniqueness = np.min(
+            diff + np.diag(np.full(len(sampling_positions_flat), np.inf)), axis=-1
+        )
+        top_k = np.argsort(-uniqueness, axis=-1)[
+            :, : self.__config.unique_sampling_top_k
+        ]
+        selected_indices = self.__current_rng.integers(
+            0, self.__config.unique_sampling_top_k, size=self.__num_envs
+        )
+        base_positions = sampling_positions_flat[
+            top_k[np.arange(self.__num_envs), selected_indices]
+        ]
+
+        return np.clip(
+            base_positions
+            + self.__current_rng.uniform(
+                -max_grid_cell_size_norm, max_grid_cell_size_norm, (self.__num_envs, 2)
+            ),
+            -1,
+            1,
+        )
+
     def get_glimpse(self, pos_norm: np.ndarray) -> np.ndarray:
         sensing_point_offsets = np.meshgrid(
             (
@@ -236,14 +279,23 @@ class ImagePerceptionModule:
             indexing="ij",
         )
         sensing_points = (
-            np.flip(self.denormalize_coords(pos_norm), axis=-1)[:, None, None]
+            np.flip(self.denormalize_coords(pos_norm), axis=-1)[..., None, None, :]
             + np.stack(sensing_point_offsets, axis=-1)[None]
         )
         return (
             np.stack(
                 [
                     img(sp)
-                    for img, sp in zip(self.__interpolated_images, sensing_points)
+                    for img, sp in zip(
+                        self.__interpolated_images,
+                        np.broadcast_to(
+                            sensing_points,
+                            (
+                                len(self.__interpolated_images),
+                                *sensing_points.shape[1:],
+                            ),
+                        ),
+                    )
                 ],
                 axis=0,
             )
@@ -321,11 +373,11 @@ class ImagePerceptionModule:
 
         return rgb_imgs if return_pil_imgs else np.asarray(rgb_imgs)
 
-    def denormalize_coords(self, size: np.ndarray) -> np.ndarray:
-        sensor_pos_lim = (
-            np.flip(np.array(self.__current_images.shape[1:3])) - 1
-        ) / 2 - (self.effective_sensor_size - 1) / 2
-        return size * sensor_pos_lim
+    def normalize_coords(self, coords: np.ndarray) -> np.ndarray:
+        return coords / self.sensor_pos_lim_pixels
+
+    def denormalize_coords(self, coords: np.ndarray) -> np.ndarray:
+        return coords * self.sensor_pos_lim_pixels
 
     def to_render_coords(self, pos_norm: np.ndarray) -> np.ndarray:
         return self.scale_to_render_coords(pos_norm) + np.array(self.__render_size) / 2
@@ -336,6 +388,12 @@ class ImagePerceptionModule:
     def close(self):
         if isinstance(self.__data_loader, BufferedIterator):
             self.__data_loader.close()
+
+    @property
+    def sensor_pos_lim_pixels(self):
+        return (np.flip(np.array(self.__current_images.shape[1:3])) - 1) / 2 - (
+            self.effective_sensor_size - 1
+        ) / 2
 
     @property
     def sensor_size(self) -> tuple[int, int]:

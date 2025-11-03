@@ -131,9 +131,11 @@ class ImageLocalizationVectorEnv(
     def _reset(self, *, options: dict[str, Any | None] = None):
         self.__last_prediction = None
         obs, info = self.__image_perception_module.reset()
-        self.__current_prediction_target = self.np_random.uniform(
-            -1, 1, (self.num_envs, 2)
-        ).astype(np.float32)
+        self.__current_prediction_target = (
+            self.__image_perception_module.sample_unique_glimpse_positions().astype(
+                np.float32
+            )
+        )
         self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
         return (
             {
