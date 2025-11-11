@@ -115,7 +115,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
     def torch(
         self,
         prediction: "torch.Tensor",
-        target: int | "torch.Tensor",
+        target: "int | torch.Tensor",
         batch_shape: tuple[int, ...] = (),
     ) -> "torch.Tensor":
         return -torch.take_along_dim(
@@ -127,7 +127,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
     def jax(
         self,
         prediction: "jax.Array",
-        target: int | "jax.Array",
+        target: "int | jax.Array",
         batch_shape: tuple[int, ...] = (),
     ) -> "jax.Array":
         return -jnp.take_along_axis(
