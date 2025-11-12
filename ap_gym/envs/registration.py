@@ -324,13 +324,14 @@ def register_envs():
         "Variant of CircleSquare with a higher time limit of 64 steps instead of 16.",
         step_limit=64,
     )
+
     register_image_env(
-        name=f"CircleSquareCatchOrFlee-v0",
+        name="CircleSquareCatchOrFlee-v0",
         dataset=CircleSquareDataset(image_shape=(28, 28), show_gradient=True),
         step_limit=32,
         idoc_fn=mk_img_class_idoc_fn(
-            "Variant of CircleSquare, in which the agent receives an additional reward for staying close to "
-            "squares and far from circles. The time limit is 32 steps instead of 16.",
+            "Variant of CircleSquare, in which the agent receives an additional reward for staying close to squares and "
+            "far from circles. The time limit is 32 steps instead of 16.",
             "An image containing either a circle or square.",
         ),
         entry_point=lambda *args, **kwargs: VectorToSingleWrapper(
@@ -343,6 +344,24 @@ def register_envs():
         ),
         single_wrappers=(ActiveClassificationLogWrapper,),
         vector_wrappers=(ActiveClassificationVectorLogWrapper,),
+    )
+
+    register_image_env(
+        name="CircleSquareCatchOrFleeNoPrediction-v0",
+        dataset=CircleSquareDataset(image_shape=(28, 28), show_gradient=True),
+        step_limit=32,
+        idoc_fn=mk_img_class_idoc_fn(
+            "Variant of CircleSquareCatchOrFlee in which the agent does not need to predict the object class.",
+            "An image containing either a circle or square.",
+        ),
+        entry_point=lambda *args, **kwargs: VectorToSingleWrapper(
+            CircleSquareCatchOrFleeVectorWrapper(
+                ImageClassificationVectorEnv(*args, **kwargs), mask_prediction=True
+            )
+        ),
+        vector_entry_point=lambda *args, **kwargs: CircleSquareCatchOrFleeVectorWrapper(
+            ImageClassificationVectorEnv(*args, **kwargs), mask_prediction=True
+        ),
     )
 
     image_env_render_kwargs = dict(
