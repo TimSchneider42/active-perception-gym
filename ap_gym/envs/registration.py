@@ -250,14 +250,14 @@ def register_lidar_localization_env(
 
 
 def register_circle_square(
-    size: int, show_gradient: bool, suffix: str, description: str
+    size: int, show_gradient: bool, suffix: str, description: str, step_limit: int = 16
 ):
     register_image_classification_env(
         name=f"CircleSquare{suffix}-v0",
         dataset=CircleSquareDataset(
             image_shape=(size, size), show_gradient=show_gradient
         ),
-        step_limit=16,
+        step_limit=step_limit,
         idoc_fn=mk_img_class_idoc_fn(
             description, "An image containing either a circle or square."
         ),
@@ -308,6 +308,20 @@ def register_envs():
         False,
         "-s15-nograd",
         "Variant of CircleSquare-nograd with a smaller image size of 15 instead of 28.",
+    )
+    register_circle_square(
+        28,
+        True,
+        "-t32",
+        "Variant of CircleSquare with a higher time limit of 32 steps instead of 16.",
+        step_limit=32,
+    )
+    register_circle_square(
+        28,
+        True,
+        "-t64",
+        "Variant of CircleSquare with a higher time limit of 64 steps instead of 16.",
+        step_limit=64,
     )
 
     image_env_render_kwargs = dict(
