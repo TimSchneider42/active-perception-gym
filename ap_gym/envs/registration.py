@@ -4,7 +4,6 @@ from functools import partial, reduce
 from typing import Any, Sequence, Callable
 
 import gymnasium as gym
-import yaml
 from gymnasium.envs.registration import WrapperSpec
 
 from ap_gym import (
@@ -18,6 +17,7 @@ from ap_gym import (
     ActiveClassificationLogWrapper,
     ActiveClassificationVectorLogWrapper,
     idoc,
+    VectorToSingleWrapper,
 )
 from ap_gym.envs.lidar_localization2d import LIDARLocalization2DEnv
 from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze, FloorMapDataset
@@ -29,6 +29,7 @@ from .image import (
 )
 from .image_classification import ImageClassificationEnv, ImageClassificationVectorEnv
 from .image_localization import ImageLocalizationEnv, ImageLocalizationVectorEnv
+from .circle_square_catch_or_flee import CircleSquareCatchOrFleeVectorWrapper
 
 ACTIVE_REGRESSION_LOGGER_WRAPPER_SPEC = WrapperSpec(
     "ActiveRegressionLogWrapper", "ap_gym:ActiveRegressionLogWrapper", kwargs={}
@@ -322,6 +323,26 @@ def register_envs():
         "-t64",
         "Variant of CircleSquare with a higher time limit of 64 steps instead of 16.",
         step_limit=64,
+    )
+    register_image_env(
+        name=f"CircleSquareCatchOrFlee-v0",
+        dataset=CircleSquareDataset(image_shape=(28, 28), show_gradient=True),
+        step_limit=32,
+        idoc_fn=mk_img_class_idoc_fn(
+            "Variant of CircleSquare, in which the agent receives an additional reward for staying close to "
+            "squares and far from circles. The time limit is 32 steps instead of 16.",
+            "An image containing either a circle or square.",
+        ),
+        entry_point=lambda *args, **kwargs: VectorToSingleWrapper(
+            CircleSquareCatchOrFleeVectorWrapper(
+                ImageClassificationVectorEnv(*args, **kwargs)
+            )
+        ),
+        vector_entry_point=lambda *args, **kwargs: CircleSquareCatchOrFleeVectorWrapper(
+            ImageClassificationVectorEnv(*args, **kwargs)
+        ),
+        single_wrappers=(ActiveClassificationLogWrapper,),
+        vector_wrappers=(ActiveClassificationVectorLogWrapper,),
     )
 
     image_env_render_kwargs = dict(

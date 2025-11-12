@@ -170,6 +170,10 @@ class ImageClassificationVectorEnv(
     def config(self):
         return self.__image_perception_module.config
 
+    @property
+    def image_perception_module(self) -> ImagePerceptionModule:
+        return self.__image_perception_module
+
 
 def ImageClassificationEnv(
     image_perception_config: ImagePerceptionConfig,

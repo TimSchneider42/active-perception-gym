@@ -26,11 +26,7 @@ class CircleSquareDataset(ImageClassificationDataset):
         return 1
 
     def _get_data_point(self, idx: int) -> tuple[np.ndarray, int]:
-        label = int(idx >= np.prod(self.__image_shape))
-        idx -= np.prod(self.__image_shape) * label
-        pos_x = idx % self.__image_shape[1]
-        pos_y = idx // self.__image_shape[1]
-        position = np.array([pos_y, pos_x])
+        position, label = self.get_object_position_and_label(idx)
         max_dist = np.sqrt(np.sum(np.array(self.__image_shape) ** 2))
 
         coords = np.stack(
@@ -59,3 +55,12 @@ class CircleSquareDataset(ImageClassificationDataset):
                 np.linalg.norm(position - coords, axis=-1) <= self.__object_extents / 2
             ] = 1.0
         return img[:, :, None], label
+
+    def get_object_position_and_label(
+        self, idx: int | np.ndarray
+    ) -> tuple[np.ndarray, int]:
+        label = (idx >= np.prod(self.__image_shape)).astype(np.int32)
+        idx_inner_label = idx - np.prod(self.__image_shape) * label
+        pos_x = idx_inner_label % self.__image_shape[1]
+        pos_y = idx_inner_label // self.__image_shape[1]
+        return np.stack([pos_y, pos_x], axis=-1), label
