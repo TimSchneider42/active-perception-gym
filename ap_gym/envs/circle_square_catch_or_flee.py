@@ -57,7 +57,8 @@ class CircleSquareCatchOrFleeVectorWrapper(
     ) -> tuple[ObsType, dict[str, Any]]:
         obs, info = self.env.reset(seed=seed, options=options)
         info = deepcopy(info)
-        info["prediction"]["target"] = ()
+        if self.__mask_prediction:
+            info["prediction"]["target"] = ()
         return obs, info
 
     def step(self, actions: np.ndarray) -> tuple[
@@ -67,10 +68,11 @@ class CircleSquareCatchOrFleeVectorWrapper(
         np.ndarray,
         dict[str, Any],
     ]:
-        actions = {
-            "action": actions["action"],
-            "prediction": np.zeros(self.env.prediction_space.shape),
-        }
+        if self.__mask_prediction:
+            actions = {
+                "action": actions["action"],
+                "prediction": np.zeros(self.env.prediction_space.shape),
+            }
         obs, reward, terminated, truncated, info = self.env.step(actions)
         info = deepcopy(info)
         indices = info["index"]
@@ -85,8 +87,8 @@ class CircleSquareCatchOrFleeVectorWrapper(
         distances = np.linalg.norm(obs["glimpse_pos"] - positions_norm, axis=-1)
         additional_reward = sign * distances
         info["base_reward"] += additional_reward
-        info["prediction"]["target"] = ()
         if self.__mask_prediction:
+            info["prediction"]["target"] = ()
             reward = info["base_reward"]
         else:
             reward += additional_reward
