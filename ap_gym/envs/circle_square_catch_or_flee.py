@@ -93,3 +93,15 @@ class CircleSquareCatchOrFleeVectorWrapper(
         else:
             reward += additional_reward
         return obs, reward, terminated, truncated, info
+
+    @property
+    def config(self):
+        return self.env.config
+
+    @property
+    def spec(self):
+        return self.env.spec
+
+    @spec.setter
+    def spec(self, value):
+        self.env.spec = value

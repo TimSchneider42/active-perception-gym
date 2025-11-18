@@ -4,7 +4,10 @@ from functools import partial, reduce
 from typing import Any, Sequence, Callable
 
 import gymnasium as gym
+import numpy as np
 from gymnasium.envs.registration import WrapperSpec
+
+import gymnasium.utils.passive_env_checker
 
 from ap_gym import (
     BaseActivePerceptionEnv,
@@ -19,7 +22,7 @@ from ap_gym import (
     idoc,
     VectorToSingleWrapper,
 )
-from ap_gym.envs.lidar_localization2d import LIDARLocalization2DEnv
+from .circle_square_catch_or_flee import CircleSquareCatchOrFleeVectorWrapper
 from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze, FloorMapDataset
 from .image import (
     HuggingfaceImageClassificationDataset,
@@ -29,7 +32,7 @@ from .image import (
 )
 from .image_classification import ImageClassificationEnv, ImageClassificationVectorEnv
 from .image_localization import ImageLocalizationEnv, ImageLocalizationVectorEnv
-from .circle_square_catch_or_flee import CircleSquareCatchOrFleeVectorWrapper
+from .lidar_localization2d import LIDARLocalization2DEnv
 
 ACTIVE_REGRESSION_LOGGER_WRAPPER_SPEC = WrapperSpec(
     "ActiveRegressionLogWrapper", "ap_gym:ActiveRegressionLogWrapper", kwargs={}
@@ -157,7 +160,7 @@ def mk_img_class_idoc_fn(description: str, image_description: str):
 
     def idoc_fn(env):
         output = _idoc_fn(env)
-        output["properties"]["# classes"] = str(env.prediction_target_space.n)
+        output["properties"]["# classes"] = str(env.config.dataset.num_classes)
         desc = output["properties"]["Image description"]
         del output["properties"]["Image description"]
         output["properties"]["Image description"] = desc  # Move to end
@@ -356,7 +359,8 @@ def register_envs():
         ),
         entry_point=lambda *args, **kwargs: VectorToSingleWrapper(
             CircleSquareCatchOrFleeVectorWrapper(
-                ImageClassificationVectorEnv(*args, **kwargs), mask_prediction=True
+                ImageClassificationVectorEnv(*args, **kwargs, num_envs=1),
+                mask_prediction=True,
             )
         ),
         vector_entry_point=lambda *args, **kwargs: CircleSquareCatchOrFleeVectorWrapper(
@@ -514,20 +518,64 @@ def register_envs():
     )
 
 
+def custom_check_space(
+    space: gym.spaces.Space,
+    space_type: str,
+    check_box_space_fn: Callable[[gym.spaces.Box], None],
+):
+    """A passive check of the environment action space that should not affect the environment."""
+    if not isinstance(space, gym.spaces.Space):
+        if str(space.__class__.__base__) == "<class 'gym.spaces.space.Space'>":
+            raise TypeError(
+                f"Gym is incompatible with Gymnasium, please update the environment {space_type}_space to `{str(space.__class__.__base__).replace('gym', 'gymnasium')}`."
+            )
+        else:
+            raise TypeError(
+                f"{space_type} space does not inherit from `gymnasium.spaces.Space`, actual type: {type(space)}"
+            )
+
+    elif isinstance(space, gym.spaces.Box):
+        check_box_space_fn(space)
+    elif isinstance(space, gym.spaces.Discrete):
+        assert (
+            0 < space.n
+        ), f"Discrete {space_type} space's number of elements must be positive, actual number of elements: {space.n}"
+        assert (
+            space.shape == ()
+        ), f"Discrete {space_type} space's shape should be empty, actual shape: {space.shape}"
+    elif isinstance(space, gym.spaces.MultiDiscrete):
+        assert (
+            space.shape == space.nvec.shape
+        ), f"Multi-discrete {space_type} space's shape must be equal to the nvec shape, space shape: {space.shape}, nvec shape: {space.nvec.shape}"
+        assert np.all(
+            0 < space.nvec
+        ), f"Multi-discrete {space_type} space's all nvec elements must be greater than 0, actual nvec: {space.nvec}"
+    elif isinstance(space, gym.spaces.MultiBinary):
+        assert np.all(
+            0 < np.asarray(space.shape)
+        ), f"Multi-binary {space_type} space's all shape elements must be greater than 0, actual shape: {space.shape}"
+
+
 def make(
     id: str | gym.envs.registration.EnvSpec,
     max_episode_steps: int | None = None,
     disable_env_checker: bool | None = None,
     **kwargs: Any,
 ) -> BaseActivePerceptionEnv:
-    return ensure_active_perception_env(
-        gym.make(
-            id,
-            max_episode_steps=max_episode_steps,
-            disable_env_checker=disable_env_checker,
-            **kwargs,
+    # We need this to ensure that empty dicts and tuples are allowed
+    check_space_orig = gymnasium.utils.passive_env_checker.check_space
+    gymnasium.utils.passive_env_checker.check_space = custom_check_space
+    try:
+        return ensure_active_perception_env(
+            gym.make(
+                id,
+                max_episode_steps=max_episode_steps,
+                disable_env_checker=disable_env_checker,
+                **kwargs,
+            )
         )
-    )
+    finally:
+        gymnasium.utils.passive_env_checker.check_space = check_space_orig
 
 
 def make_vec(
