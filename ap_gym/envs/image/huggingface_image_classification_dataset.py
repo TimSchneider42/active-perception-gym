@@ -29,7 +29,6 @@ class HuggingfaceImageClassificationDataset(ImageClassificationDataset):
     def load(self):
         dataset = load_dataset(
             self.__dataset_name,
-            trust_remote_code=True,
             storage_options={
                 "client_kwargs": {"timeout": aiohttp.ClientTimeout(total=60 * 60 * 6)}
             },
