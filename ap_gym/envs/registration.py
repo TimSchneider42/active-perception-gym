@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 from functools import partial, reduce
-from typing import Any, Sequence, Callable
+from typing import Any, Sequence, Callable, overload
 
 import gymnasium as gym
-import numpy as np
-from gymnasium.envs.registration import WrapperSpec
-
 import gymnasium.utils.passive_env_checker
+import numpy as np
+from gymnasium.envs.registration import (
+    WrapperSpec,
+    EnvCreator,
+    VectorEnvCreator,
+    parse_env_id,
+    get_env_id,
+    load_env_creator,
+)
 
 from ap_gym import (
     BaseActivePerceptionEnv,
@@ -21,6 +27,7 @@ from ap_gym import (
     ActiveClassificationVectorLogWrapper,
     idoc,
     VectorToSingleWrapper,
+    SparsifyWrapper,
 )
 from .circle_square_catch_or_flee import CircleSquareCatchOrFleeVectorWrapper
 from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze, FloorMapDataset
@@ -33,10 +40,105 @@ from .image import (
 from .image_classification import ImageClassificationEnv, ImageClassificationVectorEnv
 from .image_localization import ImageLocalizationEnv, ImageLocalizationVectorEnv
 from .lidar_localization2d import LIDARLocalization2DEnv
+from .light_dark import LightDarkEnv
+from ap_gym import SparsifyVectorWrapper
 
 ACTIVE_REGRESSION_LOGGER_WRAPPER_SPEC = WrapperSpec(
     "ActiveRegressionLogWrapper", "ap_gym:ActiveRegressionLogWrapper", kwargs={}
 )
+
+
+@overload
+def _wrap_env(
+    entry_point: EnvCreator | str,
+    *wrappers: Callable[[gym.Env], gym.Env],
+) -> EnvCreator: ...
+
+
+@overload
+def _wrap_env(
+    entry_point: VectorEnvCreator | str,
+    *wrappers: Callable[[gym.vector.VectorEnv], gym.vector.VectorEnv],
+) -> VectorEnvCreator: ...
+
+
+def _wrap_env(
+    entry_point: EnvCreator | VectorEnvCreator | str | None = None,
+    *wrappers: Callable[
+        [gym.Env | gym.vector.VectorEnv], gym.Env | gym.vector.VectorEnv
+    ],
+) -> EnvCreator | VectorEnvCreator | None:
+    if entry_point is None:
+        return None
+
+    def creator(**kwargs) -> gym.Env:
+        if isinstance(entry_point, str):
+            env = gym.make(entry_point, **kwargs)
+        else:
+            env = entry_point(**kwargs)
+        for wrapper in wrappers:
+            env = wrapper(env)
+        return env
+
+    return creator
+
+
+def register(
+    id: str,
+    entry_point: EnvCreator | str | None = None,
+    reward_threshold: float | None = None,
+    nondeterministic: bool = False,
+    max_episode_steps: int | None = None,
+    order_enforce: bool = True,
+    disable_env_checker: bool = False,
+    additional_wrappers: tuple[WrapperSpec, ...] = (),
+    vector_entry_point: VectorEnvCreator | str | None = None,
+    kwargs: dict | None = None,
+    register_sparse_version: bool = True,
+):
+    register_kwargs = dict(
+        reward_threshold=reward_threshold,
+        nondeterministic=nondeterministic,
+        max_episode_steps=max_episode_steps,
+        order_enforce=order_enforce,
+        disable_env_checker=disable_env_checker,
+        kwargs=kwargs,
+    )
+    gym.register(
+        id=id,
+        entry_point=entry_point,
+        vector_entry_point=vector_entry_point,
+        additional_wrappers=additional_wrappers,
+        **register_kwargs,
+    )
+    if register_sparse_version:
+        ns, name, version = parse_env_id(id)
+        name = f"{name}-sparse"
+        full_env_id = get_env_id(ns, name, version)
+        if entry_point is not None:
+
+            def new_entry_point(*args, **kwargs):
+                env = entry_point(*args, **kwargs)
+
+                # We have to apply the wrappers here to avoid "gymnasium.error.Error: Cannot use `vector_entry_point`
+                # vectorization mode with the additional_wrappers parameter in spec being not empty"
+
+                for wrapper_spec in additional_wrappers:
+                    env = load_env_creator(wrapper_spec.entry_point)(
+                        env=env, **wrapper_spec.kwargs
+                    )
+
+                return SparsifyWrapper(env)
+
+        else:
+            new_entry_point = entry_point
+        gym.register(
+            id=full_env_id,
+            entry_point=new_entry_point,
+            vector_entry_point=_wrap_env(vector_entry_point, SparsifyVectorWrapper),
+            additional_wrappers=(),
+            **register_kwargs,
+        )
 
 
 def register_image_env(
@@ -60,7 +162,7 @@ def register_image_env(
 
     else:
         _entry_point = entry_point
-    gym.register(
+    register(
         id=name,
         kwargs=dict(
             image_perception_config=ImagePerceptionConfig(
@@ -242,7 +344,7 @@ def register_lidar_localization_env(
             },
         )
 
-    gym.register(
+    register(
         id=name,
         entry_point=mk_env,
         kwargs=dict(dataset=dataset, static_map=static_map),
@@ -465,9 +567,9 @@ def register_envs():
         "[Tiny ImageNet dataset](https://huggingface.co/datasets/zh-plus/tiny-imagenet).",
     )
 
-    gym.register(
+    register(
         id="LightDark-v0",
-        entry_point="ap_gym.envs.light_dark:LightDarkEnv",
+        entry_point=LightDarkEnv,
         additional_wrappers=(
             mk_time_limit(50),
             ACTIVE_REGRESSION_LOGGER_WRAPPER_SPEC,

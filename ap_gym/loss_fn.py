@@ -28,7 +28,7 @@ class LossFn(Generic[PredType, PredTargetType], ABC):
         prediction: PredType,
         target: PredTargetType,
         batch_shape: tuple[int, ...] = (),
-    ) -> float:
+    ) -> np.ndarray:
         pass
 
     def torch(
@@ -53,7 +53,7 @@ class LossFn(Generic[PredType, PredTargetType], ABC):
 class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTargetType]):
     def __init__(
         self,
-        np: Callable[[PredType, PredTargetType, tuple[int, ...]], float],
+        np: Callable[[PredType, PredTargetType, tuple[int, ...]], np.ndarray],
         torch: Callable[[Any, Any, tuple[int, ...]], "torch.Tensor"] | None = None,
         jax: Callable[[Any, Any, tuple[int, ...]], "jax.Array"] | None = None,
     ):
@@ -66,7 +66,7 @@ class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTarge
         prediction: PredType,
         target: PredTargetType,
         batch_shape: tuple[int, ...] = (),
-    ) -> float:
+    ) -> np.ndarray:
         return self._np(prediction, target, batch_shape)
 
     def torch(
@@ -87,7 +87,7 @@ class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTarge
 class ZeroLossFn(LossFn[tuple, tuple]):
     def numpy(
         self, prediction: tuple, target: tuple, batch_shape: tuple[int, ...] = ()
-    ) -> float:
+    ) -> np.ndarray:
         return np.zeros(batch_shape, dtype=np.float32)
 
     def torch(
@@ -101,13 +101,13 @@ class ZeroLossFn(LossFn[tuple, tuple]):
         return jnp.zeros(batch_shape)
 
 
-class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
+class CrossEntropyLossFn(LossFn[np.ndarray, np.ndarray]):
     def numpy(
         self,
         prediction: np.ndarray,
-        target: int | np.ndarray,
+        target: np.ndarray,
         batch_shape: tuple[int, ...] = (),
-    ) -> float:
+    ) -> np.ndarray:
         return -np.take_along_axis(
             scipy.special.log_softmax(prediction, axis=-1), target[..., None], axis=-1
         )[..., 0]
@@ -115,7 +115,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
     def torch(
         self,
         prediction: "torch.Tensor",
-        target: "int | torch.Tensor",
+        target: "torch.Tensor",
         batch_shape: tuple[int, ...] = (),
     ) -> "torch.Tensor":
         return -torch.take_along_dim(
@@ -127,7 +127,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
     def jax(
         self,
         prediction: "jax.Array",
-        target: "int | jax.Array",
+        target: "jax.Array",
         batch_shape: tuple[int, ...] = (),
     ) -> "jax.Array":
         return -jnp.take_along_axis(
@@ -135,13 +135,13 @@ class CrossEntropyLossFn(LossFn[np.ndarray, int | np.ndarray]):
         )[..., 0]
 
 
-class MSELossFn(LossFn[np.ndarray, int | np.ndarray]):
+class MSELossFn(LossFn[np.ndarray, np.ndarray]):
     def numpy(
         self,
         prediction: np.ndarray,
         target: np.ndarray,
         batch_shape: tuple[int, ...] = (),
-    ) -> float:
+    ) -> np.ndarray:
         return np.mean((prediction - target) ** 2, axis=-1)
 
     def torch(
@@ -159,3 +159,45 @@ class MSELossFn(LossFn[np.ndarray, int | np.ndarray]):
         batch_shape: tuple[int, ...] = (),
     ) -> "jax.Array":
         return jnp.mean((prediction - target) ** 2, axis=-1)
+
+
+class WeightedLossFn(
+    LossFn[PredType, dict[str, PredTargetType | np.ndarray]],
+    Generic[PredType, PredTargetType],
+):
+    def __init__(self, inner_loss_fn: LossFn[PredType, PredTargetType]):
+        super().__init__()
+        self.__inner_loss_fn = inner_loss_fn
+
+    def numpy(
+        self,
+        prediction: PredType,
+        target: dict[str, PredTargetType | np.ndarray],
+        batch_shape: tuple[int, ...] = (),
+    ) -> float:
+        return (
+            self.__inner_loss_fn.numpy(prediction, target["target"], batch_shape)
+            * target["weight"]
+        )
+
+    def torch(
+        self,
+        prediction: "torch.Tensor",
+        target: "dict[str, PredTargetType | torch.Tensor]",
+        batch_shape: tuple[int, ...] = (),
+    ) -> "torch.Tensor":
+        return (
+            self.__inner_loss_fn.torch(prediction, target["target"], batch_shape)
+            * target["weight"]
+        )
+
+    def jax(
+        self,
+        prediction: "jax.Array",
+        target: "dict[str, PredTargetType | jax.Array]",
+        batch_shape: tuple[int, ...] = (),
+    ) -> "jax.Array":
+        return (
+            self.__inner_loss_fn.jax(prediction, target["target"], batch_shape)
+            * target["weight"]
+        )

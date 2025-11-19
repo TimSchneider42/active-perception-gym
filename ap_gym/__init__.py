@@ -37,7 +37,8 @@ from .vector_to_single_wrapper import (
     ActivePerceptionVectorToSingleWrapper,
 )
 from .logit_space import LogitSpace
+from .sparsify_wrapper import SparsifyWrapper, SparsifyVectorWrapper
 
-from .envs.registration import make, make_vec, register_envs
+from .envs.registration import make, make_vec, register_envs, register
 
 register_envs()
