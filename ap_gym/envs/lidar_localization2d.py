@@ -19,7 +19,99 @@ from .style import (
 )
 
 
-class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
+class LIDARLocalization2DEnv(ActiveRegressionEnv[dict[str, np.ndarray], np.ndarray]):
+    r"""
+    #!AP_GYM_BASE_ENV
+    title: 2D LIDAR Localization Environments
+    description: |
+        In the 2D LIDAR localization environments, the agent is placed in a random location in a 2D map and must predict
+        its own position. As shown in the visualization below, the map is represented by a 2D bitmap, where passable
+        pixels are white and obstacles are black. The size of the map varies between 21x21 pixels and 32x32 pixels,
+        depending on the environment.
+
+        To allow the agent to perform self-localization, it receives two types of information per step: distance
+        readings from an 8-beam LIDAR sensor and odometry data. The LIDAR sensor emits beams in 8 directions, and the
+        agent receives the distance to the nearest obstacle in each direction. However, the range of the LIDAR sensor is
+        limited, so the agent might receive no information sometimes. The odometry data is the agent's relative movement
+        from its starting position, which is exact in these environments.
+
+        There are two types of environments in this category, with _static_ and _dynamic_ maps. In case of a static map,
+        the agent is continuously placed in the same map but in a random position. Thus, it can learn the layout of the
+        map over time and use this information to localize itself.
+
+        In the dynamic map environments, the map is randomized at the beginning of each episode. The maps are
+        procedurally generated, so the probability of the agent receiving the same map multiple times is very low. To
+        make the task of self-localization possible, the agent is provided with the map of the environment as input.
+
+        Furthermore, we currently provide two types of maps: _maze_ and _room_. In maze maps, the agent faces narrow
+        corridors and many turns, while the room maps feature larger open spaces.
+
+        Examples of each combination are shown here:
+
+        <table align="center" style="border-collapse: collapse; border: none;">
+            <tr style="border: none;">
+                <td align="center" style="border: none; padding: 10px;">
+                    &nbsp;
+                </td>
+                <td align="center" style="border: none; padding: 10px;">
+                     <b>Static Map</b>
+                </td>
+                <td align="center" style="border: none; padding: 10px;">
+                     <b>Dynamic Map</b>
+                </td>
+            </tr>
+            <tr style="border: none;">
+                <td align="center" style="border: none; padding: 10px;">
+                    <b>Rooms</b>
+                </td>
+                <td align="center" style="border: none; padding: 10px;">
+                    <img src="img/LIDARLocRoomsStatic-v0.gif" alt="LIDARLocRoomsStatic-v0" width="150px"/><br/>
+                    <a href="LIDARLocRoomsStatic.md">
+                        LIDARLocRoomsStatic-v0
+                    </a>
+                </td>
+                <td align="center" style="border: none; padding: 10px;">
+                    <img src="img/LIDARLocRooms-v0.gif" alt="LIDARLocRooms-v0" width="150px"/><br/>
+                    <a href="LIDARLocRooms.md">
+                        LIDARLocRooms-v0
+                    </a>
+                </td>
+            </tr>
+            <tr style="border: none;">
+                <td align="center" style="border: none; padding: 10px;">
+                    <b>Maze</b>
+                </td>
+                <td align="center" style="border: none; padding: 10px;">
+                    <img src="img/LIDARLocMazeStatic-v0.gif" alt="LIDARLocMazeStatic-v0" width="150px"/><br/>
+                    <a href="LIDARLocMazeStatic.md">
+                        LIDARLocMazeStatic-v0
+                    </a>
+                </td>
+                <td align="center" style="border: none; padding: 10px;">
+                    <img src="img/LIDARLocMaze-v0.gif" alt="LIDARLocMaze-v0" width="150px"/><br/>
+                    <a href="LIDARLocMaze.md">
+                        LIDARLocMaze-v0
+                    </a>
+                </td>
+            </tr>
+        </table>
+
+        In this visualization, the agent moves through the room while using its LIDAR sensors, represented by the green
+        beams extending outward. The grayed out regions indicate areas that the agent has not yet observed and a purple
+        dot shows the agent's last prediction. To illustrate the agent’s localization accuracy, we visualize its past
+        predictions with a color gradient ranging from red to green along its trajectory. A red trail means that the
+        agent's predicted position is far from the true position, whereas a green trail indicates a good estimate.
+
+
+        All 2D LIDAR localization environments in ap_gym are implemented as instances of the
+        `ap_gym.envs.lidar_localization2d.LIDARLocalization2DEnv` class and share the following properties:
+    rewards:
+    - 'A small action regularization equal to $10^{-3} \cdot{} \lVert \textit{action}\rVert$.'
+    starting_state: The agent begins at a uniformly random, valid location within the environment.
+    space_variables:
+    - $M\in \mathbb{N}$ is the side length of the map in pixels
+    """
+
     metadata = {
         "render_modes": ["rgb_array"],
         "render_fps": 4,
@@ -92,7 +184,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
 
         self.observation_space = gym.spaces.Dict(observation_dict)
 
-    def __get_obs(self):
+    def __get_obs(self) -> dict[str, np.ndarray]:
         distances, contact_coords = self.__lidar_scan(
             self.__pos, self.__pos + self.__lidar_directions
         )
@@ -147,7 +239,8 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         )
         self.__map_idx = map_idx
 
-    def _reset(self, *, options: dict[str, Any | None] = None):
+    def reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+        super().reset(seed=seed, options=options)
         self.__last_lidar_readings = None
 
         if not self.__static_map:
@@ -166,11 +259,9 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             + 0.5
         )
         self.__trajectory.clear()
-        self.__trajectory.append((self.__pos, None))
-
         self.__last_pred = self.__last_pos = None
 
-        return self.__get_obs(), {"map_idx": self.__map_idx}, self.__pos
+        return self.__get_obs(), {"map_idx": self.__map_idx}
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         if np.any(np.isnan(action)):
@@ -232,10 +323,10 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             pos_max,
         )
 
-        normalized_pos = self.__pos / map_size * 2 - 1
+        normalized_last_pos = self.__last_pos / map_size * 2 - 1
 
-        prediction_quality = 1 - np.linalg.norm(prediction - normalized_pos) / 0.25
-        self.__trajectory.append((self.__pos, np.minimum(prediction_quality, 1)))
+        prediction_quality = 1 - np.linalg.norm(prediction - normalized_last_pos) / 0.25
+        self.__trajectory.append((self.__last_pos, np.minimum(prediction_quality, 1)))
 
         return (
             self.__get_obs(),
@@ -243,7 +334,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             terminated,
             False,
             {"map_idx": self.__map_idx},
-            normalized_pos,
+            normalized_last_pos,
         )
 
     def render(self):

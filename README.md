@@ -104,8 +104,10 @@ the following form:
 where the set of valid `action` values is defined by the `inner_action_space` field of the respective environment, and
 the set of valid `prediction` values is defined by the `prediction_space` field.
 
-The info dictionary returned by the reset and step functions always contains the current prediction target in
+The info dictionary returned by the step function always contains the current prediction target in
 `info["prediction"]["target"]`.
+Crucially, in case of time-varying targets, the target returned by the step function is always corresponding to the
+prediction the agent made based on the observation from the previous step.
 Additionally, the info dictionary returned by the step function contains the base reward (the reward without the
 prediction loss) in `info["base_reward"]` and the prediction loss in `info["prediction"]["loss"]`.
 

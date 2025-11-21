@@ -56,25 +56,17 @@ class ImageClassificationVectorEnv(
         self.__np_random = None
         self.__spec: EnvSpec | None = None
 
-    def _reset(self, *, options: dict[str, Any | None] = None):
-        obs, info = self.__image_perception_module.reset()
-        return (
-            obs,
-            info,
-            self.__image_perception_module.current_labels,
-        )
+    def reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+        super().reset(seed=seed, options=options)
+        return self.__image_perception_module.reset()
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         prediction_quality = softmax(prediction, axis=-1)[
             np.arange(self.num_envs), self.__image_perception_module.current_labels
         ]
-        (
-            obs,
-            base_reward,
-            terminated_arr,
-            truncated_arr,
-            info,
-        ) = self.__image_perception_module.step(action, prediction_quality)
+        obs, base_reward, terminated_arr, truncated_arr, info = (
+            self.__image_perception_module.step(action, prediction_quality)
+        )
         return (
             obs,
             base_reward,
