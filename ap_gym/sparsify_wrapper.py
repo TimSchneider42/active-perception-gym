@@ -87,15 +87,6 @@ class SparsifyVectorWrapper(
             info,
         )
 
-    def reset(
-        self,
-        *,
-        seed: int | None = None,
-        options: dict[str, Any] | None = None,
-    ) -> tuple[ObsType, dict[str, Any]]:
-        obs, info = super().reset(seed=seed, options=options)
-        return obs, self.__info_add_weight(info)
-
     @property
     def __idoc__(self) -> dict[str, Any]:
         return _get_sparse_idoc(self)
