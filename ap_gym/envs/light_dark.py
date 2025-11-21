@@ -109,16 +109,16 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
     def __get_std_dev(self, pos: np.ndarray):
         return (1 - self.__compute_brightness(pos)) * 0.3
 
-    def _reset(self, *, options: dict[str, Any | None] = None):
+    def reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+        super().reset(seed=seed, options=options)
         self.__pos = self.np_random.uniform(
             -np.ones(2),
             np.ones(2),
             size=2,
         ).astype(np.float32)
         self.__trajectory.clear()
-        self.__trajectory.append((self.__pos, None))
         self.__last_pred = self.__last_pos = None
-        return self.__get_obs(), {}, self.__pos
+        return self.__get_obs(), {}
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         if np.any(np.isnan(action)):
@@ -144,10 +144,10 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__pos = np.clip(self.__pos, -1, 1)
 
         prediction_quality = np.maximum(
-            1 - np.linalg.norm(prediction - self.__pos) / 0.5, 0
+            1 - np.linalg.norm(prediction - self.__last_pos) / 0.5, 0
         )
-        self.__trajectory.append((self.__pos, prediction_quality))
-        return self.__get_obs(), base_reward, terminated, False, {}, self.__pos
+        self.__trajectory.append((self.__last_pos, prediction_quality))
+        return self.__get_obs(), base_reward, terminated, False, {}, self.__last_pos
 
     def render(self):
         img = Image.fromarray(self.__base_image)  # Convert base image to PIL format

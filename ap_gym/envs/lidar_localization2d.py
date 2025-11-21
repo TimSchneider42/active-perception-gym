@@ -21,7 +21,7 @@ from .style import (
 )
 
 
-class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
+class LIDARLocalization2DEnv(ActiveRegressionEnv[dict[str, np.ndarray], np.ndarray]):
     r"""
     #!AP_GYM_BASE_ENV
     title: 2D LIDAR Localization Environments
@@ -235,7 +235,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             "contains the actual normalized agent position.",
         )
 
-    def __get_obs(self):
+    def __get_obs(self) -> dict[str, np.ndarray]:
         distances, contact_coords = self.__lidar_scan(
             self.__pos, self.__pos + self.__lidar_directions
         )
@@ -290,7 +290,8 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         )
         self.__map_idx = map_idx
 
-    def _reset(self, *, options: dict[str, Any | None] = None):
+    def reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+        super().reset(seed=seed, options=options)
         self.__last_lidar_readings = None
 
         if not self.__static_map:
@@ -309,11 +310,9 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             + 0.5
         )
         self.__trajectory.clear()
-        self.__trajectory.append((self.__pos, None))
-
         self.__last_pred = self.__last_pos = None
 
-        return self.__get_obs(), {"map_idx": self.__map_idx}, self.__pos
+        return self.__get_obs(), {"map_idx": self.__map_idx}
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
         if np.any(np.isnan(action)):
@@ -375,10 +374,10 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             pos_max,
         )
 
-        normalized_pos = self.__pos / map_size * 2 - 1
+        normalized_last_pos = self.__last_pos / map_size * 2 - 1
 
-        prediction_quality = 1 - np.linalg.norm(prediction - normalized_pos) / 0.25
-        self.__trajectory.append((self.__pos, np.minimum(prediction_quality, 1)))
+        prediction_quality = 1 - np.linalg.norm(prediction - normalized_last_pos) / 0.25
+        self.__trajectory.append((self.__last_pos, np.minimum(prediction_quality, 1)))
 
         return (
             self.__get_obs(),
@@ -386,7 +385,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
             terminated,
             False,
             {"map_idx": self.__map_idx},
-            normalized_pos,
+            normalized_last_pos,
         )
 
     def render(self):

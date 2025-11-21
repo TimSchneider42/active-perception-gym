@@ -193,7 +193,7 @@ class ImagePerceptionModule:
         terminated_arr = np.full(self.__num_envs, terminated)
         truncated_arr = np.zeros(self.__num_envs, dtype=np.bool_)
         self.__prev_done = terminated_arr | truncated_arr
-        return (obs, base_reward, terminated_arr, truncated_arr, info)
+        return obs, base_reward, terminated_arr, truncated_arr, info
 
     def __update_visitation_overlay(self, prediction_quality: np.ndarray | None = None):
         pos, size = self.__sensor_rects

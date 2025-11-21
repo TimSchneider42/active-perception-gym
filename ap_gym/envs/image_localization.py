@@ -128,7 +128,8 @@ class ImageLocalizationVectorEnv(
             "contains the true coordinates of the target glimpse.",
         )
 
-    def _reset(self, *, options: dict[str, Any | None] = None):
+    def reset(self, *, seed: int | None = None, options: dict[str, Any | None] = None):
+        super().reset(seed=seed, options=options)
         self.__last_prediction = None
         obs, info = self.__image_perception_module.reset()
         self.__current_prediction_target = (
@@ -145,10 +146,10 @@ class ImageLocalizationVectorEnv(
                 ),
             },
             info,
-            self.__current_prediction_target,
         )
 
     def _step(self, action: np.ndarray, prediction: np.ndarray):
+        prediction_target = self.__current_prediction_target.copy()
         if np.any(self.__prev_done):
             self.__current_prediction_target[self.__prev_done] = self.np_random.uniform(
                 -1, 1, (np.sum(self.__prev_done), 2)
@@ -176,7 +177,7 @@ class ImageLocalizationVectorEnv(
             terminated_arr,
             truncated_arr,
             info,
-            self.__current_prediction_target,
+            prediction_target,
         )
 
     def render(self) -> np.ndarray | None:
