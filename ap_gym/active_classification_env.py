@@ -59,7 +59,9 @@ class ActiveClassificationVectorEnv(
             self.single_action_space, num_envs
         )
         self.single_prediction_target_space = gym.spaces.Discrete(num_classes)
-        self.prediction_target_space = gym.spaces.MultiDiscrete((num_envs, num_classes))
+        self.prediction_target_space = gym.spaces.MultiDiscrete(
+            [num_classes] * num_envs
+        )
         self.loss_fn = CrossEntropyLossFn()
 
 
