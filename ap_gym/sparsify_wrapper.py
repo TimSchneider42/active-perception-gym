@@ -53,7 +53,8 @@ class SparsifyVectorWrapper(
             }
         )
         self._prediction_target_space = batch_space(
-            self._single_prediction_target_space
+            self._single_prediction_target_space,
+            self.num_envs,
         )
         self._loss_fn = WeightedLossFn(env.loss_fn)
 
