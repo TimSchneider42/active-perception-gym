@@ -16,7 +16,7 @@ from ap_gym.envs.image_classification import ImageClassificationVectorEnv
 ObsType = dict[Literal["glimpse", "glimpse_pos", "time_step"], np.ndarray]
 
 
-class CircleSquareCatchOrFleeVectorWrapper(
+class CircleSquareHideAndSeekVectorWrapper(
     ActivePerceptionVectorWrapper[
         ObsType,
         np.ndarray,

@@ -29,7 +29,7 @@ from ap_gym import (
     VectorToSingleWrapper,
     SparsifyWrapper,
 )
-from .circle_square_catch_or_flee import CircleSquareCatchOrFleeVectorWrapper
+from .circle_square_catch_or_flee import CircleSquareHideAndSeekVectorWrapper
 from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze, FloorMapDataset
 from .image import (
     HuggingfaceImageClassificationDataset,
@@ -431,7 +431,7 @@ def register_envs():
     )
 
     register_image_env(
-        name="CircleSquareCatchOrFlee-v0",
+        name="CircleSquareHideAndSeek-v0",
         dataset=CircleSquareDataset(image_shape=(28, 28), show_gradient=True),
         step_limit=32,
         idoc_fn=mk_img_class_idoc_fn(
@@ -440,11 +440,11 @@ def register_envs():
             "An image containing either a circle or square.",
         ),
         entry_point=lambda *args, **kwargs: VectorToSingleWrapper(
-            CircleSquareCatchOrFleeVectorWrapper(
+            CircleSquareHideAndSeekVectorWrapper(
                 ImageClassificationVectorEnv(*args, **kwargs)
             )
         ),
-        vector_entry_point=lambda *args, **kwargs: CircleSquareCatchOrFleeVectorWrapper(
+        vector_entry_point=lambda *args, **kwargs: CircleSquareHideAndSeekVectorWrapper(
             ImageClassificationVectorEnv(*args, **kwargs)
         ),
         single_wrappers=(ActiveClassificationLogWrapper,),
@@ -452,20 +452,20 @@ def register_envs():
     )
 
     register_image_env(
-        name="CircleSquareCatchOrFleeNoPrediction-v0",
+        name="CircleSquareHideAndSeekNoPrediction-v0",
         dataset=CircleSquareDataset(image_shape=(28, 28), show_gradient=True),
         step_limit=32,
         idoc_fn=mk_img_class_idoc_fn(
-            "Variant of CircleSquareCatchOrFlee in which the agent does not need to predict the object class.",
+            "Variant of CircleSquareHideAndSeek in which the agent does not need to predict the object class.",
             "An image containing either a circle or square.",
         ),
         entry_point=lambda *args, **kwargs: VectorToSingleWrapper(
-            CircleSquareCatchOrFleeVectorWrapper(
+            CircleSquareHideAndSeekVectorWrapper(
                 ImageClassificationVectorEnv(*args, **kwargs, num_envs=1),
                 mask_prediction=True,
             )
         ),
-        vector_entry_point=lambda *args, **kwargs: CircleSquareCatchOrFleeVectorWrapper(
+        vector_entry_point=lambda *args, **kwargs: CircleSquareHideAndSeekVectorWrapper(
             ImageClassificationVectorEnv(*args, **kwargs), mask_prediction=True
         ),
     )
