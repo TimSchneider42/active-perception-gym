@@ -488,8 +488,9 @@ def register_envs():
         image_description="Handwritten digits from the [MNIST dataset](http://yann.lecun.com/exdb/mnist/).",
     )
 
+    cifar10_dataset_desc = "Natural images from the [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html)."
     register_image_classification_envs(
-        name=f"CIFAR10",
+        name="CIFAR10",
         datasets=lambda split: HuggingfaceImageClassificationDataset(
             "cifar10", image_feature_name="img", split=split
         ),
@@ -499,8 +500,39 @@ def register_envs():
         "The agent has limited visibility, represented by a small movable glimpse that captures partial views of the "
         "image. It must strategically explore different regions of the image to gather enough information for accurate "
         "classification.",
-        image_description="Natural images from the [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).",
+        image_description=cifar10_dataset_desc,
     )
+
+    CIFAR10_classes = [
+        "airplane",
+        "automobile",
+        "bird",
+        "cat",
+        "deer",
+        "dog",
+        "frog",
+        "horse",
+        "ship",
+        "truck",
+    ]
+    for i in range(2, 11):
+        if i == 10:
+            desc = "Alias for CIFAR10."
+        else:
+            desc = f"Variant of CIFAR10, where only the first {i} classes ({', '.join(CIFAR10_classes[:i])}) are used."
+        register_image_classification_envs(
+            name=f"CIFAR10-c{i}",
+            datasets=lambda split: HuggingfaceImageClassificationDataset(
+                "cifar10",
+                image_feature_name="img",
+                split=split,
+                filter_labels=CIFAR10_classes[:i],
+            ),
+            step_limit=16,
+            kwargs=image_env_render_kwargs,
+            description=desc,
+            image_description=cifar10_dataset_desc,
+        )
 
     register_image_classification_envs(
         name=f"TinyImageNet",
