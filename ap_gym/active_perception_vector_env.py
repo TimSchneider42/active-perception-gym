@@ -302,6 +302,11 @@ class ActivePerceptionVectorRestoreWrapper(
         except AttributeError:
             return getattr(self.env, item)
 
+    def __del__(self):
+        # Leave this here to prevent this bug:
+        # https://github.com/Farama-Foundation/Gymnasium/issues/1521
+        pass
+
 
 def ensure_active_perception_vector_env(
     env: gym.vector.VectorEnv,
