@@ -12,6 +12,13 @@ ENVS=(
   CircleSquare-s15-nograd-v0
   CircleSquare-s20-v0
   CircleSquare-s20-nograd-v0
+  DoubleCircleSquare-v0
+  DoubleCircleSquare-s28-v0
+  DoubleCircleSquare-nograd-v0
+  DoubleCircleSquare-s15-v0
+  DoubleCircleSquare-s15-nograd-v0
+  DoubleCircleSquare-s20-v0
+  DoubleCircleSquare-s20-nograd-v0
   MNIST-v0
   MNIST-train-v0
   MNIST-test-v0

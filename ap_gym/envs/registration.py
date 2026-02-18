@@ -29,6 +29,7 @@ from ap_gym import (
     VectorToSingleWrapper,
     SparsifyWrapper,
 )
+from ap_gym.envs.image import DoubleCircleSquareDataset
 from .circle_square_catch_or_flee import CircleSquareHideAndSeekVectorWrapper
 from .floor_map import FloorMapDatasetRooms, FloorMapDatasetMaze, FloorMapDataset
 from .image import (
@@ -365,7 +366,20 @@ def register_circle_square(
         ),
         step_limit=step_limit,
         idoc_fn=mk_img_class_idoc_fn(
-            description, "An image containing either a circle or square."
+            description.format(env="CircleSquare"),
+            "An image containing either a circle or square.",
+        ),
+    )
+    register_image_classification_env(
+        name=f"DoubleCircleSquare{suffix}-v0",
+        dataset=DoubleCircleSquareDataset(
+            image_shape=(size, size), show_gradient=show_gradient
+        ),
+        step_limit=step_limit,
+        idoc_fn=mk_img_class_idoc_fn(
+            description.format(env="DoubleCircleSquare"),
+            "An image containing either two circles, two squares or one each. The task is to determine "
+            "whether there are two of the same shape or one of each shape.",
         ),
     )
 
@@ -375,7 +389,7 @@ def register_envs():
         28,
         True,
         "",
-        "In the CircleSquare environment, the agent's objective is to determine whether a given image contains a "
+        "In the {env} environment, the agent's objective is to determine whether a given image contains a"
         "circle or a square. The agent has limited visibility, represented by a small movable glimpse that captures "
         "partial views of the image. A visual gradient within the image guides the agent towards the object.",
     )
@@ -383,50 +397,50 @@ def register_envs():
         28,
         True,
         "-s28",
-        "Alias for CircleSquare-v0.",
+        "Alias for {env}-v0.",
     )
     register_circle_square(
         20,
         True,
         "-s20",
-        "Variant of CircleSquare with a smaller image size of 20 instead of 28.",
+        "Variant of {env} with a smaller image size of 20 instead of 28.",
     )
     register_circle_square(
         15,
         True,
         "-s15",
-        "Variant of CircleSquare with an even smaller image size of 15 instead of 28.",
+        "Variant of {env} with an even smaller image size of 15 instead of 28.",
     )
     register_circle_square(
         28,
         False,
         "-nograd",
-        "Variant of CircleSquare with no gradient as visual aid.",
+        "Variant of {env} with no gradient as visual aid.",
     )
     register_circle_square(
         20,
         False,
         "-s20-nograd",
-        "Variant of CircleSquare-nograd with a smaller image size of 20 instead of 28.",
+        "Variant of {env}-nograd with a smaller image size of 20 instead of 28.",
     )
     register_circle_square(
         15,
         False,
         "-s15-nograd",
-        "Variant of CircleSquare-nograd with a smaller image size of 15 instead of 28.",
+        "Variant of {env}-nograd with a smaller image size of 15 instead of 28.",
     )
     register_circle_square(
         28,
         True,
         "-t32",
-        "Variant of CircleSquare with a higher time limit of 32 steps instead of 16.",
+        "Variant of {env} with a higher time limit of 32 steps instead of 16.",
         step_limit=32,
     )
     register_circle_square(
         28,
         True,
         "-t64",
-        "Variant of CircleSquare with a higher time limit of 64 steps instead of 16.",
+        "Variant of {env} with a higher time limit of 64 steps instead of 16.",
         step_limit=64,
     )
 
