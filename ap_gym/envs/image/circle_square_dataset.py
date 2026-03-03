@@ -11,13 +11,11 @@ from .image_classification_dataset import ImageClassificationDataset
 class BaseCircleSquareDataset(ImageClassificationDataset):
     def __init__(
         self,
-        show_gradient: bool = True,
         image_shape: tuple[int, int] = (28, 28),
         object_extents: int = 8,
     ):
         self._image_shape = image_shape
         self._object_extents = object_extents
-        self._show_gradient = show_gradient
         self._image_coords = np.stack(
             np.meshgrid(
                 np.arange(self._image_shape[0]),
@@ -80,6 +78,15 @@ class BaseCircleSquareDataset(ImageClassificationDataset):
 
 
 class CircleSquareDataset(BaseCircleSquareDataset):
+    def __init__(
+        self,
+        show_gradient: bool = True,
+        image_shape: tuple[int, int] = (28, 28),
+        object_extents: int = 8,
+    ):
+        super().__init__(image_shape=image_shape, object_extents=object_extents)
+        self._show_gradient = show_gradient
+
     def _get_max_vals(self) -> Sequence[int]:
         return [2, self._image_shape[1], self._image_shape[0]]
 
@@ -107,23 +114,15 @@ class CircleSquareDataset(BaseCircleSquareDataset):
 class DoubleCircleSquareDataset(BaseCircleSquareDataset):
     def __init__(
         self,
-        show_gradient: bool = True,
+        show_gradient_a: bool = True,
+        show_gradient_b: bool = True,
         image_shape: tuple[int, int] = (28, 28),
         object_extents: int = 8,
     ):
-        super().__init__(
-            show_gradient=show_gradient,
-            image_shape=image_shape,
-            object_extents=object_extents,
-        )
-        coords = np.stack(
-            np.meshgrid(
-                np.arange(self._image_shape[0]),
-                np.arange(self._image_shape[1]),
-                indexing="ij",
-            ),
-            axis=-1,
-        ).reshape((-1, 2))
+        super().__init__(image_shape=image_shape, object_extents=object_extents)
+        self._show_gradient_a = show_gradient_a
+        self._show_gradient_b = show_gradient_b
+        coords = self._image_coords.reshape((-1, 2))
 
         coord_pairs = np.stack(
             np.broadcast_arrays(coords[:, None], coords[None, :]), axis=-2
@@ -159,17 +158,14 @@ class DoubleCircleSquareDataset(BaseCircleSquareDataset):
             ),
             axis=-1,
         )
-        if self._show_gradient:
-            img = (
-                1
-                - np.minimum(
-                    np.linalg.norm(pos_1 - coords, axis=-1),
-                    np.linalg.norm(pos_2 - coords, axis=-1),
-                )
-                / max_dist
+        img = (
+            1
+            - np.minimum(
+                np.linalg.norm(pos_1 - coords, axis=-1) * self._show_gradient_a,
+                np.linalg.norm(pos_2 - coords, axis=-1) * self._show_gradient_b,
             )
-        else:
-            img = np.zeros(self._image_shape)
+            / max_dist
+        )
         for pos, label in [(pos_1, label_1), (pos_2, label_2)]:
             self._draw_object(img, pos, label)
         if label_1 == label_2:

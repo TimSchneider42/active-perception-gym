@@ -373,7 +373,9 @@ def register_circle_square(
     register_image_classification_env(
         name=f"DoubleCircleSquare{suffix}-v0",
         dataset=DoubleCircleSquareDataset(
-            image_shape=(size, size), show_gradient=show_gradient
+            image_shape=(size, size),
+            show_gradient_a=show_gradient,
+            show_gradient_b=show_gradient,
         ),
         step_limit=step_limit,
         idoc_fn=mk_img_class_idoc_fn(
