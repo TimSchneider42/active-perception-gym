@@ -31,9 +31,12 @@ class ImagePerceptionConfig:
     prefetch: bool = True
     unique_sampling_max_grid_cell_size_rel = 0.2
     unique_sampling_top_k: int = 10
+    randomly_invert_labels: bool = False
 
 
-ObsType = dict[Literal["glimpse", "glimpse_pos", "time_step"], np.ndarray]
+ObsType = dict[
+    Literal["glimpse", "glimpse_pos", "time_step", "inverted_label"], np.ndarray
+]
 
 
 class ImagePerceptionModule:
@@ -79,17 +82,25 @@ class ImagePerceptionModule:
                 f"represents the normalized current time step between 0 and `image_perception_config.step_limit`.",
             ),
         }
+        if self.config.randomly_invert_labels:
+            self.__observation_space_dict["inverted_label"] = idoc(
+                gym.spaces.Discrete(3),
+                "indicates at the beginning of each episode whether the label for that episode is inverted or not. "
+                "This is useful for testing whether the agent can retain memory of the initial time step throughout "
+                "the episode.",
+            )
         self.__current_sensor_pos_norm: np.ndarray | None = None
         self.__current_time_step = None
         max_step_length = np.array(self.__config.max_step_length)
         assert max_step_length.shape in {(2,), (1,), ()}
         self.__max_step_length = np.ones(2) * np.array(max_step_length)
-        self.__current_rng = None
+        self.__current_rng: np.random.Generator | None = None
         self.__render_size = self.__render_scaling = None
         self.__visitation_counts = self.__prediction_quality_map = None
         self.__prev_done: np.ndarray | None = None
         self.__current_labels: np.ndarray | None = None
         self.__data_loader: DataLoader | None = None
+        self.__labels_inverted: np.ndarray | None = None
 
     def seed(self, seed: int | None = None):
         self.__current_rng = np.random.default_rng(seed)
@@ -112,10 +123,20 @@ class ImagePerceptionModule:
         (
             (
                 self.__current_images,
-                self.__current_labels,
+                labels,
             ),
             self.__current_data_point_idx,
         ) = next(self.__data_loader)
+        if self.config.randomly_invert_labels:
+            self.__labels_inverted = (
+                self.__current_rng.integers(0, 2, size=self.__num_envs) == 1
+            )
+            labels = np.where(
+                self.__labels_inverted,
+                self.config.dataset.num_classes - labels - 1,
+                labels,
+            )
+        self.__current_labels = labels
         image_size = np.array(self.__current_images.shape[1:3])
         if np.any(image_size < self.effective_sensor_size):
             raise ValueError(
@@ -213,7 +234,7 @@ class ImagePerceptionModule:
             )
 
     def _get_obs(self) -> ObsType:
-        return {
+        output = {
             "glimpse": self.get_glimpse(self.__current_sensor_pos_norm),
             "glimpse_pos": self.__current_sensor_pos_norm.astype(np.float32),
             "time_step": np.full(
@@ -222,6 +243,12 @@ class ImagePerceptionModule:
                 np.float32,
             ),
         }
+        if self.config.randomly_invert_labels:
+            if self.__current_time_step > 0:
+                output["inverted_label"] = np.full(self.__num_envs, 2)
+            else:
+                output["inverted_label"] = self.__labels_inverted.astype(np.int32)
+        return output
 
     def sample_unique_glimpse_positions(self) -> np.ndarray:
         sensor_size_norm = self.normalize_coords(self.effective_sensor_size)

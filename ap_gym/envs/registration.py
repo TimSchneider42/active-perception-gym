@@ -359,6 +359,7 @@ def register_lidar_localization_env(
 def register_circle_square(
     size: int, show_gradient: bool, suffix: str, description: str, step_limit: int = 16
 ):
+    defaul_img_desc = "An image containing either a circle or square."
     register_image_classification_env(
         name=f"CircleSquare{suffix}-v0",
         dataset=CircleSquareDataset(
@@ -366,10 +367,30 @@ def register_circle_square(
         ),
         step_limit=step_limit,
         idoc_fn=mk_img_class_idoc_fn(
-            description.format(env="CircleSquare"),
-            "An image containing either a circle or square.",
+            description.format(env="CircleSquare", extra_info=""),
+            defaul_img_desc,
         ),
     )
+    register_image_classification_env(
+        name=f"CircleSquareInverted{suffix}-v0",
+        dataset=CircleSquareDataset(
+            image_shape=(size, size),
+            show_gradient=show_gradient,
+        ),
+        step_limit=step_limit,
+        idoc_fn=mk_img_class_idoc_fn(
+            description.format(
+                env="CircleSquareInverted",
+                extra_info="In this variant of CircleSquare, the every episode, the label is randomly inverted at the "
+                "start. The agent gets a binary signal indicating whether the label is inverted at the "
+                "start of the episode. This environment tests whether the agent can remember information "
+                "over the course of the episode and use it to correctly solve the task.",
+            ),
+            defaul_img_desc,
+        ),
+        kwargs=dict(randomly_invert_labels=True),
+    )
+
     register_image_classification_env(
         name=f"DoubleCircleSquare{suffix}-v0",
         dataset=DoubleCircleSquareDataset(
@@ -379,7 +400,7 @@ def register_circle_square(
         ),
         step_limit=step_limit,
         idoc_fn=mk_img_class_idoc_fn(
-            description.format(env="DoubleCircleSquare"),
+            description.format(env="DoubleCircleSquare", extra_info=""),
             "An image containing either two circles, two squares or one each. The task is to determine "
             "whether there are two of the same shape or one of each shape.",
         ),
@@ -393,7 +414,8 @@ def register_envs():
         "",
         "In the {env} environment, the agent's objective is to determine whether a given image contains a"
         "circle or a square. The agent has limited visibility, represented by a small movable glimpse that captures "
-        "partial views of the image. A visual gradient within the image guides the agent towards the object.",
+        "partial views of the image. A visual gradient within the image guides the agent towards the object. "
+        "{extra_info}",
     )
     register_circle_square(
         28,
