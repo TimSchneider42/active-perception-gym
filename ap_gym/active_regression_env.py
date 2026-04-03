@@ -21,6 +21,35 @@ from .active_perception_vector_env import (
 from .loss_fn import MSELossFn
 from .types import ObsType, ActType
 from .util import update_info_metrics, update_info_metrics_vec
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _make_mse_loss_fn_and_target_space(
+    target_dim: int,
+    prediction_low: float | None = None,
+    prediction_high: float | None = None,
+    target_std: float | None = None,
+) -> tuple[MSELossFn, gym.spaces.Box]:
+    prediction_target_space = gym.spaces.Box(
+        low=prediction_low, high=prediction_high, shape=(target_dim,)
+    )
+    if target_std is not None:
+        target_std = target_std
+    elif np.isfinite(prediction_low) and np.isfinite(prediction_high):
+        # Assume uniform distribution over the prediction target space
+        target_std = (prediction_high - prediction_low) / np.sqrt(12)
+    else:
+        target_std = None
+    loss_fn = MSELossFn(target_std=target_std)
+    if target_std is not None:
+        loss_fn = loss_fn.normalized
+    else:
+        logger.warning(
+            "Prediction target space is unbounded, and target_std is not provided. MSE loss will not be normalized."
+        )
+    return loss_fn, prediction_target_space
 
 
 class ActiveRegressionEnv(
@@ -32,8 +61,9 @@ class ActiveRegressionEnv(
         self,
         target_dim: int,
         inner_action_space: gym.Space[ActType],
-        prediction_low: float = -np.inf,
-        prediction_high: float = np.inf,
+        prediction_low: float | np.ndarray = -np.inf,
+        prediction_high: float | np.ndarray = np.inf,
+        target_std: float | None = None,
     ):
         prediction_space = gym.spaces.Box(
             low=prediction_low, high=prediction_high, shape=(target_dim,)
@@ -41,10 +71,9 @@ class ActiveRegressionEnv(
         self.action_space = ActivePerceptionActionSpace(
             inner_action_space, prediction_space
         )
-        self.prediction_target_space = gym.spaces.Box(
-            low=prediction_low, high=prediction_high, shape=(target_dim,)
+        self.loss_fn, self.prediction_target_space = _make_mse_loss_fn_and_target_space(
+            target_dim, prediction_low, prediction_high, target_std
         )
-        self.loss_fn = MSELossFn()
 
 
 class ActiveRegressionVectorEnv(
@@ -59,6 +88,7 @@ class ActiveRegressionVectorEnv(
         single_inner_action_space: gym.Space[ActType],
         prediction_low: float = -np.inf,
         prediction_high: float = np.inf,
+            target_std: float | None = None,
     ):
         self.num_envs = num_envs
         single_prediction_space = gym.spaces.Box(
@@ -70,13 +100,13 @@ class ActiveRegressionVectorEnv(
         self.action_space = gym.vector.utils.batch_space(
             self.single_action_space, num_envs
         )
-        self.single_prediction_target_space = gym.spaces.Box(
-            low=prediction_low, high=prediction_high, shape=(target_dim,)
+        self.loss_fn, self.single_prediction_target_space = _make_mse_loss_fn_and_target_space(
+            target_dim, prediction_low, prediction_high, target_std
         )
         self.prediction_target_space = gym.vector.utils.batch_space(
             self.single_prediction_target_space, num_envs
         )
-        self.loss_fn = MSELossFn()
+
 
 
 class ActiveRegressionLogWrapper(
