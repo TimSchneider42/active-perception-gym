@@ -36,7 +36,7 @@ class ActiveClassificationEnv(
             inner_action_space, prediction_space
         )
         self.prediction_target_space = gym.spaces.Discrete(num_classes)
-        self.loss_fn = CrossEntropyLossFn()
+        self.loss_fn = CrossEntropyLossFn(num_classes=num_classes).normalized
 
 
 class ActiveClassificationVectorEnv(
@@ -62,7 +62,7 @@ class ActiveClassificationVectorEnv(
         self.prediction_target_space = gym.spaces.MultiDiscrete(
             [num_classes] * num_envs
         )
-        self.loss_fn = CrossEntropyLossFn()
+        self.loss_fn = CrossEntropyLossFn(num_classes=num_classes).normalized
 
 
 class ActiveClassificationLogWrapper(
