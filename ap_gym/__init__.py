@@ -1,3 +1,13 @@
+try:
+    from ._version import version as __version__
+except ImportError:  # not installed / no build metadata available
+    try:
+        from importlib.metadata import version as _package_version
+
+        __version__ = _package_version("ap_gym")
+    except Exception:
+        __version__ = "0.0.0"
+
 from .util import idoc
 from .active_classification_env import (
     ActiveClassificationEnv,
