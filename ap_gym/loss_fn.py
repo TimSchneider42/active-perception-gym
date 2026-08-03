@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Callable
 
@@ -29,16 +30,25 @@ class LossFn(Generic[PredType, PredTargetType], ABC):
         prediction: PredType,
         target: PredTargetType,
         batch_shape: tuple[int, ...] = (),
+        rng: np.random.Generator | None = None,
     ) -> np.ndarray:
         pass
 
     def torch(
-        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
+        self,
+        prediction: Any,
+        target: Any,
+        batch_shape: tuple[int, ...] = (),
+        rng: "torch.Generator | None" = None,
     ) -> "torch.Tensor":
         raise NotImplementedError("Loss function is not implemented for torch.")
 
     def jax(
-        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
+        self,
+        prediction: Any,
+        target: Any,
+        batch_shape: tuple[int, ...] = (),
+        rng: "jax.Array | None" = None,
     ) -> "jax.Array":
         raise NotImplementedError("Loss function is not implemented for torch.")
 
@@ -47,8 +57,9 @@ class LossFn(Generic[PredType, PredTargetType], ABC):
         prediction: PredType,
         target: PredTargetType,
         batch_shape: tuple[int, ...] = (),
+        rng: np.random.Generator | None = None,
     ):
-        return self.numpy(prediction, target, batch_shape)
+        return self.numpy(prediction, target, batch_shape, rng)
 
     @property
     def lower_bound(self) -> float:
@@ -102,27 +113,42 @@ class LossFnAffineTransformation(
         prediction: PredType,
         target: PredTargetType,
         batch_shape: tuple[int, ...] = (),
+        rng: np.random.Generator | None = None,
     ) -> np.ndarray:
         return (
-            self.__inner_loss_fn.numpy(prediction, target, batch_shape=batch_shape)
+            self.__inner_loss_fn.numpy(
+                prediction, target, batch_shape=batch_shape, rng=rng
+            )
             * self.__scale
             + self.__offset
         )
 
     def torch(
-        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
+        self,
+        prediction: Any,
+        target: Any,
+        batch_shape: tuple[int, ...] = (),
+        rng: "torch.Generator | None" = None,
     ) -> "torch.Tensor":
         return (
-            self.__inner_loss_fn.torch(prediction, target, batch_shape=batch_shape)
+            self.__inner_loss_fn.torch(
+                prediction, target, batch_shape=batch_shape, rng=rng
+            )
             * self.__scale
             + self.__offset
         )
 
     def jax(
-        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
+        self,
+        prediction: Any,
+        target: Any,
+        batch_shape: tuple[int, ...] = (),
+        rng: "jax.Array | None" = None,
     ) -> "jax.Array":
         return (
-            self.__inner_loss_fn.jax(prediction, target, batch_shape=batch_shape)
+            self.__inner_loss_fn.jax(
+                prediction, target, batch_shape=batch_shape, rng=rng
+            )
             * self.__scale
             + self.__offset
         )
@@ -137,18 +163,63 @@ class LossFnAffineTransformation(
         return inner_value * self.__scale + self.__offset
 
 
+def _accepts_rng(fn: Callable) -> bool:
+    """Checks whether the given callable can be invoked with an additional rng argument."""
+    try:
+        parameters = inspect.signature(fn).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    if any(
+        p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        or p.name == "rng"
+        for p in parameters
+    ):
+        return True
+    positional = [
+        p
+        for p in parameters
+        if p.kind
+        in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+    ]
+    return len(positional) >= 4
+
+
 class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTargetType]):
     def __init__(
         self,
-        np: Callable[[PredType, PredTargetType, tuple[int, ...]], np.ndarray],
-        torch: Callable[[Any, Any, tuple[int, ...]], "torch.Tensor"] | None = None,
-        jax: Callable[[Any, Any, tuple[int, ...]], "jax.Array"] | None = None,
+        np: (
+            Callable[[PredType, PredTargetType, tuple[int, ...]], np.ndarray]
+            | Callable[
+                [
+                    PredType,
+                    PredTargetType,
+                    tuple[int, ...],
+                    "np.random.Generator | None",
+                ],
+                np.ndarray,
+            ]
+        ),
+        torch: (
+            Callable[[Any, Any, tuple[int, ...]], "torch.Tensor"]
+            | Callable[
+                [Any, Any, tuple[int, ...], "torch.Generator | None"], "torch.Tensor"
+            ]
+            | None
+        ) = None,
+        jax: (
+            Callable[[Any, Any, tuple[int, ...]], "jax.Array"]
+            | Callable[[Any, Any, tuple[int, ...], "jax.Array | None"], "jax.Array"]
+            | None
+        ) = None,
         lower_bound: float = -np.inf,
         blind_guessing_expected_value: float | None = None,
     ):
         self.__np = np
         self.__torch = torch
         self.__jax = jax
+        self.__np_accepts_rng = _accepts_rng(np)
+        self.__torch_accepts_rng = torch is not None and _accepts_rng(torch)
+        self.__jax_accepts_rng = jax is not None and _accepts_rng(jax)
         self.__lower_bound = lower_bound
         self.__blind_guessing_expected_value = blind_guessing_expected_value
 
@@ -157,21 +228,36 @@ class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTarge
         prediction: PredType,
         target: PredTargetType,
         batch_shape: tuple[int, ...] = (),
+        rng: np.random.Generator | None = None,
     ) -> np.ndarray:
+        if self.__np_accepts_rng:
+            return self.__np(prediction, target, batch_shape, rng)
         return self.__np(prediction, target, batch_shape)
 
     def torch(
-        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
+        self,
+        prediction: Any,
+        target: Any,
+        batch_shape: tuple[int, ...] = (),
+        rng: "torch.Generator | None" = None,
     ) -> "torch.Tensor":
         if self.__torch is None:
             raise NotImplementedError("Loss function is not implemented for torch.")
+        if self.__torch_accepts_rng:
+            return self.__torch(prediction, target, batch_shape, rng)
         return self.__torch(prediction, target, batch_shape)
 
     def jax(
-        self, prediction: Any, target: Any, batch_shape: tuple[int, ...] = ()
+        self,
+        prediction: Any,
+        target: Any,
+        batch_shape: tuple[int, ...] = (),
+        rng: "jax.Array | None" = None,
     ) -> "jax.Array":
         if self.__jax is None:
             raise NotImplementedError("Loss function is not implemented for torch.")
+        if self.__jax_accepts_rng:
+            return self.__jax(prediction, target, batch_shape, rng)
         return self.__jax(prediction, target, batch_shape)
 
     def _lower_bound(self) -> float:
@@ -183,17 +269,29 @@ class LambdaLossFn(LossFn[PredType, PredTargetType], Generic[PredType, PredTarge
 
 class ZeroLossFn(LossFn[tuple, tuple]):
     def numpy(
-        self, prediction: tuple, target: tuple, batch_shape: tuple[int, ...] = ()
+        self,
+        prediction: tuple,
+        target: tuple,
+        batch_shape: tuple[int, ...] = (),
+        rng: np.random.Generator | None = None,
     ) -> np.ndarray:
         return np.zeros(batch_shape, dtype=np.float32)
 
     def torch(
-        self, prediction: tuple, target: tuple, batch_shape: tuple[int, ...] = ()
+        self,
+        prediction: tuple,
+        target: tuple,
+        batch_shape: tuple[int, ...] = (),
+        rng: "torch.Generator | None" = None,
     ) -> "torch.Tensor":
         return torch.zeros(batch_shape)
 
     def jax(
-        self, prediction: tuple, target: tuple, batch_shape: tuple[int, ...] = ()
+        self,
+        prediction: tuple,
+        target: tuple,
+        batch_shape: tuple[int, ...] = (),
+        rng: "jax.Array | None" = None,
     ) -> "jax.Array":
         return jnp.zeros(batch_shape)
 
@@ -214,6 +312,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, np.ndarray]):
         prediction: np.ndarray,
         target: np.ndarray,
         batch_shape: tuple[int, ...] = (),
+        rng: np.random.Generator | None = None,
     ) -> np.ndarray:
         return -np.take_along_axis(
             scipy.special.log_softmax(prediction, axis=-1), target[..., None], axis=-1
@@ -224,6 +323,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, np.ndarray]):
         prediction: "torch.Tensor",
         target: "torch.Tensor",
         batch_shape: tuple[int, ...] = (),
+        rng: "torch.Generator | None" = None,
     ) -> "torch.Tensor":
         return -torch.take_along_dim(
             torch.nn.functional.log_softmax(prediction, dim=-1),
@@ -236,6 +336,7 @@ class CrossEntropyLossFn(LossFn[np.ndarray, np.ndarray]):
         prediction: "jax.Array",
         target: "jax.Array",
         batch_shape: tuple[int, ...] = (),
+        rng: "jax.Array | None" = None,
     ) -> "jax.Array":
         return -jnp.take_along_axis(
             jax.nn.log_softmax(prediction), target[..., None], axis=-1
@@ -263,6 +364,7 @@ class MSELossFn(LossFn[np.ndarray, np.ndarray]):
         prediction: np.ndarray,
         target: np.ndarray,
         batch_shape: tuple[int, ...] = (),
+        rng: np.random.Generator | None = None,
     ) -> np.ndarray:
         return np.mean((prediction - target) ** 2, axis=-1)
 
@@ -271,6 +373,7 @@ class MSELossFn(LossFn[np.ndarray, np.ndarray]):
         prediction: "torch.Tensor",
         target: "torch.Tensor",
         batch_shape: tuple[int, ...] = (),
+        rng: "torch.Generator | None" = None,
     ) -> "torch.Tensor":
         return torch.mean((prediction - target) ** 2, dim=-1)
 
@@ -279,6 +382,7 @@ class MSELossFn(LossFn[np.ndarray, np.ndarray]):
         prediction: "jax.Array",
         target: "jax.Array",
         batch_shape: tuple[int, ...] = (),
+        rng: "jax.Array | None" = None,
     ) -> "jax.Array":
         return jnp.mean((prediction - target) ** 2, axis=-1)
 
@@ -309,9 +413,10 @@ class WeightedLossFn(
         prediction: PredType,
         target: dict[str, PredTargetType | np.ndarray],
         batch_shape: tuple[int, ...] = (),
+        rng: np.random.Generator | None = None,
     ) -> float:
         return (
-            self.__inner_loss_fn.numpy(prediction, target["target"], batch_shape)
+            self.__inner_loss_fn.numpy(prediction, target["target"], batch_shape, rng)
             * target["weight"]
         )
 
@@ -320,9 +425,10 @@ class WeightedLossFn(
         prediction: "torch.Tensor",
         target: "dict[str, PredTargetType | torch.Tensor]",
         batch_shape: tuple[int, ...] = (),
+        rng: "torch.Generator | None" = None,
     ) -> "torch.Tensor":
         return (
-            self.__inner_loss_fn.torch(prediction, target["target"], batch_shape)
+            self.__inner_loss_fn.torch(prediction, target["target"], batch_shape, rng)
             * target["weight"]
         )
 
@@ -331,9 +437,10 @@ class WeightedLossFn(
         prediction: "jax.Array",
         target: "dict[str, PredTargetType | jax.Array]",
         batch_shape: tuple[int, ...] = (),
+        rng: "jax.Array | None" = None,
     ) -> "jax.Array":
         return (
-            self.__inner_loss_fn.jax(prediction, target["target"], batch_shape)
+            self.__inner_loss_fn.jax(prediction, target["target"], batch_shape, rng)
             * target["weight"]
         )
 

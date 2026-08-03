@@ -95,7 +95,7 @@ class ActivePerceptionVectorEnv(
 
         batch_shape = (self.num_envs,) if isinstance(self, gym.vector.VectorEnv) else ()
         prediction_loss = self.loss_fn(
-            action["prediction"], prediction_target, batch_shape
+            action["prediction"], prediction_target, batch_shape, rng=self.np_random
         )
 
         info.update(

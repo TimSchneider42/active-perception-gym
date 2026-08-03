@@ -125,7 +125,10 @@ The signature of each framework-specific function is
 
 ```python
 def fn(
-    prediction: ArrayType, target: ArrayType, batch_shape: Tuple[int, ...] = ()
+    prediction: ArrayType,
+    target: ArrayType,
+    batch_shape: Tuple[int, ...] = (),
+    rng: RngType | None = None,
 ) -> ArrayType: ...
 ```
 
@@ -137,6 +140,13 @@ loss = ap_gym.CrossEntropyLossFn()(
     np.zeros((3, 7, 10)), np.zeros((3, 7), dtype=np.int_), (3, 7)
 )
 ```
+
+`rng` is an optional source of randomness for stochastic loss functions (e.g. losses that evaluate the prediction at
+freshly sampled points on every call).
+Its type depends on the framework: `np.random.Generator` for `numpy`, `torch.Generator` for `torch`, and a PRNG key
+(`jax.Array`) for `jax`.
+Deterministic loss functions simply ignore it.
+Environments pass their internal `np_random` generator when evaluating the loss during `step`.
 
 ### Representation of Image Observations
 

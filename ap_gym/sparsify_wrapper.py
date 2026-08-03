@@ -77,7 +77,10 @@ class SparsifyVectorWrapper(
         obs, reward, terminated, truncated, info = super().step(actions)
         info = self.__info_add_weight(info, terminated=terminated)
         reward = info["base_reward"] - self.loss_fn(
-            actions["prediction"], info["prediction"]["target"], (self.num_envs,)
+            actions["prediction"],
+            info["prediction"]["target"],
+            (self.num_envs,),
+            rng=self.np_random,
         )
         return (
             obs,
@@ -140,7 +143,7 @@ class SparsifyWrapper(
         obs, reward, terminated, truncated, info = super().step(actions)
         info = self.__info_add_weight(info, terminated=terminated)
         reward = info["base_reward"] - self.loss_fn(
-            actions["prediction"], info["prediction"]["target"]
+            actions["prediction"], info["prediction"]["target"], rng=self.np_random
         )
         return (
             obs,

@@ -132,6 +132,9 @@ class MyCustomVectorEnv(
 
 If you wish to define your own loss function, subclass `ap_gym.LossFn` and implement the `numpy`, `torch`, and `jax`
 functions.
+Each of these functions receives an optional `rng` argument (`np.random.Generator` for `numpy`, `torch.Generator` for
+`torch`, and a PRNG key for `jax`) that stochastic loss functions can use as their source of randomness; deterministic
+loss functions can just ignore it.
 Alternatively, you can use `ap_gym.LambdaLossFn` to define a loss function based on a custom function:
 
 ```python
@@ -152,6 +155,9 @@ mse_loss_fn = ap_gym.LambdaLossFn(
     ),  # JAX implementation
 )
 ```
+
+The callables passed to `ap_gym.LambdaLossFn` may optionally accept a fourth `rng` argument; if they do, the random
+source is forwarded to them, otherwise they are called with three arguments as shown above.
 
 ### Custom Classification Environments
 
