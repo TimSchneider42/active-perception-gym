@@ -7,3 +7,5 @@ __pycache__
 /build
 *.egg-info
 /dist
+
+/ap_gym/_version.py
