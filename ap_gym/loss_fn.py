@@ -61,6 +61,41 @@ class LossFn(Generic[PredType, PredTargetType], ABC):
     ):
         return self.numpy(prediction, target, batch_shape, rng)
 
+    def numpy_loss_and_metrics(
+        self,
+        prediction: PredType,
+        target: PredTargetType,
+        batch_shape: tuple[int, ...] = (),
+        rng: np.random.Generator | None = None,
+    ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+        """
+        The loss and, for losses that provide them, per-sample metrics alongside it.
+
+        Losses that compute metrics override this and produce both in one pass;
+        the default reports none. Wrapping losses must forward it, or the metrics
+        of the loss they wrap are lost silently.
+        """
+        return self.numpy(prediction, target, batch_shape, rng), {}
+
+    def torch_loss_and_metrics(
+        self,
+        prediction: Any,
+        target: Any,
+        batch_shape: tuple[int, ...] = (),
+        rng: "torch.Generator | None" = None,
+    ) -> "tuple[torch.Tensor, dict[str, torch.Tensor]]":
+        return self.torch(prediction, target, batch_shape, rng), {}
+
+    def jax_loss_and_metrics(
+        self,
+        prediction: Any,
+        target: Any,
+        batch_shape: tuple[int, ...] = (),
+        rng: "jax.Array | None" = None,
+    ) -> "tuple[jax.Array, dict[str, jax.Array]]":
+        return self.jax(prediction, target, batch_shape, rng), {}
+
+
     @property
     def lower_bound(self) -> float:
         """Returns a lower bound of this loss function given the target."""
@@ -152,6 +187,26 @@ class LossFnAffineTransformation(
             * self.__scale
             + self.__offset
         )
+
+    # The transformation applies to the loss only: the metrics are dimensionless and
+    # must not be rescaled by the blind-guessing denominator.
+    def numpy_loss_and_metrics(self, prediction, target, batch_shape=(), rng=None):
+        loss, metrics = self.__inner_loss_fn.numpy_loss_and_metrics(
+            prediction, target, batch_shape=batch_shape, rng=rng
+        )
+        return loss * self.__scale + self.__offset, metrics
+
+    def torch_loss_and_metrics(self, prediction, target, batch_shape=(), rng=None):
+        loss, metrics = self.__inner_loss_fn.torch_loss_and_metrics(
+            prediction, target, batch_shape=batch_shape, rng=rng
+        )
+        return loss * self.__scale + self.__offset, metrics
+
+    def jax_loss_and_metrics(self, prediction, target, batch_shape=(), rng=None):
+        loss, metrics = self.__inner_loss_fn.jax_loss_and_metrics(
+            prediction, target, batch_shape=batch_shape, rng=rng
+        )
+        return loss * self.__scale + self.__offset, metrics
 
     def _lower_bound(self) -> float:
         return self.__inner_loss_fn.lower_bound * self.__scale + self.__offset
@@ -443,6 +498,25 @@ class WeightedLossFn(
             self.__inner_loss_fn.jax(prediction, target["target"], batch_shape, rng)
             * target["weight"]
         )
+
+    # The weight applies to the loss only; the metrics are dimensionless.
+    def numpy_loss_and_metrics(self, prediction, target, batch_shape=(), rng=None):
+        loss, metrics = self.__inner_loss_fn.numpy_loss_and_metrics(
+            prediction, target["target"], batch_shape, rng
+        )
+        return loss * target["weight"], metrics
+
+    def torch_loss_and_metrics(self, prediction, target, batch_shape=(), rng=None):
+        loss, metrics = self.__inner_loss_fn.torch_loss_and_metrics(
+            prediction, target["target"], batch_shape, rng
+        )
+        return loss * target["weight"], metrics
+
+    def jax_loss_and_metrics(self, prediction, target, batch_shape=(), rng=None):
+        loss, metrics = self.__inner_loss_fn.jax_loss_and_metrics(
+            prediction, target["target"], batch_shape, rng
+        )
+        return loss * target["weight"], metrics
 
     def _lower_bound(self):
         return self.__min_weight * self.__inner_loss_fn.lower_bound

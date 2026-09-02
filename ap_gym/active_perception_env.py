@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections import defaultdict, deque
 from typing import Any, Generic, Literal
 
 import gymnasium as gym
 import numpy as np
 
 from .loss_fn import ZeroLossFn, LossFn
+from .util import update_info_metrics
 from .types import (
     ObsType,
     ActType,
@@ -98,6 +100,8 @@ class ActivePerceptionEnv(
     ) -> tuple[ObsType, float, bool, bool, dict[str, Any], PredTargetType]:
         pass
 
+    __prediction_metrics: "dict[str, deque] | None" = None
+
     def step(
         self, action: FullActType[ActType, PredType]
     ) -> tuple[ObsType, float, bool, bool, dict[str, Any]]:
@@ -106,7 +110,7 @@ class ActivePerceptionEnv(
         )
 
         batch_shape = (self.num_envs,) if isinstance(self, gym.vector.VectorEnv) else ()
-        prediction_loss = self.loss_fn(
+        prediction_loss, prediction_metrics = self.loss_fn.numpy_loss_and_metrics(
             action["prediction"], prediction_target, batch_shape, rng=self.np_random
         )
 
@@ -118,7 +122,18 @@ class ActivePerceptionEnv(
             },
         }
 
+        for name, values in prediction_metrics.items():
+            self.__prediction_metrics[name].append(values)
+        if terminated or truncated:
+            info = update_info_metrics(info, self.__prediction_metrics)
+
         return obs, base_reward - prediction_loss, terminated, truncated, info
+
+    def reset(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[ObsType, dict[str, Any]]:
+        self.__prediction_metrics = defaultdict(deque)
+        return super().reset(seed=seed, options=options)
 
 
 class ActivePerceptionWrapper(

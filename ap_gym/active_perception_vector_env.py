@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections import defaultdict, deque
 from typing import Any, Generic, Iterator, Callable, Sequence
 
 import gymnasium as gym
@@ -14,6 +15,7 @@ from .active_perception_env import (
     NoActivePerceptionEnvError,
 )
 from .loss_fn import ZeroLossFn
+from .util import update_info_metrics_vec
 from .types import (
     ObsType,
     ActType,
@@ -73,6 +75,9 @@ class ActivePerceptionVectorEnv(
     Generic[ObsType, ActType, PredType, PredTargetType, ArrayType],
     ABC,
 ):
+    __prev_done: np.ndarray | None = None
+    __prediction_metrics: "dict[str, tuple[deque, ...]] | None" = None
+
     @abstractmethod
     def _step(
         self, action: ActType, prediction: PredType
@@ -94,7 +99,7 @@ class ActivePerceptionVectorEnv(
         ) = self._step(action["action"], action["prediction"])
 
         batch_shape = (self.num_envs,) if isinstance(self, gym.vector.VectorEnv) else ()
-        prediction_loss = self.loss_fn(
+        prediction_loss, prediction_metrics = self.loss_fn.numpy_loss_and_metrics(
             action["prediction"], prediction_target, batch_shape, rng=self.np_random
         )
 
@@ -108,7 +113,41 @@ class ActivePerceptionVectorEnv(
             }
         )
 
+        done = terminated | truncated
+        self.__accumulate_prediction_metrics(prediction_metrics, done)
+        if np.any(done):
+            info = update_info_metrics_vec(info, self.__prediction_metrics, done)
+
         return obs, base_reward - prediction_loss, terminated, truncated, info
+
+    def reset(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[ObsType, dict[str, Any]]:
+        self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
+        self.__prediction_metrics = defaultdict(
+            lambda: tuple(deque() for _ in range(self.num_envs))
+        )
+        return super().reset(seed=seed, options=options)
+
+    def __accumulate_prediction_metrics(
+        self, metrics: dict[str, np.ndarray], done: np.ndarray
+    ) -> None:
+        """
+        Append this step's per-sample metrics, keyed per environment.
+
+        A ``_<name>`` entry is the per-sample validity mask of ``<name>`` and is
+        accumulated like any other metric; update_info_metrics_vec interprets it.
+
+        Unlike the single environment, sub-environments restart individually without a
+        reset(), so each one's accumulator is cleared on its own previous done.
+        """
+        for name, values in metrics.items():
+            per_env = self.__prediction_metrics[name]
+            for i in range(self.num_envs):
+                if self.__prev_done[i]:
+                    per_env[i].clear()
+                per_env[i].append(values[i])
+        self.__prev_done = done
 
 
 class ActivePerceptionVectorWrapper(
