@@ -296,7 +296,7 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[dict[str, np.ndarray], np.ndarr
 
         if not self.__static_map:
             self.__set_map(*next(self.__data_loader))
-            self.__map_obs = self.__map[..., None].astype(np.float32) / 255
+            self.__map_obs = self.__map[..., None].astype(np.float32)
 
         self.__observation_map = np.zeros_like(self.__map, dtype=np.bool_)
 
