@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections import deque, defaultdict
-from typing import Generic, Any, SupportsFloat
+from collections import deque
+from typing import Generic, Any
 
 import gymnasium as gym
 import numpy as np
@@ -21,8 +21,11 @@ from .active_perception_vector_env import (
 )
 from .logit_space import LogitSpace
 from .loss_fn import CrossEntropyLossFn
-from .types import ObsType, ActType
-from .util import update_info_metrics, update_info_metrics_vec
+from .types import ObsType, ActType, FullActType
+from .log_wrapper import (
+    ActivePerceptionLogWrapper,
+    ActivePerceptionVectorLogWrapper,
+)
 
 
 class ActiveClassificationEnv(
@@ -66,132 +69,67 @@ class ActiveClassificationVectorEnv(
 
 
 class ActiveClassificationLogWrapper(
-    ActivePerceptionWrapper[
-        ObsType, ActType, np.ndarray, int, ObsType, ActType, np.ndarray, int
-    ],
+    ActivePerceptionLogWrapper[ObsType, ActType, np.ndarray, int],
     Generic[ObsType, ActType],
     ABC,
 ):
-    def __init__(self, env: ActivePerceptionEnv[ObsType, ActType, np.ndarray, int]):
-        super().__init__(env)
-        self.__metrics: dict[str, deque[float] | np.ndarray] | None = None
-
-    def reset(
-        self, *, seed: int | None = None, options: dict[str, Any | None] = None
-    ) -> tuple[ObsType, dict[str, Any]]:
-        self.__metrics = defaultdict(deque)
-        return super().reset(seed=seed, options=options)
-
-    def step(
-        self, action: FullActType[ActType, PredType]
-    ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
-        obs, reward, terminated, truncated, info = super().step(action)
-        self.__metrics["correct_label_prob"].append(
-            float(
-                scipy.special.softmax(action["prediction"])[
-                    info["prediction"]["target"]
-                ]
-            )
+    def _step_metrics(
+        self, action: FullActType[ActType, np.ndarray], info: dict[str, Any]
+    ) -> dict[str, Any]:
+        prob = float(
+            scipy.special.softmax(action["prediction"])[info["prediction"]["target"]]
         )
-        done = terminated or truncated
-        if done:
-            num_classes = self.prediction_target_space.n
-            correct_label_prob = np.array(
-                self.__metrics["correct_label_prob"], dtype=np.float32
-            )
-            is_correct = correct_label_prob > 1 / num_classes
-            self.__metrics["accuracy"] = is_correct.astype(np.float32)
-            info = update_info_metrics(info, self.__metrics)
-            first_correct_candidates = np.where(is_correct)[0]
-            if len(first_correct_candidates) > 0:
-                info["stats"]["scalar"]["first_correct"] = first_correct_candidates[0]
-            last_incorrect_candidates = np.where(~is_correct)[-1]
-            if len(last_incorrect_candidates) > 0:
-                info["stats"]["scalar"]["last_incorrect"] = last_incorrect_candidates[
-                    -1
-                ]
-        return obs, reward, terminated, truncated, info
+        return {
+            "correct_label_prob": prob,
+            "accuracy": float(prob > 1 / self.prediction_target_space.n),
+        }
+
+    def _episode_metrics(self, metrics: dict[str, deque]) -> dict[str, Any]:
+        is_correct = np.asarray(metrics["accuracy"], dtype=np.bool_)
+        stats = {}
+        first_correct = np.where(is_correct)[0]
+        if len(first_correct) > 0:
+            stats["first_correct"] = first_correct[0]
+        last_incorrect = np.where(~is_correct)[0]
+        if len(last_incorrect) > 0:
+            stats["last_incorrect"] = last_incorrect[-1]
+        return stats
 
 
 class ActiveClassificationVectorLogWrapper(
-    ActivePerceptionVectorWrapper[
-        ObsType,
-        ActType,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        ObsType,
-        ActType,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-    ],
+    ActivePerceptionVectorLogWrapper[ObsType, ActType, np.ndarray, np.ndarray],
     Generic[ObsType, ActType],
     ABC,
 ):
-    def __init__(
-        self,
-        env: ActivePerceptionVectorEnv[ObsType, ActType, np.ndarray, np.ndarray],
-    ):
-        super().__init__(env)
-        self.__prev_done = None
-        self.__metrics: dict[str, tuple[deque[float] | np.ndarray, ...]] | None = None
+    def _step_metrics(
+        self, action: FullActType[ActType, np.ndarray], info: dict[str, Any]
+    ) -> dict[str, Any]:
+        probs = scipy.special.softmax(action["prediction"], axis=-1)
+        prob = probs[np.arange(self.num_envs), info["prediction"]["target"]]
+        num_classes = self.single_prediction_target_space.n
+        return {
+            "correct_label_prob": prob.astype(np.float32),
+            "accuracy": (prob > 1 / num_classes).astype(np.float32),
+        }
 
-    def reset(
-        self, *, seed: int | None = None, options: dict[str, Any | None] = None
-    ) -> tuple[ObsType, dict[str, Any]]:
-        self.__prev_done = np.zeros(self.num_envs, dtype=np.bool_)
-        self.__metrics = defaultdict(
-            lambda: tuple(deque() for _ in range(self.num_envs))
-        )
-        return super().reset(seed=seed, options=options)
-
-    def step(
-        self, action: FullActType[ActType, PredType]
-    ) -> tuple[ObsType, np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
-        obs, reward, terminated, truncated, info = super().step(action)
+    def _episode_metrics(self, metrics: dict[str, tuple[deque, ...]]) -> dict[str, Any]:
+        first_correct = np.full(self.num_envs, -1, dtype=np.int32)
+        first_correct_valid = np.zeros(self.num_envs, dtype=np.bool_)
+        last_incorrect = np.full(self.num_envs, -1, dtype=np.int32)
+        last_incorrect_valid = np.zeros(self.num_envs, dtype=np.bool_)
         for i in range(self.num_envs):
-            if self.__prev_done[i]:
-                self.__metrics["correct_label_prob"][i].clear()
-            else:
-                self.__metrics["correct_label_prob"][i].append(
-                    scipy.special.softmax(action["prediction"][i])[
-                        info["prediction"]["target"][i]
-                    ]
-                )
-
-        self.__prev_done = terminated | truncated
-        if np.any(self.__prev_done):
-            num_classes = self.single_prediction_target_space.n
-            correct_label_prob = [
-                np.array(e, dtype=np.float32)
-                for e in self.__metrics["correct_label_prob"]
-            ]
-            is_correct = [e > 1 / num_classes for e in correct_label_prob]
-            self.__metrics["accuracy"] = tuple(e.astype(np.float32) for e in is_correct)
-
-            info = update_info_metrics_vec(info, self.__metrics, self.__prev_done)
-
-            del self.__metrics["accuracy"]
-            first_correct = np.full(self.num_envs, -1, dtype=np.int32)
-            first_correct_valid = np.zeros(self.num_envs, dtype=np.bool_)
-            last_incorrect = np.full(self.num_envs, -1, dtype=np.int32)
-            last_incorrect_valid = np.zeros(self.num_envs, dtype=np.bool_)
-            for i in range(self.num_envs):
-                first_correct_candidates = np.where(is_correct[i])[0]
-                if len(first_correct_candidates) > 0:
-                    first_correct[i] = first_correct_candidates[0]
-                    first_correct_valid[i] = True
-                last_incorrect_candidates = np.where(~is_correct[i])[0]
-                if len(last_incorrect_candidates) > 0:
-                    last_incorrect[i] = last_incorrect_candidates[-1]
-                    last_incorrect_valid[i] = True
-            info["stats"]["scalar"].update(
-                {
-                    "first_correct": first_correct,
-                    "_first_correct": first_correct_valid,
-                    "last_incorrect": last_incorrect,
-                    "_last_incorrect": last_incorrect_valid,
-                }
-            )
-        return obs, reward, terminated, truncated, info
+            is_correct = np.asarray(metrics["accuracy"][i], dtype=np.bool_)
+            candidates = np.where(is_correct)[0]
+            if len(candidates) > 0:
+                first_correct[i] = candidates[0]
+                first_correct_valid[i] = True
+            candidates = np.where(~is_correct)[0]
+            if len(candidates) > 0:
+                last_incorrect[i] = candidates[-1]
+                last_incorrect_valid[i] = True
+        return {
+            "first_correct": first_correct,
+            "_first_correct": first_correct_valid,
+            "last_incorrect": last_incorrect,
+            "_last_incorrect": last_incorrect_valid,
+        }

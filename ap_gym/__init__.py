@@ -15,6 +15,10 @@ from .active_classification_env import (
     ActiveClassificationLogWrapper,
     ActiveClassificationVectorLogWrapper,
 )
+from .log_wrapper import (
+    ActivePerceptionLogWrapper,
+    ActivePerceptionVectorLogWrapper,
+)
 from .active_perception_env import (
     ActivePerceptionEnv,
     BaseActivePerceptionEnv,
