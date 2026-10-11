@@ -95,7 +95,6 @@ class LossFn(Generic[PredType, PredTargetType], ABC):
     ) -> "tuple[jax.Array, dict[str, jax.Array]]":
         return self.jax(prediction, target, batch_shape, rng), {}
 
-
     @property
     def lower_bound(self) -> float:
         """Returns a lower bound of this loss function given the target."""
