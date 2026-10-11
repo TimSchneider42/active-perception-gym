@@ -81,7 +81,9 @@ class ActiveClassificationLogWrapper(
         )
         return {
             "correct_label_prob": prob,
-            "accuracy": float(prob > 1 / self.prediction_target_space.n),
+            "accuracy": float(
+                np.argmax(action["prediction"]) == info["prediction"]["target"]
+            ),
         }
 
     def _episode_metrics(self, metrics: dict[str, deque]) -> dict[str, Any]:
@@ -106,10 +108,12 @@ class ActiveClassificationVectorLogWrapper(
     ) -> dict[str, Any]:
         probs = scipy.special.softmax(action["prediction"], axis=-1)
         prob = probs[np.arange(self.num_envs), info["prediction"]["target"]]
-        num_classes = self.single_prediction_target_space.n
         return {
             "correct_label_prob": prob.astype(np.float32),
-            "accuracy": (prob > 1 / num_classes).astype(np.float32),
+            "accuracy": (
+                np.argmax(action["prediction"], axis=-1)
+                == info["prediction"]["target"]
+            ).astype(np.float32),
         }
 
     def _episode_metrics(self, metrics: dict[str, tuple[deque, ...]]) -> dict[str, Any]:
