@@ -108,7 +108,9 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[dict[str, np.ndarray], np.ndarr
         All 2D LIDAR localization environments in ap_gym are implemented as instances of the
         `ap_gym.envs.lidar_localization2d.LIDARLocalization2DEnv` class and share the following properties:
     rewards:
-    - 'A small action regularization equal to $10^{-3} \cdot{} \lVert \textit{action}\rVert$.'
+    - 'A small action regularization equal to $-10^{-3} \cdot{} \lVert \textit{action}\rVert^2$.'
+    - 'A constant reward of $0.1$ to ensure that the agent does not learn to terminate the episode on purpose by moving
+    out of bounds.'
     starting_state: The agent begins at a uniformly random, valid location within the environment.
     space_variables:
     - $M\in \mathbb{N}$ is the side length of the map in pixels
@@ -326,7 +328,8 @@ class LIDARLocalization2DEnv(ActiveRegressionEnv[dict[str, np.ndarray], np.ndarr
         self.__last_pred = (prediction + 1) / 2 * map_size
         self.__last_pos = self.__pos.copy()
 
-        # The 1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of bounds
+        # The 0.1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of
+        # bounds
         base_reward = 0.1 - 1e-3 * np.sum(action**2, axis=-1)
 
         magnitude = np.linalg.norm(action)
