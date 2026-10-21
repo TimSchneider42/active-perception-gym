@@ -33,8 +33,8 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         - **White background**: Bright regions with low uncertainty.
         - **Dark background**: Dark regions with high uncertainty.
     rewards:
-    - 'A small action regularization equal to $10^{-3} \cdot{} \lVert \textit{action}\rVert$.'
-    - 'A constant reward of $0.1$ to ensure that the reward stays positive and the agent does not learn to terminate the
+    - 'A small action regularization equal to $-10^{-3} \cdot{} \lVert \textit{action}\rVert^2$.'
+    - 'A constant reward of $1$ to ensure that the reward stays positive and the agent does not learn to terminate the
     episode on purpose.'
     starting_state: 'The agent''s initial position is uniformly randomly sampled from the range $[-1, 1]^2$.'
     end_conditions:
@@ -129,7 +129,7 @@ class LightDarkEnv(ActiveRegressionEnv[np.ndarray, np.ndarray]):
         self.__last_pred = prediction
         self.__last_pos = self.__pos.copy()
 
-        # The 0.1 is to ensure that the agent does not simply learn to terminate the episode early by moving out of
+        # The 1.0 is to ensure that the agent does not simply learn to terminate the episode early by moving out of
         # bounds
         base_reward = 1.0 - 1e-3 * np.sum(action**2, axis=-1)
 

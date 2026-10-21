@@ -139,7 +139,8 @@ The `"map"` key is only included in the static environments.
 ## Rewards
 
 The reward at each timestep is  the sum of:
-- A small action regularization equal to $10^{-3} \cdot{} \lVert \textit{action}\rVert$.
+- A small action regularization equal to $-10^{-3} \cdot{} \lVert \textit{action}\rVert^2$.
+- A constant reward of $0.1$ to ensure that the agent does not learn to terminate the episode on purpose by moving out of bounds.
 - The negative mean squared error between the agent's prediction and the target.
 
 ## Starting State

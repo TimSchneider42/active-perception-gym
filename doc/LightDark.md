@@ -71,8 +71,8 @@ The observation is a dictionary with the following keys:
 ## Rewards
 
 The reward at each timestep is  the sum of:
-- A small action regularization equal to $10^{-3} \cdot{} \lVert \textit{action}\rVert$.
-- A constant reward of $0.1$ to ensure that the reward stays positive and the agent does not learn to terminate the episode on purpose.
+- A small action regularization equal to $-10^{-3} \cdot{} \lVert \textit{action}\rVert^2$.
+- A constant reward of $1$ to ensure that the reward stays positive and the agent does not learn to terminate the episode on purpose.
 - The negative mean squared error between the agent's prediction and the target.
 
 ## Starting State
