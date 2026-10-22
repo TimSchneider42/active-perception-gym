@@ -44,7 +44,15 @@ from .active_regression_env import (
     ActiveRegressionVectorLogWrapper,
 )
 from .image_space import ImageSpace
-from .loss_fn import LossFn, LambdaLossFn, ZeroLossFn, CrossEntropyLossFn, MSELossFn
+from .loss_fn import (
+    LossFn,
+    LambdaLossFn,
+    ZeroLossFn,
+    CrossEntropyLossFn,
+    MSELossFn,
+    HuberLossFn,
+    HuberBlindGuessStatistics,
+)
 from .time_limit import TimeLimit
 from .vector_to_single_wrapper import (
     VectorToSingleWrapper,
