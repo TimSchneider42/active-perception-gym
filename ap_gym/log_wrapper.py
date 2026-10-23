@@ -57,8 +57,11 @@ class ActivePerceptionLogWrapper(
         for name, value in step_metrics.items():
             self.__metrics[name].append(value)
         if terminated or truncated:
-            info = update_info_metrics(info, self.__metrics)
-            info["stats"]["scalar"].update(self._episode_metrics(self.__metrics))
+            # Environments set "episode_discard_logs" for episodes that ended abnormally and must not be logged
+            discard_logs = bool(info.get("episode_discard_logs", False))
+            info = update_info_metrics(info, self.__metrics, discard_logs)
+            if not discard_logs:
+                info["stats"]["scalar"].update(self._episode_metrics(self.__metrics))
         return obs, reward, terminated, truncated, info
 
 
@@ -115,6 +118,17 @@ class ActivePerceptionVectorLogWrapper(
                     per_env[i].append(values[i])
         self.__prev_done = terminated | truncated
         if np.any(self.__prev_done):
-            info = update_info_metrics_vec(info, self.__metrics, self.__prev_done)
-            info["stats"]["scalar"].update(self._episode_metrics(self.__metrics))
+            # Environments set "episode_discard_logs" for episodes that ended abnormally and must not be logged
+            discard_logs = np.asarray(
+                info.get("episode_discard_logs", np.zeros(self.num_envs, np.bool_)),
+                dtype=np.bool_,
+            )
+            info = update_info_metrics_vec(
+                info, self.__metrics, self.__prev_done, discard_logs
+            )
+            episode_metrics = self._episode_metrics(self.__metrics)
+            for k in episode_metrics:
+                if k.startswith("_") and k[1:] in episode_metrics:
+                    episode_metrics[k] = episode_metrics[k] & ~discard_logs
+            info["stats"]["scalar"].update(episode_metrics)
         return obs, reward, terminated, truncated, info

@@ -30,13 +30,19 @@ def _valid_values(values, mask) -> np.ndarray:
 
 
 def update_info_metrics(
-    info: dict[str, Any], metrics: dict[str, Sequence[float] | np.ndarray]
+    info: dict[str, Any],
+    metrics: dict[str, Sequence[float] | np.ndarray],
+    discard_logs: bool = False,
 ) -> dict[str, Any]:
+    """
+    :param discard_logs: Whether the episode is excluded from the logs (see the "episode_discard_logs" info key); if
+        True, every metric of it is marked invalid.
+    """
     scalar: dict[str, Any] = {}
     vector: dict[str, Any] = {}
     for n in _metric_names(metrics):
         v = _valid_values(metrics[n], metrics.get(f"_{n}"))
-        valid = len(v) > 0
+        valid = len(v) > 0 and not discard_logs
         scalar[f"avg_{n}"] = float(v.mean()) if valid else np.nan
         scalar[f"_avg_{n}"] = valid
         scalar[f"final_{n}"] = float(v[-1]) if valid else np.nan
@@ -52,7 +58,14 @@ def update_info_metrics_vec(
     info: dict[str, Any],
     metrics: dict[str, Sequence[Sequence[float] | np.ndarray]],
     done: np.ndarray,
+    discard_logs: np.ndarray | None = None,
 ) -> dict[str, Any]:
+    """
+    :param discard_logs: Per environment, whether its episode is excluded from the logs (see the
+        "episode_discard_logs" info key); every metric of the episodes it marks is marked invalid.
+    """
+    if discard_logs is None:
+        discard_logs = np.zeros(len(done), dtype=np.bool_)
     scalar: dict[str, Any] = {}
     vector: dict[str, Any] = {}
     for n in _metric_names(metrics):
@@ -64,7 +77,7 @@ def update_info_metrics_vec(
         # A metric can be invalid for a whole episode -- every step of it undefined, or
         # the episode having no steps at all -- so validity is per environment and not
         # simply `done`.
-        valid = np.array([len(v) > 0 for v in per_env], dtype=np.bool_)
+        valid = np.array([len(v) > 0 for v in per_env], dtype=np.bool_) & ~discard_logs
         scalar[f"avg_{n}"] = np.array(
             [v.mean() if len(v) else np.nan for v in per_env], dtype=np.float32
         )
