@@ -39,8 +39,8 @@ class ImageLocalizationVectorEnv(
         this task is a regression task where the agent has to predict the coordinates of the target glimpse it is
         provided.
 
-        Consider the following example from the [TinyImageNetLoc](TinyImageNetLoc.md) environment:
-        <p align="center"><img src="img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="200px"/></p>
+        Consider the following example from the [TinyImageNetSearch](TinyImageNetSearch.md) environment:
+        <p align="center"><img src="img/TinyImageNetSearch-v0.gif" alt="TinyImageNetSearch-v0" width="200px"/></p>
         Marked in blue is the agent's current glimpse. The transparent purple box represents the target glimpse the
         agent has to predict the coordinates of and the opaque purple box is the agent's current prediction. We further
         mark the history of glimpses the agent has taken in a color scale ranging from red to green, red meaning that

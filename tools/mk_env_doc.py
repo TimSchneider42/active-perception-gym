@@ -652,7 +652,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    exclude_list = PURE_GYM_ENVS
+    # Deprecated aliases of renamed envs get no pages of their own
+    exclude_list = PURE_GYM_ENVS.union(ap_gym.envs.registration.DEPRECATED_ENV_IDS)
 
     if "ap_gym" not in args.modules:
         exclude_list = exclude_list.union(AP_GYM_ENVS)

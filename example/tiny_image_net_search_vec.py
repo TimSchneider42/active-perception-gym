@@ -5,7 +5,7 @@ import numpy as np
 
 import ap_gym
 
-env = ap_gym.make_vec("TinyImageNetLoc-v0", num_envs=4, render_mode="rgb_array")
+env = ap_gym.make_vec("TinyImageNetSearch-v0", num_envs=4, render_mode="rgb_array")
 
 obs, _ = env.reset(seed=0)
 img = env.render()

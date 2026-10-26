@@ -270,15 +270,15 @@ Find a detailed documentation of the image localization environments [here](doc/
 <table align="center" style="border-collapse: collapse; border: none;">
     <tr style="border: none;">
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="150px"/><br/>
-            <a href="doc/TinyImageNetLoc.md">
-                TinyImageNetLoc-v0
+            <img src="doc/img/TinyImageNetSearch-v0.gif" alt="TinyImageNetSearch-v0" width="150px"/><br/>
+            <a href="doc/TinyImageNetSearch.md">
+                TinyImageNetSearch-v0
             </a>
         </td>
         <td align="center" style="border: none; padding: 10px;">
-            <img src="doc/img/CIFAR10Loc-v0.gif" alt="CIFAR10Loc-v0" width="150px"/><br/>
-            <a href="doc/CIFAR10Loc.md">
-                CIFAR10Loc-v0
+            <img src="doc/img/CIFAR10Search-v0.gif" alt="CIFAR10Search-v0" width="150px"/><br/>
+            <a href="doc/CIFAR10Search.md">
+                CIFAR10Search-v0
             </a>
         </td>
     </tr>

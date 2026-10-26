@@ -5,6 +5,7 @@ from typing import Any, Sequence, Callable, overload
 
 import gymnasium as gym
 import gymnasium.utils.passive_env_checker
+from gymnasium import logger
 import numpy as np
 from gymnasium.envs.registration import (
     WrapperSpec,
@@ -407,6 +408,57 @@ def register_circle_square(
     )
 
 
+# Env names that were renamed, old name -> new name. Every registered variant of a new name (splits, -sparse) stays
+# available under the old name as a deprecated alias.
+RENAMED_ENVS = {
+    "MNISTLoc": "MNISTSearch",
+    "CIFAR10Loc": "CIFAR10Search",
+    "TinyImageNetLoc": "TinyImageNetSearch",
+}
+
+# IDs registered only as deprecated aliases (filled by register_deprecated_aliases)
+DEPRECATED_ENV_IDS: set[str] = set()
+
+
+def _deprecated_creator(
+    creator: EnvCreator | VectorEnvCreator | str | None, old_id: str, new_id: str
+):
+    if creator is None:
+        return None
+
+    load = creator if callable(creator) else load_env_creator(creator)
+
+    def create(*args, **kwargs):
+        logger.deprecation(f"{old_id} is deprecated, use {new_id} instead.")
+        return load(*args, **kwargs)
+
+    return create
+
+
+def register_deprecated_aliases(renamed_envs: dict[str, str]):
+    for new_id, spec in list(gym.registry.items()):
+        ns, name, version = parse_env_id(new_id)
+        for old_name, new_name in renamed_envs.items():
+            if name != new_name and not name.startswith(f"{new_name}-"):
+                continue
+            old_id = get_env_id(ns, old_name + name[len(new_name) :], version)
+            gym.register(
+                id=old_id,
+                entry_point=_deprecated_creator(spec.entry_point, old_id, new_id),
+                vector_entry_point=_deprecated_creator(
+                    spec.vector_entry_point, old_id, new_id
+                ),
+                additional_wrappers=spec.additional_wrappers,
+                reward_threshold=spec.reward_threshold,
+                nondeterministic=spec.nondeterministic,
+                max_episode_steps=spec.max_episode_steps,
+                order_enforce=spec.order_enforce,
+                disable_env_checker=spec.disable_env_checker,
+                kwargs=spec.kwargs,
+            )
+            DEPRECATED_ENV_IDS.add(old_id)
+
+
 def register_envs():
     register_circle_square(
         28,
@@ -591,13 +643,13 @@ def register_envs():
     )
 
     register_image_localization_envs(
-        name=f"MNISTLoc",
+        name=f"MNISTSearch",
         datasets=lambda split: HuggingfaceImageClassificationDataset(
             "mnist", channels=1, split=split
         ),
         step_limit=16,
         kwargs=image_env_render_kwargs,
-        description="In the MNISTLoc environment, the agent's objective is to localize a given glimpse in an MNIST "
+        description="In the MNISTSearch environment, the agent's objective is to localize a given glimpse in an MNIST "
         "image. The agent has limited visibility, represented by a small movable glimpse that captures partial views "
         "of the image. It must strategically explore different regions of the image to gather enough information for "
         "accurate localization.",
@@ -605,13 +657,13 @@ def register_envs():
     )
 
     register_image_localization_envs(
-        name=f"CIFAR10Loc",
+        name=f"CIFAR10Search",
         datasets=lambda split: HuggingfaceImageClassificationDataset(
             "cifar10", image_feature_name="img", split=split
         ),
         step_limit=16,
         kwargs=image_env_render_kwargs,
-        description="In the CIFAR10Loc environment, the agent's objective is to localize a given glimpse in a natural "
+        description="In the CIFAR10Search environment, the agent's objective is to localize a given glimpse in a natural "
         "image. The agent has limited visibility, represented by a small movable glimpse that captures partial views "
         "of the image. It must strategically explore different regions of the image to gather enough information for "
         "accurate localization.",
@@ -619,20 +671,20 @@ def register_envs():
     )
 
     register_image_localization_envs(
-        name=f"TinyImageNetLoc",
+        name=f"TinyImageNetSearch",
         datasets=lambda split: HuggingfaceImageClassificationDataset(
             "zh-plus/tiny-imagenet",
             split=split if split == "train" else "valid",
         ),
         step_limit=16,
         kwargs=dict(sensor_size=(10, 10), **image_env_render_kwargs),
-        description="In the TinyImageNetLoc environment, the agent's objective is to localize a given glimpse in a "
+        description="In the TinyImageNetSearch environment, the agent's objective is to localize a given glimpse in a "
         "natural image. The agent has limited visibility, represented by a small movable glimpse that captures partial "
         "views of the image. It must strategically explore different regions of the image to gather enough information "
-        "for accurate classification.\n\nCompared to the CIFAR10Loc environment, the TinyImageNetLoc dataset contains "
+        "for accurate classification.\n\nCompared to the CIFAR10Search environment, the TinyImageNetSearch dataset contains "
         "higher resolution images from more diverse classes. Also, the glimpse size is larger to account for the "
         "higher image resolution. Consequently, this environment introduces additional complexity compared to "
-        "CIFAR10Loc.",
+        "CIFAR10Search.",
         image_description="Natural images from the "
         "[Tiny ImageNet dataset](https://huggingface.co/datasets/zh-plus/tiny-imagenet).",
     )
@@ -688,6 +740,8 @@ def register_envs():
         "additional input.",
         map_type="rooms",
     )
+
+    register_deprecated_aliases(RENAMED_ENVS)
 
 
 def custom_check_space(

@@ -6,8 +6,8 @@ around to gather information. Unlike the [Image Classification Environments](Ima
 this task is a regression task where the agent has to predict the coordinates of the target glimpse it is
 provided.
 
-Consider the following example from the [TinyImageNetLoc](TinyImageNetLoc.md) environment:
-<p align="center"><img src="img/TinyImageNetLoc-v0.gif" alt="TinyImageNetLoc-v0" width="200px"/></p>
+Consider the following example from the [TinyImageNetSearch](TinyImageNetSearch.md) environment:
+<p align="center"><img src="img/TinyImageNetSearch-v0.gif" alt="TinyImageNetSearch-v0" width="200px"/></p>
 Marked in blue is the agent's current glimpse. The transparent purple box represents the target glimpse the
 agent has to predict the coordinates of and the opaque purple box is the agent's current prediction. We further
 mark the history of glimpses the agent has taken in a color scale ranging from red to green, red meaning that
@@ -92,7 +92,7 @@ The episode ends with the terminate flag set if the maximum number of steps (`im
 
 ## Overview of Implemented Environments
 
-| Environment ID                           | Image type | # data points | Image size | Glimpse size | Step limit | Image description                                                                                       |
-|------------------------------------------|------------|---------------|------------|--------------|------------|---------------------------------------------------------------------------------------------------------|
-| [CIFAR10Loc-v0](CIFAR10Loc.md)           | RGB        | 50000         | 32x32      | 5x5          | 16         | Natural images from the [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).                 |
-| [TinyImageNetLoc-v0](TinyImageNetLoc.md) | RGB        | 100000        | 64x64      | 10x10        | 16         | Natural images from the [Tiny ImageNet dataset](https://huggingface.co/datasets/zh-plus/tiny-imagenet). |
+| Environment ID                                 | Image type | # data points | Image size | Glimpse size | Step limit | Image description                                                                                       |
+|------------------------------------------------|------------|---------------|------------|--------------|------------|---------------------------------------------------------------------------------------------------------|
+| [CIFAR10Search-v0](CIFAR10Search.md)           | RGB        | 50000         | 32x32      | 5x5          | 16         | Natural images from the [CIFAR10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html).                 |
+| [TinyImageNetSearch-v0](TinyImageNetSearch.md) | RGB        | 100000        | 64x64      | 10x10        | 16         | Natural images from the [Tiny ImageNet dataset](https://huggingface.co/datasets/zh-plus/tiny-imagenet). |
