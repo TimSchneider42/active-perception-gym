@@ -312,6 +312,11 @@ ap_env_3 = ap_gym.ensure_active_perception_env(
 These functions automatically detect whether to do nothing, apply a restoration wrapper, or perform pseudo active
 perception environment conversion.
 
+## Baseline Data
+
+The learning curves of the baselines on all environments (returns, prediction losses, accuracies and errors over training, 5 seeds each) are available as CSV files in [baseline-data](baseline-data).
+The format of these files is described in [baseline-data/README.md](baseline-data/README.md).
+
 ## Advanced Usage
 
 For more advanced usage, i.e., defining custom environments or wrappers, refer to the [advanced usage documentation](doc/advanced_usage.md).
