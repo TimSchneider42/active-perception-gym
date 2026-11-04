@@ -317,6 +317,25 @@ perception environment conversion.
 The learning curves of the baselines on all environments (returns, prediction losses, accuracies and errors over training, 5 seeds each) are available as CSV files in [baseline-data](baseline-data).
 The format of these files is described in [baseline-data/README.md](baseline-data/README.md).
 
+### Reproducing the Baselines
+
+The baselines were trained with [APPLE](https://github.com/TimSchneider42/apple).
+To reproduce them, install APPLE as described in its README and run from its directory:
+
+```bash
+# CONFIG: dense/sac=crossq, dense/sac=sac, dense/sac=random_act, dense/ppo=ppo or dense/ham=ham; SEED: 0 to 4
+./run_experiment.bash CONFIG ENV_ID EVAL_ENV_ID seed=SEED
+```
+
+`CircleSquare-v0`, `LightDark-v0` and the `LIDARLoc*-v0` environments have no evaluation environment; pass `null` as `EVAL_ENV_ID` for them.
+`LIDARLocRooms-v0` and `LIDARLocMaze-v0` use the vision-based configurations (`vit/sac=crossq`, `vit/sac=sac` or `vit/sac=random_act`) instead.
+For example:
+
+```bash
+./run_experiment.bash dense/sac=crossq MNIST-v0 MNIST-test-v0 seed=0
+./run_experiment.bash dense/ppo=ppo LightDark-v0 null seed=0
+```
+
 ## Advanced Usage
 
 For more advanced usage, i.e., defining custom environments or wrappers, refer to the [advanced usage documentation](doc/advanced_usage.md).
