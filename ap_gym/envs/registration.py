@@ -568,7 +568,7 @@ def register_envs():
     register_image_classification_envs(
         name=f"MNIST",
         datasets=lambda split: HuggingfaceImageClassificationDataset(
-            "mnist", channels=1, split=split
+            "ylecun/mnist", channels=1, split=split
         ),
         step_limit=16,
         description="In the MNIST environment, the agent's objective is to classify images of handwritten digits "
@@ -582,7 +582,7 @@ def register_envs():
     register_image_classification_envs(
         name="CIFAR10",
         datasets=lambda split: HuggingfaceImageClassificationDataset(
-            "cifar10", image_feature_name="img", split=split
+            "uoft-cs/cifar10", image_feature_name="img", split=split
         ),
         step_limit=16,
         kwargs=image_env_render_kwargs,
@@ -613,7 +613,7 @@ def register_envs():
         register_image_classification_envs(
             name=f"CIFAR10-c{i}",
             datasets=lambda split: HuggingfaceImageClassificationDataset(
-                "cifar10",
+                "uoft-cs/cifar10",
                 image_feature_name="img",
                 split=split,
                 filter_labels=CIFAR10_classes[:i],
@@ -645,7 +645,7 @@ def register_envs():
     register_image_localization_envs(
         name=f"MNISTSearch",
         datasets=lambda split: HuggingfaceImageClassificationDataset(
-            "mnist", channels=1, split=split
+            "ylecun/mnist", channels=1, split=split
         ),
         step_limit=16,
         kwargs=image_env_render_kwargs,
@@ -659,7 +659,7 @@ def register_envs():
     register_image_localization_envs(
         name=f"CIFAR10Search",
         datasets=lambda split: HuggingfaceImageClassificationDataset(
-            "cifar10", image_feature_name="img", split=split
+            "uoft-cs/cifar10", image_feature_name="img", split=split
         ),
         step_limit=16,
         kwargs=image_env_render_kwargs,
